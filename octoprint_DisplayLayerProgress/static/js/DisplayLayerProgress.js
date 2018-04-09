@@ -9,10 +9,19 @@ $(function() {
         var self = this;
 
         // assign the injected parameters, e.g.:
-        // self.loginStateViewModel = parameters[0];
-        // self.settingsViewModel = parameters[1];
+        self.loginStateViewModel = parameters[0];
+        self.settingsViewModel = parameters[1];
 
         // TODO: Implement your plugin's view model here.
+        self.progressMessage = ko.observable();
+
+        self.onDataUpdaterPluginMessage = function(plugin, data) {
+            //alert("data")
+            if (plugin != "DisplayLayerProgress") {
+                return;
+            }
+            self.progressMessage(data.progressMessage);
+        };
     }
 
     /* view model class, parameters for constructor, container to bind to
@@ -22,8 +31,12 @@ $(function() {
     OCTOPRINT_VIEWMODELS.push({
         construct: DisplaylayerprogressViewModel,
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
-        dependencies: [ /* "loginStateViewModel", "settingsViewModel" */ ],
+        dependencies: [ /*  */
+            "loginStateViewModel", "settingsViewModel"
+        ],
         // Elements to bind to, e.g. #settings_plugin_DisplayLayerProgress, #tab_plugin_DisplayLayerProgress, ...
-        elements: [ /* ... */ ]
+        elements: [ /* ... */
+            document.getElementById("progressinfo_plugin_navbar")
+        ]
     });
 });
