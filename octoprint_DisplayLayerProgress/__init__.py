@@ -21,7 +21,7 @@ from octoprint.events import Events
 
 ## CONSTs
 NOT_PRESENT = "NOT-PRESENT"
-LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer:"
+LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
 LAYER_EXPRESSION = ";LAYER:([0-9]*)"
 LAYER_COUNT_EXPRESSION = ";LAYER_COUNT:([0-9]*)"
 
@@ -73,12 +73,14 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 		commandAsString = str(cmd)
 		if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
 			self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX)])+1)
+			## filter M117 command, not needed any more
+			return None
 		return
 
 	## progress-hook
 	def on_print_progress(self, storage, path, progress):
 		# progress 0 - 100
-		self._logger.error("**** print_progress: '" + storage + "' '" + path + "' '" + str(progress) + "'")
+		self._logger.info("**** print_progress: '" + storage + "' '" + path + "' '" + str(progress) + "'")
 
 		progressMessageCommand = ""
 		progressMessageNavBar = ""

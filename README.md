@@ -34,3 +34,6 @@ or manually using this URL:
 
 No configuration needed
 
+## Versions
+- 1.0.0 inital release
+- 1.0.1 [BUGFIX] : not allowed in M117 message
