@@ -7,17 +7,20 @@ It shows the percentage, the current layer and the total layer count:
 - Printer Display: 50% 60/120
 - NavBar: Process: 50% Layer: 60/120
 
-ATTENTION: The layer information output only works with Cura generated G-Code, because Cura insert the layer information (layer, layerCount) as comments in the file.
+**ATTENTION:** 
+- The layer information output only works with Cura generated G-Code, because Cura insert the layer information (layer, layerCount) as comments in the file.
+- You need to upload your G-Code after installation of the plugin again (if you want to reuse already stored models in OctoPrint), because while uploading the G-Code is modfied
+
+The implementation is based on four steps:
+
+1. PreProcessing the uploaded G-Code (replace layer-comment with M117) 
+2. Read total layer count from G-Code before start
+3. G-Code-Hook to collect the current layer information (M117-command from step 1)
+4. Progress-Hook to write all information to the printer/navbar
 
 ![alt text](https://plugins.octoprint.org/assets/img/plugins/DisplayLayerProgress/example-navbar-display.jpg "Progress in NavBar")
 ![alt text](https://plugins.octoprint.org/assets/img/plugins/DisplayLayerProgress/example-printer-display.jpg "Progress in Printer-Display")
 
-The implementation is based on four steps:
-
-1. PreProcessing the uploaded GCode (replace layer-comment with M117) 
-2. Read total layer count from G-Code before start
-3. GCode-Hook to collect the current layer information (M117-command from step 1)
-4. Progress-Hook to write all information to the printer/navbar
  
 ## Setup
 
