@@ -170,11 +170,11 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 				# version check: github repository
 				type="github_release",
 				user="OllisGit",
-				repo="DisplayLayerProgress",
+				repo="OctoPrint-DisplayLayerProgress",
 				current=self._plugin_version,
 
 				# update method: pip
-				pip="https://github.com/OllisGit/DisplayLayerProgress/archive/{target_version}.zip"
+				pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/archive/{target_version}.zip"
 			)
 		)
 
