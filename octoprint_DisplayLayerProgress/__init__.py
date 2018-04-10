@@ -164,7 +164,7 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 		# for details.
 		return dict(
 			DisplayLayerProgress=dict(
-				displayName="Displaylayerprogress Plugin",
+				displayName="DisplayLayerProgress Plugin",
 				displayVersion=self._plugin_version,
 
 				# version check: github repository
