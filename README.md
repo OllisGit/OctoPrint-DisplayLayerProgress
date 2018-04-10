@@ -8,8 +8,9 @@ It shows the percentage, the current layer and the total layer count:
 - NavBar: Process: 50% Layer: 60/120
 
 ATTENTION: The layer information output only works with Cura generated G-Code, because Cura insert the layer information (layer, layerCount) as comments in the file.
- 
-**TODO:** add screenshot of Printer-Dislay and NavBar
+
+![alt text](https://plugins.octoprint.org/assets/img/plugins/DisplayLayerProgress/example-navbar-display.jpg "Progress in NavBar")
+![alt text](https://plugins.octoprint.org/assets/img/plugins/DisplayLayerProgress/example-printer-display.jpg "Progress in Printer-Display")
 
 The implementation is based on four steps:
 
