@@ -72,9 +72,10 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 	def myGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
 		commandAsString = str(cmd)
 		if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
+			self._logger.info("**** g-code hook: '" + commandAsString +"'")
 			self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX)])+1)
 			## filter M117 command, not needed any more
-			return None
+			return []
 		return
 
 	## progress-hook
