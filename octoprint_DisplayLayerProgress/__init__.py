@@ -91,7 +91,7 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 			progressMessageNavBar = "Progress: " + str(progress) + "% "
 		else:
 			progressMessageCommand = "M117 " + str(
-				progress) + "% " + self._currentLayer + "/" + self._layerTotalCount + " "
+				progress) + "% " + self._currentLayer + "/" + self._layerTotalCount + "_"
 			progressMessageNavBar = "Progress: " + str(
 				progress) + "%  Layer:" + self._currentLayer + "/" + self._layerTotalCount + " "
 
