@@ -11,6 +11,12 @@ It shows the percentage, the current layer and the total layer count:
 - The layer information output only works with Cura generated G-Code, because Cura insert the layer information (layer, layerCount) as comments in the file.
 - You need to upload your G-Code after installation of the plugin again (if you want to reuse already stored models in OctoPrint), because while uploading the G-Code is modfied
 
+**CURA Comment Format Example:**
+```
+;LAYER_COUNT:330
+;LAYER:0
+```
+
 The implementation is based on four steps:
 
 1. PreProcessing the uploaded G-Code (replace layer-comment with M117) 
