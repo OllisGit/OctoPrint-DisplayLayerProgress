@@ -71,7 +71,7 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 		commandAsString = str(cmd)
 		if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
 			self._logger.info("**** g-code hook: '" + commandAsString +"'")
-			self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX)])+1)
+			self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):])+1)
 			## filter M117 command, not needed any more
 			return []
 		return
@@ -91,7 +91,7 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 			progressMessageCommand = "M117 " + str(
 				progress) + "% " + self._currentLayer + "/" + self._layerTotalCount + "_"
 			progressMessageNavBar = "Progress: " + str(
-				progress) + "%  Layer:" + self._currentLayer + "/" + self._layerTotalCount + " "
+				progress) + "%  Layer: " + self._currentLayer + "/" + self._layerTotalCount + " "
 
 		print("###################################################################################")
 		print(progressMessageCommand)
