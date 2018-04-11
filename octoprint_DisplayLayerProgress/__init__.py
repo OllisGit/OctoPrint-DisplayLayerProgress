@@ -17,8 +17,6 @@ import octoprint.util
 
 from octoprint.events import Events
 
-
-
 ## CONSTs
 NOT_PRESENT = "NOT-PRESENT"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
