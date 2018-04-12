@@ -99,8 +99,8 @@ class DisplaylayerprogressPlugin(
 		self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage=layerMessageNaveBar))
 
 		# Send to log
-		print("NAVBAR:"+progressMessageNavBar)
-		print("GCODE:"+progressMessageCommand)
+		print("** NAVBAR:"+progressMessageNavBar)
+		print("** GCODE:"+progressMessageCommand)
 		self._logger.info(progressMessageNavBar)
 
 	# start/stop event-hook
