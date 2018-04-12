@@ -8,20 +8,21 @@ It shows the percentage, the current layer and the total layer count:
 - NavBar: Progress: 50% Layer: 60/120
 
 **ATTENTION:** 
-- The layer information output only works with Cura generated G-Code, because Cura insert the layer information (layer, layerCount) as comments in the file.
+- The layer information output only works with "Cura"/"Simplify3D" generated G-Code, because these Slicer insert the layer information directly as comments in the file. 
+If you want to use "slic3r", see [Enhancement #8](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/8)
 - If the layer comments couldn't found, only the percentage will be displayed
 - You need to upload your G-Code after installation of the plugin again (if you want to reuse already stored models in OctoPrint), because while uploading the G-Code is modfied
 
-**CURA Comment Format Example:**
-```
-;LAYER_COUNT:330
-;LAYER:0
-```
+**Comment Format Examples:**
+
+CURA: ```;LAYER:10```
+
+Simplify3D: ```; layer 10, Z = 1.640```
 
 The implementation is based on four steps:
 
 1. PreProcessing the uploaded G-Code (replace layer-comment with M117) 
-2. Read total layer count from G-Code before start
+2. Read total layer count from G-Code before start (used last layer-comment)
 3. G-Code-Hook to collect the current layer information (M117-command from step 1)
 4. Progress-Hook to write all information to the printer/navbar
 
@@ -42,9 +43,7 @@ or manually using this URL:
 No configuration needed
 
 ## Versions
-- 1.0.3 [BUGFIX] if total layer > 10 than this display was currupt. Thx @TomW1605
-- 1.0.2 [BUGFIX #4] Last char in ANET E10 now visible
-- 1.0.1 [BUGFIX] Dot not allowed in M117 message
-- 1.0.0 inital release
+see [Release-Overview](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/)
+
 
 
