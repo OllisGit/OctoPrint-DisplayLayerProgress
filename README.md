@@ -42,9 +42,7 @@ or manually using this URL:
 No configuration needed
 
 ## Versions
-- 1.0.3 [BUGFIX] if total layer > 10 than this display was currupt. Thx @TomW1605
-- 1.0.2 [BUGFIX #4] Last char in ANET E10 now visible
-- 1.0.1 [BUGFIX] Dot not allowed in M117 message
-- 1.0.0 inital release
+see [Release-Overview](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/)
+
 
 
