@@ -20,7 +20,8 @@ from octoprint.events import Events
 ## CONSTs
 NOT_PRESENT = "NOT-PRESENT"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
-LAYER_EXPRESSION = ";LAYER:([0-9]*)"
+LAYER_EXPRESSION_CURA = ";LAYER:([0-9]*)"
+LAYER_EXPRESSION_S3D = "; layer ([0-9]*),*"
 #LAYER_COUNT_EXPRESSION = ";LAYER_COUNT:([0-9]*)"	--> not usful for other slicer
 LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX+"([0-9]*)"
 
@@ -28,19 +29,24 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
 
 
 	def process_line(self, line):
-		markerLayer = LAYER_EXPRESSION
-		pattern = re.compile(markerLayer)
 
-		matched = pattern.match(line)
-		if matched:
-			currentLayer = matched.group(1)
-			line = LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
+		line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_CURA)
+		line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_S3D)
 
 		#line = strip_comment(line).strip() DO NOT USE, because total-layer count disapears
 		if not len(line):
 			return None
 		return line
 
+	def _checkLineForLayerComment(self, line, commentPattern):
+		pattern = re.compile(commentPattern)
+		matched = pattern.match(line)
+
+		if matched:
+			currentLayer = matched.group(1)
+			line = LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
+
+		return line
 
 class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
                                  octoprint.plugin.AssetPlugin,

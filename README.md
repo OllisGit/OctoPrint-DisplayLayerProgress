@@ -8,20 +8,20 @@ It shows the percentage, the current layer and the total layer count:
 - NavBar: Progress: 50% Layer: 60/120
 
 **ATTENTION:** 
-- The layer information output only works with Cura generated G-Code, because Cura insert the layer information (layer, layerCount) as comments in the file.
+- The layer information output only works with Cura/Simplify3D generated G-Code, because these Slicer insert the layer information as comments in the file.
 - If the layer comments couldn't found, only the percentage will be displayed
 - You need to upload your G-Code after installation of the plugin again (if you want to reuse already stored models in OctoPrint), because while uploading the G-Code is modfied
 
-**CURA Comment Format Example:**
-```
-;LAYER_COUNT:330
-;LAYER:0
-```
+**Comment Format Examples:**
+
+CURA: ```;LAYER:10```
+
+Simplify3D: ```; layer 10, Z = 1.640```
 
 The implementation is based on four steps:
 
 1. PreProcessing the uploaded G-Code (replace layer-comment with M117) 
-2. Read total layer count from G-Code before start
+2. Read total layer count from G-Code before start (used last layer-comment)
 3. G-Code-Hook to collect the current layer information (M117-command from step 1)
 4. Progress-Hook to write all information to the printer/navbar
 
