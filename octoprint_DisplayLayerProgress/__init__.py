@@ -43,7 +43,7 @@ class DisplaylayerprogressPlugin(
 	octoprint.plugin.EventHandlerPlugin,
 	octoprint.plugin.ProgressPlugin
 ):
-	
+
 	# VAR
 	_layerTotalCount = NOT_PRESENT
 	_currentLayer = NOT_PRESENT
@@ -65,7 +65,7 @@ class DisplaylayerprogressPlugin(
 		if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
 			self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + 1)
 			self._logger.info("**** g-code hook: '" + self._currentLayer + "'")
-			self.updateDisplay()
+			self._updateDisplay()
 			# filter M117 command, not needed any more
 			return []
 		return
@@ -75,16 +75,16 @@ class DisplaylayerprogressPlugin(
 		# progress 0 - 100
 		self._progress = str(progress)
 		self._logger.info("**** print_progress: '" + self._progress + "'")
-		self.updateDisplay()
+		self._updateDisplay()
 
-	def updateDisplay(self):
+	def _updateDisplay(self):
 		if self._layerTotalCount == NOT_PRESENT:
 			progressMessageCommand = "M117 " + self._progress + "% "
 			progressMessageNavBar = "Progress: " + self._progress + "%"
 			layerMessageNaveBar = "Layer: - / -"
 
 		elif self._currentLayer == NOT_PRESENT:
-			progressMessageCommand = "M117 " + self._progress + "% "
+			progressMessageCommand = "M117 " + self._progress + "%  0 / " + self._layerTotalCount
 			progressMessageNavBar = "Progress: " + self._progress + "%"
 			layerMessageNaveBar = "Layer: 0 / " + self._layerTotalCount
 
@@ -99,7 +99,8 @@ class DisplaylayerprogressPlugin(
 		self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage=layerMessageNaveBar))
 
 		# Send to log
-		print(progressMessageNavBar)
+		print("NAVBAR:"+progressMessageNavBar)
+		print("GCODE:"+progressMessageCommand)
 		self._logger.info(progressMessageNavBar)
 
 	# start/stop event-hook
@@ -107,7 +108,10 @@ class DisplaylayerprogressPlugin(
 		if event == Events.FILE_SELECTED:
 			self._logger.info("File selected. Determining number of layers.")
 
+			#reset layer-values
+			self._layerTotalCount = NOT_PRESENT
 			self._currentLayer = NOT_PRESENT
+			self._progress = str(0)
 
 			selectedFile = payload.get("file", "")
 			markerLayerCount = LAYER_COUNT_EXPRESSION
@@ -120,15 +124,15 @@ class DisplaylayerprogressPlugin(
 					matched = pattern.match(line)
 					if matched:
 						self._layerTotalCount = str(int(matched.group(1)) + 1)
-			self.updateDisplay()
+			self._updateDisplay()
 		elif event == Events.PRINT_STARTED:
 			self._logger.info("Printing started. Detailed progress started." + str(payload))
-			self.updateDisplay()
+			self._updateDisplay()
 		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
 			self._logger.info("Printing stopped. Detailed progress stopped.")
 
 			# send to navbar
-			self.updateDisplay()
+			self._updateDisplay()
 			# send to the printer
 			self._printer.commands("M117 Print Done")
 
