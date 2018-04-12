@@ -4,7 +4,7 @@
  * Author: Olli
  * License: AGPLv3
  */
-$(function() {
+$(function () {
     function DisplaylayerprogressViewModel(parameters) {
         var self = this;
 
@@ -15,7 +15,7 @@ $(function() {
         // TODO: Implement your plugin's view model here.
         self.progressMessage = ko.observable();
 
-        self.onDataUpdaterPluginMessage = function(plugin, data) {
+        self.onDataUpdaterPluginMessage = function (plugin, data) {
             //alert("data")
             if (plugin != "DisplayLayerProgress") {
                 return;
@@ -31,12 +31,8 @@ $(function() {
     OCTOPRINT_VIEWMODELS.push({
         construct: DisplaylayerprogressViewModel,
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
-        dependencies: [ /*  */
-            "loginStateViewModel", "settingsViewModel"
-        ],
+        dependencies: ["loginStateViewModel", "settingsViewModel"],
         // Elements to bind to, e.g. #settings_plugin_DisplayLayerProgress, #tab_plugin_DisplayLayerProgress, ...
-        elements: [ /* ... */
-            document.getElementById("progressinfo_plugin_navbar")
-        ]
+        elements: [document.getElementById("progressinfo_plugin_navbar")]
     });
 });
