@@ -21,7 +21,8 @@ from octoprint.events import Events
 NOT_PRESENT = "NOT-PRESENT"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
 LAYER_EXPRESSION = ";LAYER:([0-9]*)"
-LAYER_COUNT_EXPRESSION = ";LAYER_COUNT:([0-9]*)"
+#LAYER_COUNT_EXPRESSION = ";LAYER_COUNT:([0-9]*)"	--> not usful for other slicer
+LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX+"([0-9]*)"
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 
@@ -51,9 +52,9 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 								 ):
 
 	## VAR
-	_layerTotalCount = NOT_PRESENT
-	_currentLayer = NOT_PRESENT
-
+	_layerTotalCount = NOT_PRESENT # TODO change to int
+	_currentLayer = NOT_PRESENT	#TODO change to int
+	_currentProgress = 0
 
 	## Modififed the GCODE -> replace all Layer-Comments with G-Code Message-Comments
 	def myPreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args, **kwargs):
@@ -72,35 +73,42 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 		if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
 			self._logger.info("**** g-code hook: '" + commandAsString +"'")
 			self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):])+1)
-			## filter M117 command, not needed any more
-			return []
+			# layer changed -> printIt
+
+			progressMessageCommand = self._buildProgressMessageCommand()
+			progressMessageNavBar = self._buildProgressMessageNavBar()
+
+			print("### GCODE ################################################################################")
+			print(progressMessageCommand)
+			print(progressMessageNavBar)
+			print("###################################################################################")
+
+			# Send to NAVBAR
+			self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage=progressMessageNavBar))
+
+			# Send to PRINTER
+			return [progressMessageCommand]
 		return
 
 	## progress-hook
 	def on_print_progress(self, storage, path, progress):
 		# progress 0 - 100
 		self._logger.info("**** print_progress: '" + storage + "' '" + path + "' '" + str(progress) + "'")
+		self._currentProgress = progress
 
-		progressMessageCommand = ""
-		progressMessageNavBar = ""
-		if self._layerTotalCount == NOT_PRESENT or self._currentLayer == NOT_PRESENT:
-			# show only the percentage
-			progressMessageCommand = "M117 " + str(progress) + "% "
-			progressMessageNavBar = "Progress: " + str(progress) + "% "
-		else:
-			progressMessageCommand = "M117 " + str(
-				progress) + "% " + self._currentLayer + "/" + self._layerTotalCount + "_"
-			progressMessageNavBar = "Progress: " + str(
-				progress) + "%  Layer: " + self._currentLayer + "/" + self._layerTotalCount + " "
+		progressMessageCommand = self._buildProgressMessageCommand()
+		progressMessageNavBar = self._buildProgressMessageNavBar()
 
-		print("###################################################################################")
+		print("### PROGRESS ################################################################################")
 		print(progressMessageCommand)
+		print(progressMessageNavBar)
 		print("###################################################################################")
 
 		# Send to PRINTER
 		self._printer.commands(progressMessageCommand)
 		# Send to NAVBAR
 		self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage=progressMessageNavBar))
+
 
 	## start/stop event-hook
 	def on_event(self, event, payload):
@@ -127,16 +135,41 @@ class DisplaylayerprogressPlugin(octoprint.plugin.SettingsPlugin,
 					# self._logger.info("line:"+line)
 					matched = pattern.match(line)
 					if matched:
-						self._layerTotalCount = matched.group(1)
+						self._layerTotalCount = str(int(matched.group(1)) +1)
 		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
 			self._logger.info("Printing stopped. Detailed progress stopped.")
 
+			# reset "running"-variables
 			self._layerTotalCount = NOT_PRESENT
 			self._currentLayer = NOT_PRESENT
+			self._currentProgress = 0
 			# send to the printer
 			self._printer.commands("M117 Print Done")
 			# send to navbar
 			self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage="Print Done"))
+
+	def _buildProgressMessageCommand(self):
+		progressMessageCommand = ""
+		if self._layerTotalCount == NOT_PRESENT or self._currentLayer == NOT_PRESENT:
+			# show only the percentage
+			progressMessageCommand = "M117 " + str(self._currentProgress) + "% "
+		else:
+			progressMessageCommand = "M117 " + str(
+				self._currentProgress) + "% " + self._currentLayer + "/" + self._layerTotalCount + "_"
+
+		return progressMessageCommand
+
+
+	def _buildProgressMessageNavBar(self):
+		progressMessageNavBar = ""
+		if self._layerTotalCount == NOT_PRESENT or self._currentLayer == NOT_PRESENT:
+			# show only the percentage
+			progressMessageNavBar = "Progress: " + str(self._currentProgress) + "% "
+		else:
+			progressMessageNavBar = "Progress: " + str(
+				self._currentProgress) + "%  Layer: " + self._currentLayer + "/" + self._layerTotalCount + " "
+
+		return progressMessageNavBar
 
 
 	##~~ SettingsPlugin mixin
