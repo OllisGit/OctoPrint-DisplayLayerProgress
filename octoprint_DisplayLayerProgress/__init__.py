@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import octoprint.filemanager
 import octoprint.filemanager.util
 import octoprint.plugin
+import octoprint.printer
 import octoprint.util
 import re
 from octoprint.events import Events
@@ -50,7 +51,7 @@ class DisplaylayerprogressPlugin(
 	_progress = str(0)
 
 	# Modified the GCODE -> replace all Layer-Comments with G-Code Message-Comments
-	def myPreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args, **kwargs):
+	def myFilePreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args, **kwargs):
 		if not octoprint.filemanager.valid_file_type(path, type="gcode"):
 			return file_object
 
@@ -76,32 +77,6 @@ class DisplaylayerprogressPlugin(
 		self._progress = str(progress)
 		self._logger.info("**** print_progress: '" + self._progress + "'")
 		self._updateDisplay()
-
-	def _updateDisplay(self):
-		if self._layerTotalCount == NOT_PRESENT:
-			progressMessageCommand = "M117 " + self._progress + "% "
-			progressMessageNavBar = "Progress: " + self._progress + "%"
-			layerMessageNaveBar = "Layer: - / -"
-
-		elif self._currentLayer == NOT_PRESENT:
-			progressMessageCommand = "M117 " + self._progress + "%  0 / " + self._layerTotalCount
-			progressMessageNavBar = "Progress: " + self._progress + "%"
-			layerMessageNaveBar = "Layer: 0 / " + self._layerTotalCount
-
-		else:
-			progressMessageCommand = "M117 " + self._progress + "% " + self._currentLayer + "/" + self._layerTotalCount + " "
-			progressMessageNavBar = "Progress: " + self._progress + "%  Layer: " + self._currentLayer + " / " + self._layerTotalCount
-			layerMessageNaveBar = "Layer: " + self._currentLayer + " / " + self._layerTotalCount
-
-		# Send to PRINTER
-		self._printer.commands(progressMessageCommand)
-		# Send to NAVBAR
-		self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage=layerMessageNaveBar))
-
-		# Send to log
-		print("** NAVBAR:"+progressMessageNavBar)
-		print("** GCODE:"+progressMessageCommand)
-		self._logger.info(progressMessageNavBar)
 
 	# start/stop event-hook
 	def on_event(self, event, payload):
@@ -134,7 +109,39 @@ class DisplaylayerprogressPlugin(
 			# send to navbar
 			self._updateDisplay()
 			# send to the printer
-			self._printer.commands("M117 Print Done")
+			self._sendCommandToPrinter("M117 Print Done")
+
+	def _updateDisplay(self):
+		if self._layerTotalCount == NOT_PRESENT:
+			progressMessageCommand = "M117 " + self._progress + "% "
+			layerMessageNavBar = "Layer: - / -"
+
+		elif self._currentLayer == NOT_PRESENT:
+			progressMessageCommand = "M117 " + self._progress + "%  0 / " + self._layerTotalCount
+			layerMessageNavBar = "Layer: 0 / " + self._layerTotalCount
+
+		else:
+			progressMessageCommand = "M117 " + self._progress + "% " + self._currentLayer + "/" + self._layerTotalCount + " "
+			layerMessageNavBar = "Layer: " + self._currentLayer + " / " + self._layerTotalCount
+
+		# Send to PRINTER
+		self._sendCommandToPrinter(progressMessageCommand)
+		# Send to NAVBAR
+		self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage=layerMessageNavBar))
+
+		# Send to log
+		self._logger.info("** GCODE:"+progressMessageCommand)
+		self._logger.info("** NavBar:" +layerMessageNavBar)
+
+	# printer specific command-manipulation. e.g. ANET E10 cuts the last char from M117-commands, so this helper adds an additional underscore to the message
+	def _sendCommandToPrinter(self, command):
+		currentProfileName = self._printer_profile_manager._current["name"]
+		if "*** Ollis-Profile ***" == currentProfileName:
+			if command.startswith("M117"):
+				command = command + "_"
+		print("Send GCode:"+command)
+		self._printer.commands(command)
+
 
 	#~~ SettingsPlugin mixin
 	def get_settings_defaults(self):
@@ -186,5 +193,5 @@ def __plugin_load__():
 	__plugin_hooks__ = {
 		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
 		"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.myGCodeHook,
-		"octoprint.filemanager.preprocessor": __plugin_implementation__.myPreProcessor
+		"octoprint.filemanager.preprocessor": __plugin_implementation__.myFilePreProcessor
 	}

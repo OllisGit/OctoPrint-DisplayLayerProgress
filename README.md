@@ -4,8 +4,8 @@ A OctoPrint-Plugin that sends the current progress of a print via M117 command t
 
 It shows the percentage, the current layer and the total layer count:
 
-- Printer Display: 50% 60/120
-- NavBar: Progress: 50% Layer: 60/120
+- Printer Display: 50% 60 / 120
+- NavBar: Layer: 60 / 120
 
 **ATTENTION:** 
 - The layer information output only works with "Cura"/"Simplify3D" generated G-Code, because these Slicer insert the layer information directly as comments in the file. 
