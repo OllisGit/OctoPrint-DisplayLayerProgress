@@ -120,7 +120,6 @@ class DisplaylayerprogressPlugin(
 			self._progress = str(0)
 
 		elif event == Events.PRINT_STARTED:
-			self._currentLayer = str(0)
 			self._logger.info("Printing started. Detailed progress started." + str(payload))
 			self._updateDisplay()
 
