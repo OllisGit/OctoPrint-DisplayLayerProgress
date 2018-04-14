@@ -145,8 +145,8 @@ class DisplaylayerprogressPlugin(
 		self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage=layerMessageNavBar))
 
 		# Send to log
-		self._logger.info("** GCODE:" + progressMessageCommand)
-		self._logger.info("** NavBar:" + layerMessageNavBar)
+		self._logger.info("** GCODE: " + progressMessageCommand)
+		self._logger.info("** NavBar: " + layerMessageNavBar)
 
 	# printer specific command-manipulation. e.g. ANET E10 cuts the last char from M117-commands, so this helper adds an additional underscore to the message
 	def _sendCommandToPrinter(self, command):
