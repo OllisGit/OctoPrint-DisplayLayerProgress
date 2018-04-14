@@ -13,7 +13,7 @@ from octoprint.events import Events
 NOT_PRESENT = "NOT-PRESENT"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
 LAYER_EXPRESSION_CURA = ";LAYER:([0-9]*)"
-LAYER_EXPRESSION_S3D = "; layer ([0-9]*),*"
+LAYER_EXPRESSION_S3D = "; layer ([0-9]*),.*"
 LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
