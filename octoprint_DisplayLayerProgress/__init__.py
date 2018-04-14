@@ -24,7 +24,7 @@ LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
 
 PROGRESS_EXPRESSION = "[progress]"
 CURRENT_LAYER_EXPRESSION = "[current_layer]"
-TOTAL_LAYER_EXPRESSION = "[total_layer]"
+TOTAL_LAYER_EXPRESSION = "[total_layers]"
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 	def process_line(self, line):
@@ -182,8 +182,8 @@ class DisplaylayerprogressPlugin(
 			# put your plugin's default settings here
 			showOnNavBar = True,
 			showOnPrinterDisplay = True,
-			navBarMessagePattern = "Progress: [progress]% Layer: [current_layer] of [total_layer]",
-			printerDisplayMessagePattern = "[progress]% [current_layer] of [total_layer]",
+			navBarMessagePattern = "Progress: [progress]% Layer: [current_layer] of [total_layers]",
+			printerDisplayMessagePattern = "[progress]% [current_layer] of [total_layers]",
 			printerProfileName = ""
 		)
 
