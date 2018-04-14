@@ -1,0 +1,28 @@
+# Translations template for DisplayLayerProgress.
+# Copyright (C) 2018 The OctoPrint Project
+# This file is distributed under the same license as the
+# DisplayLayerProgress project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2018.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: DisplayLayerProgress 1.1.1\n"
+"Report-Msgid-Bugs-To: i18n@octoprint.org\n"
+"POT-Creation-Date: 2018-04-14 11:45+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.5.1\n"
+
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:25
+msgid "Layer"
+msgstr ""
+
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:26
+msgid "Shows the layer information"
+msgstr ""
+
