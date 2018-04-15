@@ -10,15 +10,21 @@ import re
 from octoprint.events import Events
 
 # CONSTs
+SETTINGS_KEY_SHOWON_NAVBAR = "showOnNavBar"
+SETTINGS_KEY_SHOWON_PRINTERDISPLAY = "showOnPrinterDisplay"
+SETTINGS_KEY_NAVBAR_MESSAGEPATTERN = "navBarMessagePattern"
+SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN = "printerDisplayMessagePattern"
+SETTINGS_KEY_PRINTER_PROFILE_NAME = "printerProfileName"
+
 NOT_PRESENT = "-"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
 LAYER_EXPRESSION_CURA = ";LAYER:([0-9]*)"
 LAYER_EXPRESSION_S3D = "; layer ([0-9]*),.*"
 LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
 
-PROGRESS_EXPRESSION = "[PROGRESS]"
-CURRENT_LAYER_EXPRESSION = "[CURRENT_LAYER]"
-MAX_LAYER_EXPRESSION = "[MAX_LAYER]"
+PROGRESS_EXPRESSION = "[progress]"
+CURRENT_LAYER_EXPRESSION = "[current_layer]"
+TOTAL_LAYER_EXPRESSION = "[total_layers]"
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 	def process_line(self, line):
@@ -41,19 +47,19 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
 		return line
 
 class DisplaylayerprogressPlugin(
+	octoprint.plugin.StartupPlugin,
 	octoprint.plugin.SettingsPlugin,
 	octoprint.plugin.AssetPlugin,
 	octoprint.plugin.TemplatePlugin,
 	# my stuff
 	octoprint.plugin.EventHandlerPlugin,
-	octoprint.plugin.ProgressPlugin):
+	octoprint.plugin.ProgressPlugin
+):
 
 	# VAR
 	_layerTotalCount = NOT_PRESENT
 	_currentLayer = NOT_PRESENT
 	_progress = str(0)
-	_navbarFormat = "Layer: [CURRENT_LAYER] / [MAX_LAYER]"
-	_printerFormat = "[PROGRESS]% [CURRENT_LAYER] / [MAX_LAYER]"
 
 	# Modified the GCODE -> replace all Layer-Comments with G-Code Message-Comments
 	def myFilePreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args, **kwargs):
@@ -87,7 +93,7 @@ class DisplaylayerprogressPlugin(
 	def on_event(self, event, payload):
 		if event == Events.FILE_SELECTED:
 			self._logger.info("File selected. Determining number of layers.")
-
+			## TODO make reset-methode
 			# reset layer-values
 			self._layerTotalCount = NOT_PRESENT
 			self._currentLayer = NOT_PRESENT
@@ -106,64 +112,81 @@ class DisplaylayerprogressPlugin(
 						self._layerTotalCount = str(int(matched.group(1)) + 1)
 			self._updateDisplay()
 
+		elif event == Events.FILE_DESELECTED:
+			## TODO make reset-methode
+			# reset layer-values
+			self._layerTotalCount = NOT_PRESENT
+			self._currentLayer = NOT_PRESENT
+			self._progress = str(0)
+
 		elif event == Events.PRINT_STARTED:
-			self._currentLayer = str(0)
 			self._logger.info("Printing started. Detailed progress started." + str(payload))
 			self._updateDisplay()
 
 		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
 			self._logger.info("Printing stopped. Detailed progress stopped.")
-			self._currentLayer = NOT_PRESENT
-			self._progress = str(0)
 
 			# send to navbar
 			self._updateDisplay()
 			# send to the printer
 			self._sendCommandToPrinter("M117 Print Done")
 
-		elif event == Events.FILE_DESELECTED:
-			self._layerTotalCount = NOT_PRESENT
-			self._currentLayer = NOT_PRESENT
-			self._progress = str(0)
-			self._updateDisplay()
-
 		elif event == Events.CLIENT_OPENED:
 			self._updateDisplay()
 
 	def _updateDisplay(self):
-		progressMessageCommand = "M117 " + self._printerFormat.replace(PROGRESS_EXPRESSION, self._progress)
-		progressMessageCommand = progressMessageCommand.replace(CURRENT_LAYER_EXPRESSION, self._currentLayer)
-		progressMessageCommand = progressMessageCommand.replace(MAX_LAYER_EXPRESSION, self._layerTotalCount)
 
-		layerMessageNavBar = self._navbarFormat.replace(PROGRESS_EXPRESSION, self._progress)
-		layerMessageNavBar = layerMessageNavBar.replace(CURRENT_LAYER_EXPRESSION, self._currentLayer)
-		layerMessageNavBar = layerMessageNavBar.replace(MAX_LAYER_EXPRESSION, self._layerTotalCount)
+		# TODO better string subtitution see https://www.safaribooksonline.com/library/view/python-cookbook-2nd/0596007973/ch01s19.html
+		printerMessageCommand = "M117 " + self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN]).replace(PROGRESS_EXPRESSION, self._progress)
+		printerMessageCommand = printerMessageCommand.replace(CURRENT_LAYER_EXPRESSION, self._currentLayer)
+		printerMessageCommand = printerMessageCommand.replace(TOTAL_LAYER_EXPRESSION, self._layerTotalCount)
+
+		navBarMessage = self._settings.get([SETTINGS_KEY_NAVBAR_MESSAGEPATTERN]).replace(PROGRESS_EXPRESSION, self._progress)
+		navBarMessage = navBarMessage.replace(CURRENT_LAYER_EXPRESSION, self._currentLayer)
+		navBarMessage = navBarMessage.replace(TOTAL_LAYER_EXPRESSION, self._layerTotalCount)
+		# the stateMessage-format is fixed
+		stateMessage = self._currentLayer + " / " + self._layerTotalCount
 
 		# Send to PRINTER
-		self._sendCommandToPrinter(progressMessageCommand)
-		# Send to NAVBAR
-		self._plugin_manager.send_plugin_message(self._identifier, dict(progressMessage=layerMessageNavBar))
+		if (self._settings.get([SETTINGS_KEY_SHOWON_PRINTERDISPLAY]) == True):
+			self._sendCommandToPrinter(printerMessageCommand)
+			self._logger.info("** GCODE:" + printerMessageCommand)
+		# Send to STATEBAR and NAVBAR
+		self._plugin_manager.send_plugin_message(self._identifier, dict(navBarMessage=navBarMessage,
+																		stateMessage=stateMessage))
+		self._logger.info("** NavBar:" + navBarMessage)
 
-		# Send to log
-		self._logger.info("** GCODE: " + progressMessageCommand)
-		self._logger.info("** NavBar: " + layerMessageNavBar)
+
 
 	# printer specific command-manipulation. e.g. ANET E10 cuts the last char from M117-commands, so this helper adds an additional underscore to the message
 	def _sendCommandToPrinter(self, command):
 		currentProfileName = self._printer_profile_manager._current["name"]
-		if "*** Ollis-Profile ***" == currentProfileName:
+		settingsProfileName = self._settings.get([SETTINGS_KEY_PRINTER_PROFILE_NAME], merged=True)
+
+		if settingsProfileName and currentProfileName == settingsProfileName:
 			if command.startswith("M117"):
 				command += "_"
 		print("Send GCode:" + command)
 		self._printer.commands(command)
 
-	# ~~ SettingsPlugin mixin
+	# ~~ TemplatePlugin mixin
+	def get_template_configs(self):
+		return [
+			dict(type="settings", custom_bindings=False)
+		]
+
+	#~~ SettingsPlugin mixin
 	def get_settings_defaults(self):
 		return dict(
 			# put your plugin's default settings here
+			showOnNavBar=True,
+			showOnPrinterDisplay=True,
+			navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers]",
+			printerDisplayMessagePattern="[progress]% [current_layer] of [total_layers]",
+			printerProfileName=""
 		)
 
-	# ~~ AssetPlugin mixin
+	#~~ AssetPlugin mixin
 	def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
 		# core UI here.
@@ -173,7 +196,7 @@ class DisplaylayerprogressPlugin(
 			less=["less/DisplayLayerProgress.less"]
 		)
 
-	# ~~ SoftwareUpdate hook
+	#~~ Softwareupdate hook
 	def get_update_information(self):
 		# Define the configuration for your plugin to use with the Software Update
 		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
