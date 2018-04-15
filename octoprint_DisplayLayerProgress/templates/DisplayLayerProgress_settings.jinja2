@@ -10,15 +10,15 @@
         </p>
 
         <div class="control-group">
-            <label class="control-label">Top - Navigationbar&nbsp;&nbsp;&nbsp;<input type="checkbox"
-                                                                                     data-bind="checked: settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
+            <label class="control-label">Navigationbar&nbsp;&nbsp;&nbsp;<input type="checkbox"
+                                                                               data-bind="checked: settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
             <div class="controls">
                 <input type="text" class="input-block-level text-left"
                        data-bind="value: settings.plugins.DisplayLayerProgress.navBarMessagePattern"/>
             </div>
 
-            <label class="control-label">Printer - Display&nbsp;&nbsp;&nbsp;<input type="checkbox"
-                                                                                   data-bind="checked: settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"></label>
+            <label class="control-label">Printer Display&nbsp;&nbsp;&nbsp;<input type="checkbox"
+                                                                                 data-bind="checked: settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"></label>
             <div class="controls">
                 <input type="text" class="input-block-level text-left"
                        data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
@@ -26,23 +26,15 @@
         </div>
     </div>
 
-    <h4>Display-Workaround for ANET E10</h4>
+    <h4>Display Workaround for ANET E10</h4>
     <div class="accordion-inner">
-        <p>
-            The ANET E10 cuts the last character from a M117 message command. E.g. M117 Layer 3/50 -> Printer Display: Layer 3/5
-        </p>
-        <p>
-            The workaround is to add an additional last character (underscore) to the message, if the following Printer-Profile is selected.
-            If no Profilename entered, no underscore is added.
-        </p>
-
         <div class="control-group">
-            <label class="control-label">Printer Profilename:</label>
-            <div class="controls">
-                <input type="text" class="input-block-level text-left"
-                       data-bind="value: settings.plugins.DisplayLayerProgress.printerProfileName"/>
-            </div>
+            <label class="control-label">Add trailing character&nbsp;&nbsp;&nbsp;<input type="checkbox"
+                                                                                        data-bind="checked: settings.plugins.DisplayLayerProgress.addTrailingChar"></label>
         </div>
+        <p>
+            Use this if your printer display cuts off the last character of the layer message.
+        </p>
     </div>
 
 </form>
