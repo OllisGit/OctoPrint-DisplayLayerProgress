@@ -15,12 +15,12 @@ $(function () {
         self.navBarMessage = ko.observable();
 
         // startup
-        self.onStartup = function () {
+        self.onStartup = function() {
             //alert("hallo");
             var element = $("#state").find(".accordion-inner .progress");
             if (element.length) {
 
-                var label = gettext("Layer") + ": ";
+                var label = gettext("Layer")+": ";
                 var tooltip = gettext("Shows the layer information");
 
                 element.before(label + "<strong title='" + tooltip + "' ><span id='state_layer_message'>- / -</span></strong></div><br>");
