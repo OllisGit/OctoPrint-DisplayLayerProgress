@@ -54,7 +54,8 @@ class DisplaylayerprogressPlugin(
     octoprint.plugin.TemplatePlugin,
     # my stuff
     octoprint.plugin.EventHandlerPlugin,
-    octoprint.plugin.ProgressPlugin
+    octoprint.plugin.ProgressPlugin,
+    octoprint.plugin.SimpleApiPlugin
 ):
     # VAR
     _layerTotalCount = NOT_PRESENT
@@ -169,6 +170,10 @@ class DisplaylayerprogressPlugin(
                 command += "_"
         print("Send GCode:" + command)
         self._printer.commands(command)
+
+    # to allow the front end to trigger an update
+    def on_api_get(self, request):
+        self._updateDisplay()
 
     # ~~ TemplatePlugin mixin
     def get_template_configs(self):
