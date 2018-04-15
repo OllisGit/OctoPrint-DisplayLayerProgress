@@ -12,15 +12,34 @@ $(function () {
         self.loginStateViewModel = parameters[0];
         self.settingsViewModel = parameters[1];
 
-        // TODO: Implement your plugin's view model here.
-        self.progressMessage = ko.observable();
+        self.navBarMessage = ko.observable();
 
+        // startup
+        self.onStartup = function () {
+            //alert("hallo");
+            var element = $("#state").find(".accordion-inner .progress");
+            if (element.length) {
+
+                var label = gettext("Layer") + ": ";
+                var tooltip = gettext("Shows the layer information");
+
+                element.before(label + "<strong title='" + tooltip + "' ><span id='state_layer_message'>- / -</span></strong></div><br>");
+            }
+        };
+
+        // receive data from server
         self.onDataUpdaterPluginMessage = function (plugin, data) {
-            //alert("data")
+
             if (plugin != "DisplayLayerProgress") {
                 return;
             }
-            self.progressMessage(data.progressMessage);
+
+            self.navBarMessage(data.navBarMessage);
+
+            var layerElement = document.getElementById("state_layer_message");
+            if (layerElement != null && data.stateMessage != null) {
+                layerElement.innerHTML = data.stateMessage;
+            }
         };
     }
 
