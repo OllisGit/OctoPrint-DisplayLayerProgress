@@ -1,23 +1,23 @@
 <form class="form-horizontal">
 
-    <h4>Visibility</h4>
+    <h4>{{ _('Visibility') }}</h4>
     <div class="accordion-inner">
         <p>
-            You can define where you want to display the layer- and progress-information and also how the message should be shown.
+            {{ _('You can define where you want to display the layer- and progress-information and also how the message should be shown.') }}
         </p>
         <p>
-            Use the following keywords as a placeholder:<code>[current_layer], [total_layers], [progress]</code>
+            {{ _('Use the following keywords as a placeholder:<code>[current_layer], [total_layers], [progress]</code>') }}
         </p>
 
         <div class="control-group">
-            <label class="control-label">Navigationbar&nbsp;&nbsp;&nbsp;<input type="checkbox"
+            <label class="control-label">{{ _('Navigationbar') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
                                                                                      data-bind="checked: settings.plugins.DisplayLayerProgress.showOnNavBar" /></label>
             <div class="controls">
                 <input type="text" class="input-block-level text-left"
                        data-bind="value: settings.plugins.DisplayLayerProgress.navBarMessagePattern" />
             </div>
 
-            <label class="control-label">Printer Display&nbsp;&nbsp;&nbsp;<input type="checkbox"
+            <label class="control-label">{{ _('Printer Display') }}&nbsp;&nbsp;&nbsp<input type="checkbox"
                                                                                    data-bind="checked: settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"></label>
             <div class="controls">
                 <input type="text" class="input-block-level text-left"
@@ -26,14 +26,14 @@
         </div>
     </div>
 
-    <h4>Display Workaround for ANET E10</h4>
+    <h4>{{ _('Display Workaround for ANET E10') }}</h4>
     <div class="accordion-inner">
         <div class="control-group">
-            <label class="control-label">Add trailing character&nbsp;&nbsp;&nbsp;<input type="checkbox"
+            <label class="control-label">{{ _('Add trailing character') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
                                                                       data-bind="checked: settings.plugins.DisplayLayerProgress.addTrailingChar"></label>
         </div>
         <p>
-            Use this if your printer display cuts off the last character of the layer message.
+            {{ _('Use this if your printer display cuts off the last character of the layer message.') }}
         </p>
     </div>
 

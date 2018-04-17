@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: DisplayLayerProgress 1.1.1\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
-"POT-Creation-Date: 2018-04-14 11:45+0200\n"
+"POT-Creation-Date: 2018-04-17 18:48+0200\n"
 "PO-Revision-Date: 2018-04-16 21:04+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: cs\n"
@@ -19,11 +19,50 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.5.1\n"
 
-#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:25
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:23
 msgid "Layer"
 msgstr "Vrstva"
 
-#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:26
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:24
+#, fuzzy
 msgid "Shows the layer information"
 msgstr "Zobrazí informace o vrstvě"
+
+#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:3
+msgid "Visibility"
+msgstr ""
+
+#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:6
+msgid ""
+"You can define where you want to display the layer- and progress-"
+"information and also how the message should be shown."
+msgstr ""
+
+#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:9
+msgid ""
+"Use the following keywords as a placeholder:<code>[current_layer], "
+"[total_layers], [progress]</code>"
+msgstr ""
+
+#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:13
+msgid "Navigationbar"
+msgstr ""
+
+#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:20
+msgid "Printer Display"
+msgstr ""
+
+#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:29
+msgid "Display Workaround for ANET E10"
+msgstr ""
+
+#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:32
+msgid "Add trailing character"
+msgstr ""
+
+#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:36
+msgid ""
+"Use this if your printer display cuts off the last character of the layer"
+" message."
+msgstr ""
 
