@@ -15,7 +15,7 @@ $(function () {
         self.navBarMessage = ko.observable();
 
         // startup
-        self.onStartup = function() {
+        self.onStartup = function () {
             //alert("hallo");
             var element = $("#state").find(".accordion-inner .progress");
             if (element.length) {
@@ -23,7 +23,10 @@ $(function () {
                 var label = gettext("Layer")+": ";
                 var tooltip = gettext("Shows the layer information");
 
-                element.before(label + "<strong title='" + tooltip + "' ><span id='state_layer_message'>- / -</span></strong></div><br>");
+                element.before("<span title='" + tooltip + "'>" + label + "</span>" + ": "
+                    + "<strong id='state_layer_message'>- / -</strong><br>");
+                // call backend for update navbar and printer-display
+                OctoPrint.get("api/plugin/DisplayLayerProgress");
             }
         };
 

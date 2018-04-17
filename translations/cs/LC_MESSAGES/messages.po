@@ -25,5 +25,5 @@ msgstr "Vrstva"
 
 #: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:26
 msgid "Shows the layer information"
-msgstr ""
+msgstr "Zobrazí informace o vrstvě"
 
