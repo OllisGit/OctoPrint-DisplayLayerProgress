@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: DisplayLayerProgress 1.1.1\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
-"POT-Creation-Date: 2018-04-17 18:48+0200\n"
+"POT-Creation-Date: 2018-04-18 18:27+0200\n"
 "PO-Revision-Date: 2018-04-16 21:04+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: cs\n"
@@ -30,39 +30,45 @@ msgstr "Zobrazí informace o vrstvě"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:3
 msgid "Visibility"
-msgstr ""
+msgstr "Nastavení zobrazení"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:6
 msgid ""
 "You can define where you want to display the layer- and progress-"
 "information and also how the message should be shown."
 msgstr ""
+"Zde můžete nastavit kde chcete zobrazit informace o vrstvách"
+" a stavu tisku a jak má tato zpráva vypadat."
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:9
 msgid ""
 "Use the following keywords as a placeholder:<code>[current_layer], "
 "[total_layers], [progress]</code>"
 msgstr ""
+"Následující klíčová slova použijte jako zástupný symbol: <code>[current_layer], "
+"[total_layers], [progress]</code>"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:13
 msgid "Navigationbar"
-msgstr ""
+msgstr "Navigační (horní) lišta"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:20
 msgid "Printer Display"
-msgstr ""
+msgstr "Displej tiskárny"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:29
 msgid "Display Workaround for ANET E10"
-msgstr ""
+msgstr "Úprava zobrazení pro ANET E10"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:32
 msgid "Add trailing character"
-msgstr ""
+msgstr "Přidat chybějící znak"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:36
 msgid ""
 "Use this if your printer display cuts off the last character of the layer"
 " message."
 msgstr ""
+"Použij toto pokud displej tiskárny nezobrazuje poslední znak zprávy"
+" o vrstvě."
 
