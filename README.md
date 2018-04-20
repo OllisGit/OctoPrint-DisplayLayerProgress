@@ -40,7 +40,8 @@ or manually using this URL:
 
 ## Configuration
 
-No configuration needed
+It is possible to change the Output. See Plugin-Settings:
+
 
 ## Versions
 see [Release-Overview](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/)
