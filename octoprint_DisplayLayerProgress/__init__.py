@@ -96,11 +96,7 @@ class DisplaylayerprogressPlugin(
     def on_event(self, event, payload):
         if event == Events.FILE_SELECTED:
             self._logger.info("File selected. Determining number of layers.")
-            # TODO make reset-methode
-            # reset layer-values
-            self._layerTotalCount = NOT_PRESENT
-            self._currentLayer = NOT_PRESENT
-            self._progress = str(0)
+            self._resetProgressValues()
 
             selectedFile = payload.get("file", "")
             markerLayerCount = LAYER_COUNT_EXPRESSION
@@ -116,11 +112,8 @@ class DisplaylayerprogressPlugin(
             self._updateDisplay()
 
         elif event == Events.FILE_DESELECTED:
-            # TODO make reset-methode
-            # reset layer-values
-            self._layerTotalCount = NOT_PRESENT
-            self._currentLayer = NOT_PRESENT
-            self._progress = str(0)
+            self._resetProgressValues()
+            self._updateDisplay()
 
         elif event == Events.PRINT_STARTED:
             self._logger.info("Printing started. Detailed progress started." + str(payload))
@@ -136,6 +129,12 @@ class DisplaylayerprogressPlugin(
 
         elif event == Events.CLIENT_OPENED:
             self._updateDisplay()
+
+    def _resetProgressValues(self):
+        # reset layer-values
+        self._layerTotalCount = NOT_PRESENT
+        self._currentLayer = NOT_PRESENT
+        self._progress = str(0)
 
     def _updateDisplay(self):
 
