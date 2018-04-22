@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: DisplayLayerProgress 1.1.1\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
-"POT-Creation-Date: 2018-04-18 18:27+0200\n"
+"POT-Creation-Date: 2018-04-22 22:09+0200\n"
 "PO-Revision-Date: 2018-04-16 21:04+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: cs\n"
@@ -19,11 +19,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.5.1\n"
 
-#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:23
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:26
 msgid "Layer"
 msgstr "Vrstva"
 
-#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:24
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:27
 #, fuzzy
 msgid "Shows the layer information"
 msgstr "Zobrazí informace o vrstvě"
@@ -37,20 +37,20 @@ msgid ""
 "You can define where you want to display the layer- and progress-"
 "information and also how the message should be shown."
 msgstr ""
-"Zde můžete nastavit kde chcete zobrazit informace o vrstvách"
-" a stavu tisku a jak má tato zpráva vypadat."
+"Zde můžete nastavit kde chcete zobrazit informace o vrstvách a stavu "
+"tisku a jak má tato zpráva vypadat."
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:9
 msgid ""
 "Use the following keywords as a placeholder:<code>[current_layer], "
 "[total_layers], [progress]</code>"
 msgstr ""
-"Následující klíčová slova použijte jako zástupný symbol: <code>[current_layer], "
-"[total_layers], [progress]</code>"
+"Následující klíčová slova použijte jako zástupný symbol: "
+"<code>[current_layer], [total_layers], [progress]</code>"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:13
 msgid "Navigationbar"
-msgstr "Navigační (horní) lišta"
+msgstr "Navigační lišta"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:20
 msgid "Printer Display"
@@ -69,6 +69,6 @@ msgid ""
 "Use this if your printer display cuts off the last character of the layer"
 " message."
 msgstr ""
-"Použij toto pokud displej tiskárny nezobrazuje poslední znak zprávy"
-" o vrstvě."
+"Použij toto pokud displej tiskárny nezobrazuje poslední znak zprávy o "
+"vrstvě."
 

@@ -7,9 +7,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: DisplayLayerProgress 1.2.2\n"
+"Project-Id-Version: DisplayLayerProgress 1.2.4\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
-"POT-Creation-Date: 2018-04-18 18:27+0200\n"
+"POT-Creation-Date: 2018-04-22 22:09+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,11 +18,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.5.1\n"
 
-#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:23
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:26
 msgid "Layer"
 msgstr ""
 
-#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:24
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:27
 msgid "Shows the layer information"
 msgstr ""
 
