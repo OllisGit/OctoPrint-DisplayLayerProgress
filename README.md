@@ -2,7 +2,7 @@
 
 A OctoPrint-Plugin that sends the current progress of a print via M117 command to the printer-display and also to the top navigation bar.
 
-It shows the percentage, the current layer, total layer count, current height and total height:
+It shows the **percentage, the current layer, total layer count, current height and total height**:
 
 - Printer Display: 50% L: 60/120 H:23mm/47mm 
 - NavBar: Layer: 60 / 120 Height: 23mm of 47mm
