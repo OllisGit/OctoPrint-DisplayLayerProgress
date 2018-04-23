@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: DisplayLayerProgress 1.1.1\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
-"POT-Creation-Date: 2018-04-17 18:48+0200\n"
+"POT-Creation-Date: 2018-04-23 22:32+0200\n"
 "PO-Revision-Date: 2018-04-14 11:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -19,12 +19,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.5.1\n"
 
-#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:23
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:26
 msgid "Layer"
 msgstr "Schicht"
 
-#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:24
-#, fuzzy
+#: octoprint_DisplayLayerProgress/static/js/DisplayLayerProgress.js:27
 msgid "Shows the layer information"
 msgstr "Zeigt die Schichten Informationen"
 
@@ -43,11 +42,11 @@ msgstr ""
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:9
 msgid ""
-"Use the following keywords as a placeholder:<code>[current_layer], "
-"[total_layers], [progress]</code>"
+"Use the following keywords as a placeholder: <code>[progress], "
+"[current_layer], [total_layers], [current_height], [total_height]</code>"
 msgstr ""
-"Benutze die folgenden Schlüsselwörter als "
-"Platzhalter:<code>[current_layer], [total_layers], [progress]</code>"
+"Benutze die folgenden Schlüsselwörter als Platzhalter:<code>[progress], "
+"[current_layer], [total_layers], [current_height], [total_height]</code>"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:13
 msgid "Navigationbar"
