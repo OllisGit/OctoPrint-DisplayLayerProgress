@@ -33,6 +33,7 @@ The implementation is based on four steps:
 
 ![navbar](screenshots/example-navbar-display.jpg "Progress in NavBar")
 ![printerdisplay](screenshots/example-printer-display.jpg "Progress in Printer-Display")
+
 *OLD SCREENSHOTS*
  
 ## Setup
