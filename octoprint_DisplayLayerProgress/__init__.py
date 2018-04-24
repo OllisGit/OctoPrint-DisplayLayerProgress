@@ -214,7 +214,7 @@ class DisplaylayerprogressPlugin(
             showOnNavBar=True,
             showOnPrinterDisplay=True,
             navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers] Height: [current_height] of [total_height]",
-            printerDisplayMessagePattern="[progress]% L: [current_layer] of [total_layers] H: [current_height] of [total_height]",
+            printerDisplayMessagePattern="[progress]% L:[current_layer]/[total_layers] H:[current_height]/[total_height]",
             addTrailingChar=False
         )
 
