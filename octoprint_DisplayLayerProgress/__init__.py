@@ -178,6 +178,8 @@ class DisplaylayerprogressPlugin(
 
         # the stateMessage-format is fixed
         stateMessage = self._currentLayer + " / " + self._layerTotalCount
+        # the heightMessage-format is fixed
+        heightMessage = self._currentHeight + " / " + self._totalHeight + "mm"
 
         # Send to PRINTER
         if self._settings.get([SETTINGS_KEY_SHOWON_PRINTERDISPLAY]):
@@ -185,7 +187,8 @@ class DisplaylayerprogressPlugin(
             self._logger.info("** GCODE:" + printerMessageCommand)
         # Send to STATEBAR and NAVBAR
         self._plugin_manager.send_plugin_message(self._identifier, dict(navBarMessage=navBarMessage,
-                                                                        stateMessage=stateMessage))
+                                                                        stateMessage=stateMessage,
+                                                                        heightMessage=heightMessage))
         self._logger.info("** NavBar:" + navBarMessage)
 
     # printer specific command-manipulation.
@@ -213,7 +216,7 @@ class DisplaylayerprogressPlugin(
             # put your plugin's default settings here
             showOnNavBar=True,
             showOnPrinterDisplay=True,
-            navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers] Height: [current_height] of [total_height]",
+            navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers] Height: [current_height] of [total_height]mm",
             printerDisplayMessagePattern="[progress]% L:[current_layer]/[total_layers] H:[current_height]/[total_height]",
             addTrailingChar=False
         )

@@ -20,15 +20,16 @@ $(function () {
             var element = $("#state").find(".accordion-inner .progress");
             if (element.length) {
 
-                var text = gettext("Current Height");
+                var label = gettext("Current Height");
                 var tooltip = gettext("Might be inaccurate!");
-                element.before(text + ": <strong title='" + tooltip + "' data-bind='text: heightString'></strong><br>");
+                element.before("<span title='" + tooltip + "'>" + label + "</span>" + ": "
+                    + "<strong id='state_height_message'>- / -</strong><br>");
 
-                var label = gettext("Layer");
-                var tooltip = gettext("Shows the layer information");
-
+                label = gettext("Layer");
+                tooltip = gettext("Shows the layer information");
                 element.before("<span title='" + tooltip + "'>" + label + "</span>" + ": "
                     + "<strong id='state_layer_message'>- / -</strong><br>");
+
                 // call backend for update navbar and printer-display
                 OctoPrint.get("api/plugin/DisplayLayerProgress");
             }
@@ -40,13 +41,19 @@ $(function () {
             if (plugin != "DisplayLayerProgress") {
                 return;
             }
-
+            // NavBar
             self.navBarMessage(data.navBarMessage);
-
+            // State Layer
             var layerElement = document.getElementById("state_layer_message");
             if (layerElement != null && data.stateMessage != null) {
                 layerElement.innerHTML = data.stateMessage;
             }
+            // State Height
+            var heightElement = document.getElementById("state_height_message");
+            if (heightElement != null && data.heightMessage != null) {
+                heightElement.innerHTML = data.heightMessage;
+            }
+
         };
     }
 
