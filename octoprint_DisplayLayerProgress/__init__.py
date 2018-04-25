@@ -168,7 +168,7 @@ class DisplaylayerprogressPlugin(
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
             TOTAL_LAYER_KEYWORD_EXPRESSION: self._layerTotalCount,
             CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeight,
-            TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeight
+            TOTAL_HEIGHT_KEYWORD_EXPRESSION: str(self._totalHeight)
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
@@ -179,7 +179,7 @@ class DisplaylayerprogressPlugin(
         # the stateMessage-format is fixed
         stateMessage = self._currentLayer + " / " + self._layerTotalCount
         # the heightMessage-format is fixed
-        heightMessage = self._currentHeight + " / " + self._totalHeight + "mm"
+        heightMessage = self._currentHeight + " / " + str(self._totalHeight) + "mm"
 
         # Send to PRINTER
         if self._settings.get([SETTINGS_KEY_SHOWON_PRINTERDISPLAY]):
