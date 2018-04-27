@@ -33,7 +33,10 @@ TOTAL_LAYER_KEYWORD_EXPRESSION = "[total_layers]"
 CURRENT_HEIGHT_KEYWORD_EXPRESSION = "[current_height]"
 TOTAL_HEIGHT_KEYWORD_EXPRESSION = "[total_height]"
 
-
+UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
+UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
+UPDATE_DISPLAY_REASON_PROGRESS_CHANGED = "progressChanged"
+UPDATE_DISPLAY_REASON_LAYER_CHANGED = "layerChanged"
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
     def process_line(self, line):
 
@@ -72,6 +75,16 @@ class DisplaylayerprogressPlugin(
     _currentHeight = str(0)
     _totalHeight = 0.0
 
+
+
+    def __init__(self):
+        self._showProgressOnPrinterDisplay = False
+        self._showLayerOnPrinterDisplay = False
+        self._showHeightOnPrinterDisplay = False
+
+    def initialize(self):
+        self._evaluatePrinterMessagePattern()
+
     # Modified the GCODE -> replace all Layer-Comments with G-Code Message-Comments
     def myFilePreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args,
                            **kwargs):
@@ -90,14 +103,14 @@ class DisplaylayerprogressPlugin(
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
             self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + 1)
             self._logger.info("**** g-code hook: '" + self._currentLayer + "'")
-            self._updateDisplay()
+            self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
             # filter M117 command, not needed any more
             return []
         matched = zHeightPattern.match(commandAsString)
         if matched:
             zHeight = float(matched.group(3))
             self._currentHeight = "%.2f" % zHeight
-            self._updateDisplay()
+            self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
         return
 
     # progress-hook
@@ -105,7 +118,7 @@ class DisplaylayerprogressPlugin(
         # progress 0 - 100
         self._progress = str(progress)
         self._logger.info("**** print_progress: '" + self._progress + "'")
-        self._updateDisplay()
+        self._updateDisplay(UPDATE_DISPLAY_REASON_PROGRESS_CHANGED)
 
     # start/stop event-hook
     def on_event(self, event, payload):
@@ -133,26 +146,26 @@ class DisplaylayerprogressPlugin(
                             totalHeight = tmpHeight
 
             self._totalHeight = "%.2f" % totalHeight
-            self._updateDisplay()
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.FILE_DESELECTED:
             self._resetProgressValues()
-            self._updateDisplay()
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.PRINT_STARTED:
             self._logger.info("Printing started. Detailed progress started." + str(payload))
-            self._updateDisplay()
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
             self._logger.info("Printing stopped. Detailed progress stopped.")
 
             # send to navbar
-            self._updateDisplay()
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
             # send to the printer
             self._sendCommandToPrinter("M117 Print Done")
 
         elif event == Events.CLIENT_OPENED:
-            self._updateDisplay()
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
     def _resetProgressValues(self):
         # reset layer-values
@@ -162,7 +175,7 @@ class DisplaylayerprogressPlugin(
         self._currentHeight = str(0)
         self._totalHeight = 0.0
 
-    def _updateDisplay(self):
+    def _updateDisplay(self, updateReason):
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
@@ -183,8 +196,20 @@ class DisplaylayerprogressPlugin(
 
         # Send to PRINTER
         if self._settings.get([SETTINGS_KEY_SHOWON_PRINTERDISPLAY]):
-            self._sendCommandToPrinter(printerMessageCommand)
-            self._logger.info("** GCODE:" + printerMessageCommand)
+            # Optimization, update only if definied in message-pattern
+            shouldSendToPrinter = False
+            if (updateReason == UPDATE_DISPLAY_REASON_PROGRESS_CHANGED and self._showProgressOnPrinterDisplay == True):
+                shouldSendToPrinter = True
+            elif (updateReason == UPDATE_DISPLAY_REASON_HEIGHT_CHANGED and self._showHeightOnPrinterDisplay == True):
+                shouldSendToPrinter = True
+            elif (updateReason == UPDATE_DISPLAY_REASON_LAYER_CHANGED and self._showLayerOnPrinterDisplay == True):
+                shouldSendToPrinter = True
+            elif (updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL):
+                shouldSendToPrinter = True
+
+            if shouldSendToPrinter == True:
+                self._sendCommandToPrinter(printerMessageCommand)
+                self._logger.info("** GCODE:" + printerMessageCommand)
         # Send to STATEBAR and NAVBAR
         self._plugin_manager.send_plugin_message(self._identifier, dict(navBarMessage=navBarMessage,
                                                                         stateMessage=stateMessage,
@@ -200,9 +225,33 @@ class DisplaylayerprogressPlugin(
         print("Send GCode:" + command)
         self._printer.commands(command)
 
+
+    def _evaluatePrinterMessagePattern(self):
+        printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
+
+        if PROGRESS_KEYWORD_EXPRESSION in printerMessagePattern:
+            self._showProgressOnPrinterDisplay = True
+        else:
+            self._showProgressOnPrinterDisplay = False
+        if CURRENT_LAYER_KEYWORD_EXPRESSION in printerMessagePattern or TOTAL_LAYER_KEYWORD_EXPRESSION in printerMessagePattern:
+            self._showLayerOnPrinterDisplay = True
+        else:
+            self._showLayerOnPrinterDisplay = False
+        if CURRENT_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern or TOTAL_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern:
+            self._showHeightOnPrinterDisplay = True
+        else:
+            self._showHeightOnPrinterDisplay = False
+
+
+    def on_settings_save(self, data):
+        # default save function
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+        self._evaluatePrinterMessagePattern()
+
+
     # to allow the front end to trigger an update
     def on_api_get(self, request):
-        self._updateDisplay()
+        self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
     # ~~ TemplatePlugin mixin
     def get_template_configs(self):
