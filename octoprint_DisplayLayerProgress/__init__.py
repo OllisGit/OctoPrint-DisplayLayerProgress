@@ -37,12 +37,13 @@ UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
 UPDATE_DISPLAY_REASON_PROGRESS_CHANGED = "progressChanged"
 UPDATE_DISPLAY_REASON_LAYER_CHANGED = "layerChanged"
+
+
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
     def process_line(self, line):
 
         line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_CURA)
         line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_S3D)
-
 
         # line = strip_comment(line).strip() DO NOT USE, because total-layer count disapears
         if not len(line):
@@ -75,8 +76,6 @@ class DisplaylayerprogressPlugin(
     _currentHeight = str(0)
     _totalHeight = 0.0
 
-
-
     def __init__(self):
         self._showProgressOnPrinterDisplay = False
         self._showLayerOnPrinterDisplay = False
@@ -98,7 +97,7 @@ class DisplaylayerprogressPlugin(
                                                         LayerDetectorFileProcessor(file_object.stream()))
 
     # eval current layer from modified g-code
-    def myGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+    def queuingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         commandAsString = str(cmd)
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
             self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + 1)
@@ -111,6 +110,18 @@ class DisplaylayerprogressPlugin(
             zHeight = float(matched.group(3))
             self._currentHeight = "%.2f" % zHeight
             self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
+        return
+
+    def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        if self._settings.get_boolean(["showAllPrinterMessages"]) == True:
+            commandAsString = str(cmd)
+            if commandAsString.startswith("M117 "):
+                printerMessage = commandAsString[len("M117 "):]
+                if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
+                    printerMessage = printerMessage[:-1]
+
+                printerMessage = "&nbsp;" + printerMessage + "&nbsp;"
+                self._plugin_manager.send_plugin_message(self._identifier, dict(printerDisplay=printerMessage))
         return
 
     # progress-hook
@@ -142,7 +153,7 @@ class DisplaylayerprogressPlugin(
                     matched = zHeightPattern.match(line)
                     if matched:
                         tmpHeight = float(matched.group(3))
-                        if (tmpHeight > totalHeight):
+                        if tmpHeight > totalHeight:
                             totalHeight = tmpHeight
 
             self._totalHeight = "%.2f" % totalHeight
@@ -198,13 +209,13 @@ class DisplaylayerprogressPlugin(
         if self._settings.get([SETTINGS_KEY_SHOWON_PRINTERDISPLAY]):
             # Optimization, update only if definied in message-pattern
             shouldSendToPrinter = False
-            if (updateReason == UPDATE_DISPLAY_REASON_PROGRESS_CHANGED and self._showProgressOnPrinterDisplay == True):
+            if updateReason == UPDATE_DISPLAY_REASON_PROGRESS_CHANGED and self._showProgressOnPrinterDisplay == True:
                 shouldSendToPrinter = True
-            elif (updateReason == UPDATE_DISPLAY_REASON_HEIGHT_CHANGED and self._showHeightOnPrinterDisplay == True):
+            elif updateReason == UPDATE_DISPLAY_REASON_HEIGHT_CHANGED and self._showHeightOnPrinterDisplay == True:
                 shouldSendToPrinter = True
-            elif (updateReason == UPDATE_DISPLAY_REASON_LAYER_CHANGED and self._showLayerOnPrinterDisplay == True):
+            elif updateReason == UPDATE_DISPLAY_REASON_LAYER_CHANGED and self._showLayerOnPrinterDisplay == True:
                 shouldSendToPrinter = True
-            elif (updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL):
+            elif updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL:
                 shouldSendToPrinter = True
 
             if shouldSendToPrinter == True:
@@ -225,7 +236,6 @@ class DisplaylayerprogressPlugin(
         print("Send GCode:" + command)
         self._printer.commands(command)
 
-
     def _evaluatePrinterMessagePattern(self):
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
 
@@ -233,21 +243,21 @@ class DisplaylayerprogressPlugin(
             self._showProgressOnPrinterDisplay = True
         else:
             self._showProgressOnPrinterDisplay = False
-        if CURRENT_LAYER_KEYWORD_EXPRESSION in printerMessagePattern or TOTAL_LAYER_KEYWORD_EXPRESSION in printerMessagePattern:
+        if CURRENT_LAYER_KEYWORD_EXPRESSION in printerMessagePattern \
+                or TOTAL_LAYER_KEYWORD_EXPRESSION in printerMessagePattern:
             self._showLayerOnPrinterDisplay = True
         else:
             self._showLayerOnPrinterDisplay = False
-        if CURRENT_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern or TOTAL_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern:
+        if CURRENT_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern \
+                or TOTAL_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern:
             self._showHeightOnPrinterDisplay = True
         else:
             self._showHeightOnPrinterDisplay = False
-
 
     def on_settings_save(self, data):
         # default save function
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self._evaluatePrinterMessagePattern()
-
 
     # to allow the front end to trigger an update
     def on_api_get(self, request):
@@ -265,6 +275,7 @@ class DisplaylayerprogressPlugin(
             # put your plugin's default settings here
             showOnNavBar=True,
             showOnPrinterDisplay=True,
+            showAllPrinterMessages=True,
             navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers] Height: [current_height] of [total_height]mm",
             printerDisplayMessagePattern="[progress]% L=[current_layer]/[total_layers]",
             addTrailingChar=False
@@ -315,6 +326,7 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
-        "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.myGCodeHook,
+        "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
+        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook,
         "octoprint.filemanager.preprocessor": __plugin_implementation__.myFilePreProcessor
     }

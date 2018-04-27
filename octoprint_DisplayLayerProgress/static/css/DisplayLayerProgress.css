@@ -1,1 +1,9 @@
-/* TODO: Have your plugin's CSS files generated to here. */
+@font-face {
+	font-family: 'DOTMATRI';
+	src: url('../font/DOTMATRI.eot');
+	src: local('DOTMATRI'), url('../font/DOTMATRI.woff') format('woff'), url('../font/DOTMATRI.ttf') format('truetype');
+}
+/* use this class to attach this font to any element i.e. <p class="fontsforweb_fontid_507">Text with this font applied</p> */
+.fontsforweb_fontid_507 {
+	font-family: 'DOTMATRI' !important;
+}

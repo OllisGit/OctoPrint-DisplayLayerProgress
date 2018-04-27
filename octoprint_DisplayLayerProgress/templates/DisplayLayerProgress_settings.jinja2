@@ -1,6 +1,13 @@
 <form class="form-horizontal">
-
     <h4>{{ _('Visibility') }}</h4>
+    <div class="accordion-inner">
+        <p>
+            Show printer display on Desktop&nbsp;&nbsp;&nbsp;<input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showAllPrinterMessages">
+            <span class="help-block">
+                <br/>Every <code>M117 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp
+            </span>
+        </p>
+    </div>
     <div class="accordion-inner">
         <p>
             {{ _('You can define where you want to display the layer- and progress-information and also how the message should be shown.') }}
@@ -23,6 +30,7 @@
                 <input type="text" class="input-block-level text-left"
                        data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern" />
             </div>
+            <br/>
 
             <span class="help-block">
                 <br/>

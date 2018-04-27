@@ -35,25 +35,49 @@ $(function () {
             }
         };
 
+        var printerDisplay = null;
         // receive data from server
         self.onDataUpdaterPluginMessage = function (plugin, data) {
 
             if (plugin != "DisplayLayerProgress") {
                 return;
             }
+
             // NavBar
-            self.navBarMessage(data.navBarMessage);
+            if (data.navBarMessage){
+                self.navBarMessage(data.navBarMessage);
+            }
             // State Layer
-            var layerElement = document.getElementById("state_layer_message");
-            if (layerElement != null && data.stateMessage != null) {
-                layerElement.innerHTML = data.stateMessage;
+            if (data.stateMessage){
+                var layerElement = document.getElementById("state_layer_message");
+                if (layerElement != null && data.stateMessage != null) {
+                    layerElement.innerHTML = data.stateMessage;
+                }
             }
             // State Height
-            var heightElement = document.getElementById("state_height_message");
-            if (heightElement != null && data.heightMessage != null) {
-                heightElement.innerHTML = data.heightMessage;
+            if (data.heightMessage){
+                var heightElement = document.getElementById("state_height_message");
+                if (heightElement != null && data.heightMessage != null) {
+                    heightElement.innerHTML = data.heightMessage;
+                }
             }
-
+			// Printer Display
+			if (data.printerDisplay){
+				if (printerDisplay == null){
+                    var stack_bar_bottom = {"dir1": "up", "dir2": "left", "spacing1": 0, "spacing2": 0};
+					printerDisplay = new PNotify({
+						title: 'Printer Display',
+						type: 'info',
+						width: "25%",
+						addclass: "stack-bottomleft",
+                        stack: stack_bar_bottom,
+						hide: false
+						});
+				}
+				printerDisplay.update({
+					text: '<h3 class="fontsforweb_fontid_507"><font color="lightblue" style="background-color:blue;">'+data.printerDisplay+'</font></h3>'
+				});
+			}
         };
     }
 
