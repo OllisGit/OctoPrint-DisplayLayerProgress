@@ -7,7 +7,7 @@ A new feature is the "Desktop Printer-Display", which shows all M117 messages in
 
 It shows the **percentage, the current layer, total layer count, current height and total height**:
 
-- Printer Display: 50% L=60/120 H=23mm/47mm 
+- Printer Display: 50% L=60/120 H=23mm/47mm  
 - NavBar: Layer: 60 / 120 Height: 23mm of 47mm
 
 *Output pattern is adjustable!*
