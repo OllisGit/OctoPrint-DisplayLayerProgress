@@ -13,7 +13,7 @@ It shows the **percentage, the current layer, total layer count, current height 
 **ATTENTION:** 
 - The layer information output only works with "Cura"/"Simplify3D" generated G-Code, because these Slicer insert the layer information directly as comments in the file. 
 If you want to use "slic3r", see [Enhancement #8](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/8)
-- If the layer comments couldn't found, only the percentage will be displayed
+- Sometimes there is a "Post Processing script" that deletes all comments (e.g. see [Issue #33](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/33))
 - You need to upload your G-Code after installation of the plugin again (if you want to reuse already stored models in OctoPrint), because while uploading the G-Code is modfied
 - The total height represents the highest Z-Value in the G-Code
 
