@@ -30,10 +30,7 @@
                 <input type="text" class="input-block-level text-left"
                        data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern" />
             </div>
-            <br/>
-
-            <span class="help-block">
-                <br/>
+            <div class="help-block">
                 <font color="red">Before changing the printer message, please make sure that your printer can handle the output. <br/>
                     To test it, send the following message example G-Code (via terminal) to your printer:<br/>
                     <br/>
@@ -41,7 +38,36 @@
                     <br/><br/>
                     !!! Some printers ignores the overlapping characters or special chars (e.g. :) and some <b><i>stops</i></b> working !!!
                 </font>
-            </span>
+            </div>
+        </div>
+    </div>
+
+    <h4>Total height</h4>
+    <div class="accordion-inner">
+        <div class="control-group">
+            <label class="control-label">Choose total height methode:</label>
+            <div class="controls">
+                <input type="radio" name="heightMethode" value="zMax" data-bind="checked: settings.plugins.DisplayLayerProgress.totalHeightMethode" />&nbsp;&nbsp;Max Z-Value in G-Code<br/>
+                <input type="radio" name="heightMethode" value="zExtrusion" data-bind="checked: settings.plugins.DisplayLayerProgress.totalHeightMethode" />&nbsp;&nbsp;Max Z-Value with Extrusion in Z-Layer<br/>
+            </div>
+        </div>
+    </div>
+
+
+    <h4>Layer offset</h4>
+    <div class="accordion-inner">
+        <div class="control-group">
+            <label class="control-label">Add layer offset:</label>
+            <div class="controls">
+                <span class="input-append">
+                    <input type="number" step="any" min="0" class="input-mini text-right"  data-bind="value: settings.plugins.DisplayLayerProgress.layerOffset">
+                    <span class="add-on">layers</span>
+                </span>
+            </div>
+            <div class="help-block">
+                    Some slicers start at layer zero (like CURA) and some starts at layer one.<br/>
+                    Here you can add an offset to the layer count.
+            </div>
         </div>
     </div>
 
@@ -55,5 +81,4 @@
             {{ _('Use this if your printer display cuts off the last character of the layer message.') }}
         </p>
     </div>
-
 </form>

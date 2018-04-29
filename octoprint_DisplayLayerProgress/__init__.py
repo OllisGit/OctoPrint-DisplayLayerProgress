@@ -7,25 +7,35 @@ import octoprint.plugin
 import octoprint.printer
 import octoprint.util
 import re
+import flask
+
 from octoprint.events import Events
 
 # CONSTs
 from octoprint_DisplayLayerProgress import stringUtils
 
-SETTINGS_KEY_SHOWON_NAVBAR = "showOnNavBar"
 SETTINGS_KEY_SHOWON_PRINTERDISPLAY = "showOnPrinterDisplay"
 SETTINGS_KEY_NAVBAR_MESSAGEPATTERN = "navBarMessagePattern"
 SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN = "printerDisplayMessagePattern"
 SETTINGS_KEY_ADD_TRAILINGCHAR = "addTrailingChar"
+SETTINGS_KEY_LAYER_OFFSET = "layerOffset"
+SETTINGS_KEY_TOTAL_HEIGHT_METHODE = "totalHeightMethode"
+
+HEIGHT_METHODE_Z_MAX = "zMax"
+HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
 
 NOT_PRESENT = "-"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
-LAYER_EXPRESSION_CURA = ";LAYER:([0-9]+)"
+LAYER_EXPRESSION_CURA = ";LAYER:([0-9]+).*"
 LAYER_EXPRESSION_S3D = "; layer ([0-9]+),.*"
 LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950
 Z_HEIGHT_EXPRESSION = "(.*)( Z)([+]*[0-9]+.[0-9]*)(.*)"
 zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
+# Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
+EXTRUSION_EXPRESSION = "G[0|1] .*E[+]*([0-9]+[.]*[0-9]*).*"
+extrusionPattern = re.compile(EXTRUSION_EXPRESSION)
+
 
 PROGRESS_KEYWORD_EXPRESSION = "[progress]"
 CURRENT_LAYER_KEYWORD_EXPRESSION = "[current_layer]"
@@ -74,6 +84,7 @@ class DisplaylayerprogressPlugin(
     _currentLayer = NOT_PRESENT
     _progress = str(0)
     _currentHeight = str(0)
+    _totalHeightWithExtrusion = 0.0
     _totalHeight = 0.0
 
     def __init__(self):
@@ -100,8 +111,8 @@ class DisplaylayerprogressPlugin(
     def queuingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         commandAsString = str(cmd)
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
-            self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + 1)
-            self._logger.info("**** g-code hook: '" + self._currentLayer + "'")
+            layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+            self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + layerOffset)
             self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
             # filter M117 command, not needed any more
             return []
@@ -142,21 +153,32 @@ class DisplaylayerprogressPlugin(
             pattern = re.compile(markerLayerCount)
 
             totalHeight = 0.0
+            currentHeight = 0.0
             lineNumber = 0
             with open(selectedFile, "r") as f:
                 for line in f:
                     lineNumber += 1
                     matched = pattern.match(line)
                     if matched:
-                        self._layerTotalCount = str(int(matched.group(1)) + 1)
+                        layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+                        self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
 
                     matched = zHeightPattern.match(line)
                     if matched:
-                        tmpHeight = float(matched.group(3))
-                        if tmpHeight > totalHeight:
-                            totalHeight = tmpHeight
+                        currentHeight = float(matched.group(3))
+                        if currentHeight > totalHeight:
+                            totalHeight = currentHeight
 
-            self._totalHeight = "%.2f" % totalHeight
+                    matched = extrusionPattern.match(line)
+                    if matched:
+                        self._totalHeightWithExtrusion = currentHeight
+            if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
+                self._totalHeight = "%.2f" % totalHeight
+            else:
+                self._totalHeight = "%.2f" % self._totalHeightWithExtrusion
+
+            #self._totalHeight = "%.2f" % totalHeight
+            #self._totalHeight = "%.2f" % self._totalHeightWithExtrusion
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.FILE_DESELECTED:
@@ -185,6 +207,7 @@ class DisplaylayerprogressPlugin(
         self._progress = str(0)
         self._currentHeight = str(0)
         self._totalHeight = 0.0
+        self._totalHeightWithExtrusion = 0.0
 
     def _updateDisplay(self, updateReason):
         currentValueDict = {
@@ -261,7 +284,21 @@ class DisplaylayerprogressPlugin(
 
     # to allow the front end to trigger an update
     def on_api_get(self, request):
+        if len(request.values) != 0:
+            action = request.values["action"]
+
+            if ("isResetSettingsEnabled" == action):
+                return flask.jsonify(enabled="true")
+
+            if ("resetSettings" == action):
+                self._settings.set([], self.get_settings_defaults())
+                self._settings.save()
+
+                return flask.jsonify(self.get_settings_defaults())
+
+        # default/other action
         self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+
 
     # ~~ TemplatePlugin mixin
     def get_template_configs(self):
@@ -278,7 +315,9 @@ class DisplaylayerprogressPlugin(
             showAllPrinterMessages=True,
             navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers] Height: [current_height] of [total_height]mm",
             printerDisplayMessagePattern="[progress]% L=[current_layer]/[total_layers]",
-            addTrailingChar=False
+            layerOffset=0,
+            addTrailingChar=False,
+            totalHeightMethode=HEIGHT_METHODE_Z_MAX
         )
 
     # ~~ AssetPlugin mixin
@@ -286,7 +325,8 @@ class DisplaylayerprogressPlugin(
         # Define your plugin's asset files to automatically include in the
         # core UI here.
         return dict(
-            js=["js/DisplayLayerProgress.js"],
+            js=["js/DisplayLayerProgress.js",
+                "js/ResetSettingsUtil.js"],
             css=["css/DisplayLayerProgress.css"],
             less=["less/DisplayLayerProgress.less"]
         )

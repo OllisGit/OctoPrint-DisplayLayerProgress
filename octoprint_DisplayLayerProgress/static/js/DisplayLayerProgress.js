@@ -6,6 +6,19 @@
  */
 $(function () {
     function DisplaylayerprogressViewModel(parameters) {
+        var PLUGIN_ID = "DisplayLayerProgress";
+        // enable support of resetSettings
+        new ResetSettingsUtil().assignResetSettingsFeature(PLUGIN_ID, function(data){
+                                // assign new settings-values // TODO find a more generic way
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar(data.showOnNavBar);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay(data.showOnPrinterDisplay);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showAllPrinterMessages(data.showAllPrinterMessages);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern(data.navBarMessagePattern);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern(data.printerDisplayMessagePattern);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.addTrailingChar(data.addTrailingChar);
+        });
+
+
         var self = this;
 
         // assign the injected parameters, e.g.:
@@ -31,7 +44,7 @@ $(function () {
                     + "<strong id='state_layer_message'>- / -</strong><br>");
 
                 // call backend for update navbar and printer-display
-                OctoPrint.get("api/plugin/DisplayLayerProgress");
+                OctoPrint.get("api/plugin/"+PLUGIN_ID);
             }
         };
 
@@ -39,7 +52,7 @@ $(function () {
         // receive data from server
         self.onDataUpdaterPluginMessage = function (plugin, data) {
 
-            if (plugin != "DisplayLayerProgress") {
+            if (plugin != PLUGIN_ID) {
                 return;
             }
 
