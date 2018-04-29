@@ -4,7 +4,6 @@ A OctoPrint-Plugin that sends the current progress of a print via M117 command t
 
 A new feature is the "Desktop Printer-Display", which shows all M117 messages in a Desktop PopUp.
 
-
 It shows the **percentage, the current layer, total layer count, current height and total height**:
 
 - Printer Display: 50% L=60/120 H=23mm/47mm  
@@ -18,7 +17,7 @@ It shows the **percentage, the current layer, total layer count, current height 
 If you want to use "slic3r", see [Enhancement #8](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/8)
 - Sometimes there is a "Post Processing script" that deletes all comments (e.g. see [Issue #33](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/33))
 - You need to upload your G-Code after installation of the plugin again (if you want to reuse already stored models in OctoPrint), because while uploading the G-Code is modfied
-- The total height represents the highest Z-Value in the G-Code
+- The total height "calculation" can be done in two ways: 1)the max Z-Value in the G-Code, 2) max Z-Value with extrusion in this height
 
 **Comment Format Examples:**
 
