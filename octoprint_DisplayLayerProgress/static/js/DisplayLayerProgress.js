@@ -33,15 +33,18 @@ $(function () {
             var element = $("#state").find(".accordion-inner .progress");
             if (element.length) {
 
+
+                var busyIndicator = "<i class='fa fa-spinner fa-spin busyIndicator' style='display:none'></i>";
+
                 var label = gettext("Current Height");
                 var tooltip = gettext("Might be inaccurate!");
                 element.before("<span title='" + tooltip + "'>" + label + "</span>" + ": "
-                    + "<strong id='state_height_message'>- / -</strong><br>");
+                    + "<strong id='state_height_message'>- / -</strong>"+busyIndicator+"  <br>");
 
                 label = gettext("Layer");
                 tooltip = gettext("Shows the layer information");
                 element.before("<span title='" + tooltip + "'>" + label + "</span>" + ": "
-                    + "<strong id='state_layer_message'>- / -</strong><br>");
+                    + "<strong id='state_layer_message'>- / -</strong>"+busyIndicator+"<br>");
 
                 // call backend for update navbar and printer-display
                 OctoPrint.get("api/plugin/"+PLUGIN_ID);
@@ -54,6 +57,12 @@ $(function () {
 
             if (plugin != PLUGIN_ID) {
                 return;
+            }
+
+            if (data.busy){
+                $(".busyIndicator").show();
+            } else {
+                $(".busyIndicator").hide();
             }
 
             // NavBar

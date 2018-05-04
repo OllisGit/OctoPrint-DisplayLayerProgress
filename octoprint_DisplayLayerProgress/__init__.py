@@ -29,8 +29,8 @@ LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
 LAYER_EXPRESSION_CURA = ";LAYER:([0-9]+).*"
 LAYER_EXPRESSION_S3D = "; layer ([0-9]+),.*"
 LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
-# Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950
-Z_HEIGHT_EXPRESSION = "(.*)( Z)([+]*[0-9]+.[0-9]*)(.*)"
+# Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
+Z_HEIGHT_EXPRESSION = "^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
 zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
 # Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
 EXTRUSION_EXPRESSION = "G[0|1] .*E[+]*([0-9]+[.]*[0-9]*).*"
@@ -155,23 +155,31 @@ class DisplaylayerprogressPlugin(
             totalHeight = 0.0
             currentHeight = 0.0
             lineNumber = 0
+            self._activateBusyIndicator()
             with open(selectedFile, "r") as f:
                 for line in f:
-                    lineNumber += 1
-                    matched = pattern.match(line)
-                    if matched:
-                        layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
-                        self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
+                    try:
+                        lineNumber += 1
+                        matched = pattern.match(line)
+                        if matched:
+                            layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+                            self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
 
-                    matched = zHeightPattern.match(line)
-                    if matched:
-                        currentHeight = float(matched.group(3))
-                        if currentHeight > totalHeight:
-                            totalHeight = currentHeight
+                        matched = zHeightPattern.match(line)
+                        if matched:
+                            currentHeight = float(matched.group(3))
+                            if currentHeight > totalHeight:
+                                totalHeight = currentHeight
 
-                    matched = extrusionPattern.match(line)
-                    if matched:
-                        self._totalHeightWithExtrusion = currentHeight
+                        matched = extrusionPattern.match(line)
+                        if matched:
+                            self._totalHeightWithExtrusion = currentHeight
+                    except (ValueError, RuntimeError):
+                        print("BOOOOOOMMMM")
+                        print("#"+lineNumber + " "+line)
+
+
+
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
                 self._totalHeight = "%.2f" % totalHeight
             else:
@@ -208,6 +216,10 @@ class DisplaylayerprogressPlugin(
         self._currentHeight = str(0)
         self._totalHeight = 0.0
         self._totalHeightWithExtrusion = 0.0
+
+    def _activateBusyIndicator(self):
+        self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
+
 
     def _updateDisplay(self, updateReason):
         currentValueDict = {
