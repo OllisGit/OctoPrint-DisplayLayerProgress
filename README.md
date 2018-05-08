@@ -13,11 +13,13 @@ It shows the **percentage, the current layer, total layer count, current height 
 
 
 **ATTENTION:** 
-- The layer information output only works with "Cura"/"Simplify3D" generated G-Code, because these Slicer insert the layer information directly as comments in the file. 
+- The layer information works only when the slicer adds "layer-indicator" to the g-code (CURA-Example as comments like ```;LAYER:10```). Then these indicators are parsed via a regular-expression.
+- Currently supported slicers: CURA, Simplify3D, KISSlicer. You can add your own layer-expressions in Plugin-Settings.
 If you want to use "slic3r", see [Enhancement #8](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/8)
 - Sometimes there is a "Post Processing script" that deletes all comments (e.g. see [Issue #33](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/33))
 - You need to upload your G-Code after installation of the plugin again (if you want to reuse already stored models in OctoPrint), because while uploading the G-Code is modfied
 - The total height "calculation" can be done in two ways: 1)the max Z-Value in the G-Code, 2) max Z-Value with extrusion in this height
+- The height/layer information is sometimes not matching with G-Code Viewer, because the viewer did a lot of "magic" (e.g. add extrusion diameter to height)
 
 **Comment Format Examples:**
 
@@ -33,9 +35,10 @@ The implementation is based on four steps:
 4. Progress-Hook to write all information to the printer/navbar
 
 
-![navbar](screenshots/example-navbar-display.jpg "Progress in NavBar")
+![navbar](screenshots/navbar.jpg "Progress in NavBar")
+![statebar](screenshots/statebar.jpg "Progress in StateBar")
 ![printerdisplay](screenshots/example-printer-display.jpg "Progress in Printer-Display")
-![desktopPrinterdisplay](screenshots/desktop-printer-display.jpg "Desktop Printer-Display")
+![desktopPrinterdisplay](screenshots/printerDisplay_popup.jpg "Desktop Printer-Display")
 
  
 ## Setup

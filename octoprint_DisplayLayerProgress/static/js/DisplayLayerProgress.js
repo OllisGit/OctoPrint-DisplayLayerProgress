@@ -16,6 +16,9 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern(data.navBarMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern(data.printerDisplayMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.addTrailingChar(data.addTrailingChar);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerExpressions(data.layerExpressions);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showLayerInStatusBar(data.showLayerInStatusBar);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showHeightInStatusBar(data.showHeightInStatusBar);
         });
 
 
@@ -32,23 +35,24 @@ $(function () {
             //alert("hallo");
             var element = $("#state").find(".accordion-inner .progress");
             if (element.length) {
-
-
                 var busyIndicator = "<i class='fa fa-spinner fa-spin busyIndicator' style='display:none'></i>";
 
+                // height
                 var label = gettext("Current Height");
                 var tooltip = gettext("Might be inaccurate!");
-                element.before("<span title='" + tooltip + "'>" + label + "</span>" + ": "
-                    + "<strong id='state_height_message'>- / -</strong>"+busyIndicator+"  <br>");
-
+                element.before("<span id='heightStateOutput' style='display:none'><span title='" + tooltip + "'>" + label + "</span>" + ": "
+                    + "<strong id='state_height_message'>- / -</strong>"+busyIndicator+"  <br/></span>");
+                // layer
                 label = gettext("Layer");
                 tooltip = gettext("Shows the layer information");
-                element.before("<span title='" + tooltip + "'>" + label + "</span>" + ": "
-                    + "<strong id='state_layer_message'>- / -</strong>"+busyIndicator+"<br>");
+                element.before("<span id='layerStateOutput' style='display:none'> <span title='" + tooltip + "'>" + label + "</span>" + ": "
+                    + "<strong id='state_layer_message'>- / -</strong>"+busyIndicator+"<br/></span>");
 
                 // call backend for update navbar and printer-display
                 OctoPrint.get("api/plugin/"+PLUGIN_ID);
             }
+
+            $("#layerExpressionTextArea").numberedtextarea();
         };
 
         var printerDisplay = null;
@@ -68,6 +72,22 @@ $(function () {
             // NavBar
             if (data.navBarMessage){
                 self.navBarMessage(data.navBarMessage);
+            }
+
+            // visibility of height/layer in statebar
+            if (data.showHeightInStatusBar != null){
+                if(data.showHeightInStatusBar == true){
+                    $("#heightStateOutput").show();
+                } else {
+                    $("#heightStateOutput").hide();
+                }
+            }
+            if (data.showLayerInStatusBar != null){
+                if (data.showLayerInStatusBar == true){
+                    $("#layerStateOutput").show();
+                } else {
+                    $("#layerStateOutput").hide();
+                }
             }
             // State Layer
             if (data.stateMessage){
@@ -99,6 +119,17 @@ $(function () {
 				printerDisplay.update({
 					text: '<h3 class="fontsforweb_fontid_507"><font color="lightblue" style="background-color:blue;">'+data.printerDisplay+'</font></h3>'
 				});
+			}
+			if (data.notifyType){
+			    var notfiyType = data.notifyType;
+			    var notifyMessage = data.notifyMessage;
+                new PNotify({
+                    title: 'Attention',
+                    text: notifyMessage,
+                    type: notfiyType,
+                    hide: false
+                    });
+
 			}
         };
     }

@@ -1,84 +1,149 @@
 <form class="form-horizontal">
-    <h4>{{ _('Visibility') }}</h4>
-    <div class="accordion-inner">
-        <p>
-            Show printer display on Desktop&nbsp;&nbsp;&nbsp;<input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showAllPrinterMessages">
-            <span class="help-block">
-                <br/>Every <code>M117 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp
-            </span>
-        </p>
-    </div>
-    <div class="accordion-inner">
-        <p>
-            {{ _('You can define where you want to display the layer- and progress-information and also how the message should be shown.') }}
-        </p>
-        <p>
-            {{ _('Use the following keywords as a placeholder: <code>[progress], [current_layer], [total_layers], [current_height], [total_height]</code>') }}
-        </p>
-
-        <div class="control-group">
-            <label class="control-label">{{ _('Navigationbar') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
-                                                                                     data-bind="checked: settings.plugins.DisplayLayerProgress.showOnNavBar" /></label>
-            <div class="controls">
-                <input type="text" class="input-block-level text-left"
-                       data-bind="value: settings.plugins.DisplayLayerProgress.navBarMessagePattern" />
-            </div>
-
-            <label class="control-label">{{ _('Printer Display') }}&nbsp;&nbsp;&nbsp<input type="checkbox"
-                                                                                   data-bind="checked: settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"></label>
-            <div class="controls">
-                <input type="text" class="input-block-level text-left"
-                       data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern" />
-            </div>
-            <div class="help-block">
-                <font color="red">Before changing the printer message, please make sure that your printer can handle the output. <br/>
-                    To test it, send the following message example G-Code (via terminal) to your printer:<br/>
+    <div class="tabbable"> <!-- Only required for left/right tabs -->
+        <ul class="nav nav-tabs">
+            <li class="active"><a href="#tabDisplay" data-toggle="tab">Display</a></li>
+            <li><a href="#tabLayer" data-toggle="tab">Layer</a></li>
+            <li><a href="#tabHeight" data-toggle="tab">Height</a></li>
+            <li><a href="#tabANETE10" data-toggle="tab">ANET E10</a></li>
+        </ul>
+        <div class="tab-content">
+            <!-- DISPLAY - TAB -->
+            <div class="tab-pane active" id="tabDisplay">
+                <div class="control-group">
+                    <legend>Visibility</legend>
+                    <div >
+                        <label class="checkbox">Show printer display on Desktop
+                            <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showAllPrinterMessages">
+                        </label>
+                    </div>
+                    <div>
+                        Every <code>M117 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp
+                    </div>
                     <br/>
-                    <code>M117 xxx% L=xxx/xxx H=xxx.xx/xxx.xx</code>
-                    <br/><br/>
-                    !!! Some printers ignores the overlapping characters or special chars (e.g. :) and some <b><i>stops</i></b> working !!!
-                </font>
-            </div>
-        </div>
-    </div>
-
-    <h4>Total height</h4>
-    <div class="accordion-inner">
-        <div class="control-group">
-            <label class="control-label">Choose total height methode:</label>
-            <div class="controls">
-                <input type="radio" name="heightMethode" value="zMax" data-bind="checked: settings.plugins.DisplayLayerProgress.totalHeightMethode" />&nbsp;&nbsp;Max Z-Value in G-Code<br/>
-                <input type="radio" name="heightMethode" value="zExtrusion" data-bind="checked: settings.plugins.DisplayLayerProgress.totalHeightMethode" />&nbsp;&nbsp;Max Z-Value with Extrusion in Z-Layer<br/>
-            </div>
-        </div>
-    </div>
+                    <div >
+                        <label class="checkbox">Show current height in Statusbar
+                            <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showHeightInStatusBar">
+                        </label>
+                    </div>
+                    <br/>
+                    <div >
+                        <label class="checkbox">Show layer information in Statusbar
+                            <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showLayerInStatusBar">
+                        </label>
+                    </div>
 
 
-    <h4>Layer offset</h4>
-    <div class="accordion-inner">
-        <div class="control-group">
-            <label class="control-label">Add layer offset:</label>
-            <div class="controls">
-                <span class="input-append">
-                    <input type="number" step="any" min="0" class="input-mini text-right"  data-bind="value: settings.plugins.DisplayLayerProgress.layerOffset">
-                    <span class="add-on">layers</span>
-                </span>
-            </div>
-            <div class="help-block">
-                    Some slicers start at layer zero (like CURA) and some starts at layer one.<br/>
-                    Here you can add an offset to the layer count.
-            </div>
-        </div>
-    </div>
+                </div>
 
-    <h4>{{ _('Display Workaround for ANET E10') }}</h4>
-    <div class="accordion-inner">
-        <div class="control-group">
-            <label class="control-label">{{ _('Add trailing character') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
-                                                                      data-bind="checked: settings.plugins.DisplayLayerProgress.addTrailingChar"></label>
+                <div class="control-group">
+                    <legend>Message output</legend>
+                    <div>
+                        {{ _('You can define where you want to display the layer- and progress-information and also how the message
+                        should be shown.') }}
+                    </div>
+                    <br/>
+                    <div>
+                        {{ _('Use the following keywords as a placeholder: <code>[progress], [current_layer], [total_layers],
+                        [current_height], [total_height]</code>') }}
+                    </div>
+
+                    <label class="control-label">{{ _('Navigationbar') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
+                                                                                                  data-bind="checked: settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
+                    <div class="controls">
+                        <input type="text" class="input-block-level text-left"
+                               data-bind="value: settings.plugins.DisplayLayerProgress.navBarMessagePattern"/>
+                    </div>
+
+                    <label class="control-label">{{ _('Printer Display') }}&nbsp;&nbsp;&nbsp<input type="checkbox"
+                                                                                                   data-bind="checked: settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"></label>
+                    <div class="controls">
+                        <input type="text" class="input-block-level text-left"
+                               data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
+                    </div>
+                    <div class="help-block">
+                        <font color="red">Before changing the printer message, please make sure that your printer can handle the
+                            output. <br/>
+                            To test it, send the following message example G-Code (via terminal) to your printer:<br/>
+                            <br/>
+                            <code>M117 xxx% L=xxx/xxx H=xxx.xx/xxx.xx</code>
+                            <br/><br/>
+                            !!! Some printers ignores the overlapping characters or special chars (e.g. :) and some
+                            <b><i>stops</i></b> working !!!
+                        </font>
+                    </div>
+                </div>
+            </div>
+            <!-- LAYER - TAB -->
+            <div class="tab-pane" id="tabLayer">
+
+
+                <div class="control-group">
+                    <legend>Layer indicator</legend>
+                    <div>
+                        Every Slicer use a different format to put the layer-information into the G-Code.<br/>
+                        Here you can define several regular expressions for different slicers. If you need help with regular expressions, try <a href="https://regex101.com/">https://regex101.com/</a><br/>
+                        The pattern of the expression is:<code>groupIndex [layerExpression] comment</code><br/>
+                        E.g. <code>1		[;LAYER:([0-9]+).*]		CURA</code><br/>
+                        <i>groupIndex</i>  is the index of the expression where you can find the layer-value (see round brackets)<br/>
+                        or you can use <code>count</code>, if the layer-value needs to be calculatetd by the plugin (e.g. KISSlicer).
+                    </div>
+                    <br/>
+                    <textarea id="layerExpressionTextArea" rows="4" style="width:90%"  data-bind="value: settings.plugins.DisplayLayerProgress.layerExpressions">
+1		[;LAYER:([0-9]+).*]		CURA
+1		[; layer ([0-9]+),.*]	Simplify3D
+count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
+                    <div class="help-block">
+                        <font color="red">After changing the layer-expression you need to upload your model again!</font>
+                        <br/>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <legend>Layer offset</legend>
+                    <div>
+                        Some slicers start at layer zero (like CURA) and some starts at layer one.<br/>
+                        Here you can add an offset to the layer count.
+                    </div>
+                    <label class="control-label">Add layer offset:</label>
+                    <div class="controls">
+                        <span class="input-append">
+                            <input type="number" step="any" min="0" class="input-mini text-right"
+                                   data-bind="value: settings.plugins.DisplayLayerProgress.layerOffset">
+                            <span class="add-on">layers</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <!-- HEIGHT - TAB -->
+            <div class="tab-pane" id="tabHeight">
+                <div class="control-group">
+                    <label class="control-label">Choose total height methode:</label>
+                    <div class="controls">
+                        <input type="radio" name="heightMethode" value="zMax"
+                               data-bind="checked: settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max
+                        Z-Value in G-Code<br/>
+                        <input type="radio" name="heightMethode" value="zExtrusion"
+                               data-bind="checked: settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max
+                        Z-Value with Extrusion in Z-Layer<br/>
+                    </div>
+                </div>
+                <p>
+    <!-- TODO Description -->
+                </p>
+            </div>
+            <!-- ANET E-10 - TAB -->
+            <div class="tab-pane" id="tabANETE10">
+                <div class="control-group">
+                    <label class="control-label">{{ _('Add trailing character') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
+                                                                                                           data-bind="checked: settings.plugins.DisplayLayerProgress.addTrailingChar"></label>
+                </div>
+                <p>
+                    {{ _('Use this if your printer display cuts off the last character of the layer message.') }}
+                </p>
+            </div>
         </div>
-        <p>
-            {{ _('Use this if your printer display cuts off the last character of the layer message.') }}
-        </p>
     </div>
 </form>
+
+
+

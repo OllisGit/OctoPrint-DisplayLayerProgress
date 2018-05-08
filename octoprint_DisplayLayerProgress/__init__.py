@@ -13,29 +13,35 @@ from octoprint.events import Events
 
 # CONSTs
 from octoprint_DisplayLayerProgress import stringUtils
+from octoprint_DisplayLayerProgress.LayerExpression import LayerExpression
 
-SETTINGS_KEY_SHOWON_PRINTERDISPLAY = "showOnPrinterDisplay"
+SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES = "showAllPrinterMessages"
+SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR = "showHeightInStatusBar"
+SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR = "showLayerInStatusBar"
+SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY = "showOnPrinterDisplay"
 SETTINGS_KEY_NAVBAR_MESSAGEPATTERN = "navBarMessagePattern"
 SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN = "printerDisplayMessagePattern"
 SETTINGS_KEY_ADD_TRAILINGCHAR = "addTrailingChar"
 SETTINGS_KEY_LAYER_OFFSET = "layerOffset"
 SETTINGS_KEY_TOTAL_HEIGHT_METHODE = "totalHeightMethode"
+SETTINGS_KEY_LAYER_EXPRESSIONS = "layerExpressions"
 
 HEIGHT_METHODE_Z_MAX = "zMax"
 HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
 
 NOT_PRESENT = "-"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
-LAYER_EXPRESSION_CURA = ";LAYER:([0-9]+).*"
-LAYER_EXPRESSION_S3D = "; layer ([0-9]+),.*"
 LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
+
+#LAYER_EXPRESSION_CURA = ";LAYER:([0-9]+).*"
+#LAYER_EXPRESSION_S3D = "; layer ([0-9]+),.*"
+
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
 Z_HEIGHT_EXPRESSION = "^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
 zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
 # Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
 EXTRUSION_EXPRESSION = "G[0|1] .*E[+]*([0-9]+[.]*[0-9]*).*"
 extrusionPattern = re.compile(EXTRUSION_EXPRESSION)
-
 
 PROGRESS_KEYWORD_EXPRESSION = "[progress]"
 CURRENT_LAYER_KEYWORD_EXPRESSION = "[current_layer]"
@@ -48,24 +54,39 @@ UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
 UPDATE_DISPLAY_REASON_PROGRESS_CHANGED = "progressChanged"
 UPDATE_DISPLAY_REASON_LAYER_CHANGED = "layerChanged"
 
-
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
-    def process_line(self, line):
 
-        line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_CURA)
-        line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_S3D)
+
+    def __init__(self, fileBufferedReader, allLayerExpressions):
+        super(LayerDetectorFileProcessor, self).__init__(fileBufferedReader)
+        self._allLayerExpressions = allLayerExpressions
+        self._currentLayerCount = 0
+
+    def process_line(self, line):
+        #line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_CURA)
+        #line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_S3D)
+
+        for layerExpression in self._allLayerExpressions:
+            line = self._checkLineForLayerComment(line, layerExpression)
 
         # line = strip_comment(line).strip() DO NOT USE, because total-layer count disapears
         if not len(line):
             return None
         return line
 
-    def _checkLineForLayerComment(self, line, commentPattern):
-        pattern = re.compile(commentPattern)
+#    def _checkLineForLayerComment(self, line, commentPattern):
+    def _checkLineForLayerComment(self, line, layerExpression):
+        #pattern = re.compile(commentPattern)
+        pattern = layerExpression.expression
         matched = pattern.match(line)
         if matched:
-            currentLayer = matched.group(1)
-            line = LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
+            groupIndex = layerExpression.groupIndex
+            if layerExpression.type_countable:
+                self._currentLayerCount = self._currentLayerCount +1
+                currentLayer = str(self._currentLayerCount)
+            else:
+                currentLayer = str(matched.group(groupIndex))
+            line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
         return line
 
 
@@ -83,17 +104,21 @@ class DisplaylayerprogressPlugin(
     _layerTotalCount = NOT_PRESENT
     _currentLayer = NOT_PRESENT
     _progress = str(0)
-    _currentHeight = str(0)
-    _totalHeightWithExtrusion = 0.0
-    _totalHeight = 0.0
+    _currentHeight = NOT_PRESENT
+    _totalHeightWithExtrusion = NOT_PRESENT
+    _totalHeight = NOT_PRESENT
 
     def __init__(self):
         self._showProgressOnPrinterDisplay = False
         self._showLayerOnPrinterDisplay = False
         self._showHeightOnPrinterDisplay = False
 
+        self._layerExpressionsValid = False
+        self._allLayerExpressions = []
+
     def initialize(self):
         self._evaluatePrinterMessagePattern()
+        self._parseLayerExpressions(self._settings.get([SETTINGS_KEY_LAYER_EXPRESSIONS]))
 
     # Modified the GCODE -> replace all Layer-Comments with G-Code Message-Comments
     def myFilePreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args,
@@ -104,8 +129,11 @@ class DisplaylayerprogressPlugin(
         import os
         name, _ = os.path.splitext(file_object.filename)
 
+        self._checkLayerExpressionValid()
+
         return octoprint.filemanager.util.StreamWrapper(file_object.filename,
-                                                        LayerDetectorFileProcessor(file_object.stream()))
+                                                        LayerDetectorFileProcessor(file_object.stream(),
+                                                                                   self._allLayerExpressions))
 
     # eval current layer from modified g-code
     def queuingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -124,7 +152,7 @@ class DisplaylayerprogressPlugin(
         return
 
     def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        if self._settings.get_boolean(["showAllPrinterMessages"]) == True:
+        if self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES]) == True:
             commandAsString = str(cmd)
             if commandAsString.startswith("M117 "):
                 printerMessage = commandAsString[len("M117 "):]
@@ -147,6 +175,7 @@ class DisplaylayerprogressPlugin(
         if event == Events.FILE_SELECTED:
             self._logger.info("File selected. Determining number of layers.")
             self._resetProgressValues()
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
             selectedFile = payload.get("file", "")
             markerLayerCount = LAYER_COUNT_EXPRESSION
@@ -173,7 +202,7 @@ class DisplaylayerprogressPlugin(
 
                         matched = extrusionPattern.match(line)
                         if matched:
-                            self._totalHeightWithExtrusion = currentHeight
+                            self._totalHeightWithExtrusion = str(currentHeight)
                     except (ValueError, RuntimeError):
                         print("BOOOOOOMMMM")
                         print("#"+lineNumber + " "+line)
@@ -181,9 +210,9 @@ class DisplaylayerprogressPlugin(
 
 
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
-                self._totalHeight = "%.2f" % totalHeight
+                self._totalHeight = str("%.2f" % totalHeight)
             else:
-                self._totalHeight = "%.2f" % self._totalHeightWithExtrusion
+                self._totalHeight = str("%.2f" % float(self._totalHeightWithExtrusion))
 
             #self._totalHeight = "%.2f" % totalHeight
             #self._totalHeight = "%.2f" % self._totalHeightWithExtrusion
@@ -196,6 +225,7 @@ class DisplaylayerprogressPlugin(
         elif event == Events.PRINT_STARTED:
             self._logger.info("Printing started. Detailed progress started." + str(payload))
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+            self._checkLayerExpressionValid()
 
         elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
             self._logger.info("Printing stopped. Detailed progress stopped.")
@@ -213,13 +243,18 @@ class DisplaylayerprogressPlugin(
         self._layerTotalCount = NOT_PRESENT
         self._currentLayer = NOT_PRESENT
         self._progress = str(0)
-        self._currentHeight = str(0)
-        self._totalHeight = 0.0
-        self._totalHeightWithExtrusion = 0.0
+        self._currentHeight = NOT_PRESENT
+        self._totalHeight = NOT_PRESENT
+        self._totalHeightWithExtrusion = NOT_PRESENT
 
     def _activateBusyIndicator(self):
         self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
 
+    def _checkLayerExpressionValid(self):
+        if self._layerExpressionsValid == False:
+            self._plugin_manager.send_plugin_message(self._identifier,
+                                                     dict(notifyType="error",
+                                                          notifyMessage="DisplayProgressPlugin: LayerExpressions not valid! Check Plugin-Settings."))
 
     def _updateDisplay(self, updateReason):
         currentValueDict = {
@@ -227,7 +262,7 @@ class DisplaylayerprogressPlugin(
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
             TOTAL_LAYER_KEYWORD_EXPRESSION: self._layerTotalCount,
             CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeight,
-            TOTAL_HEIGHT_KEYWORD_EXPRESSION: str(self._totalHeight)
+            TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeight
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
@@ -238,10 +273,10 @@ class DisplaylayerprogressPlugin(
         # the stateMessage-format is fixed
         stateMessage = self._currentLayer + " / " + self._layerTotalCount
         # the heightMessage-format is fixed
-        heightMessage = self._currentHeight + " / " + str(self._totalHeight) + "mm"
+        heightMessage = self._currentHeight + " / " + self._totalHeight + "mm"
 
         # Send to PRINTER
-        if self._settings.get([SETTINGS_KEY_SHOWON_PRINTERDISPLAY]):
+        if self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY]):
             # Optimization, update only if definied in message-pattern
             shouldSendToPrinter = False
             if updateReason == UPDATE_DISPLAY_REASON_PROGRESS_CHANGED and self._showProgressOnPrinterDisplay == True:
@@ -256,8 +291,13 @@ class DisplaylayerprogressPlugin(
             if shouldSendToPrinter == True:
                 self._sendCommandToPrinter(printerMessageCommand)
                 self._logger.info("** GCODE:" + printerMessageCommand)
+
+        showHeightInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR])
+        showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
         # Send to STATEBAR and NAVBAR
-        self._plugin_manager.send_plugin_message(self._identifier, dict(navBarMessage=navBarMessage,
+        self._plugin_manager.send_plugin_message(self._identifier, dict(showHeightInStatusBar=showHeightInStatusBar,
+                                                                        showLayerInStatusBar=showLayerInStatusBar,
+                                                                        navBarMessage=navBarMessage,
                                                                         stateMessage=stateMessage,
                                                                         heightMessage=heightMessage))
         self._logger.info("** NavBar:" + navBarMessage)
@@ -289,10 +329,49 @@ class DisplaylayerprogressPlugin(
         else:
             self._showHeightOnPrinterDisplay = False
 
+    def _parseLayerExpressions(self, layerExpressionPatterns):
+        result = None
+        self._layerExpressionsValid = False
+        if layerExpressionPatterns  != None and len(layerExpressionPatterns ) != 0:
+            self._allLayerExpressions = []
+            #patterns = "1		[;LAYER:([0-9]+).*]		CURA\r\n" + "1		[; layer ([0-9]+),.*]	Simplify3D\r\n" + "count	[BEGIN_LAYER_OBJECT]	KISSlicer"
+            lines = layerExpressionPatterns .split("\n")
+            lineIndex = 0
+            try:
+
+                for line in lines:
+                    layerExpression = LayerExpression()
+
+                    lineIndex = lineIndex + 1
+                    startBracket = line.find("[")
+                    endBracket = line.rfind("]")
+                    expression = line[startBracket + 1:endBracket]
+                    if line.startswith("count"):
+                        layerExpression.type_countable = True
+                    else:
+                        layerExpression.type_countable = False
+                        groupIndex = line[0:startBracket].strip()
+                        layerExpression.groupIndex = int(groupIndex)
+                    layerExpression.expression = re.compile(expression)
+                    self._allLayerExpressions.append(layerExpression)
+                self._layerExpressionsValid = True
+            except (ValueError, RuntimeError) as error:
+                errorMessage = "ERROR in LayerExpression! Line: " + str(lineIndex) + " Message: '" + str(error) + "'"
+                return errorMessage
+
+        return result
+
     def on_settings_save(self, data):
+        layerExpressions = data.get(SETTINGS_KEY_LAYER_EXPRESSIONS)
+        result = self._parseLayerExpressions(layerExpressions)
+        if result != None:
+            self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage = result))
+
         # default save function
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self._evaluatePrinterMessagePattern()
+        #update new settings
+        self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
     # to allow the front end to trigger an update
     def on_api_get(self, request):
@@ -329,7 +408,10 @@ class DisplaylayerprogressPlugin(
             printerDisplayMessagePattern="[progress]% L=[current_layer]/[total_layers]",
             layerOffset=0,
             addTrailingChar=False,
-            totalHeightMethode=HEIGHT_METHODE_Z_MAX
+            totalHeightMethode=HEIGHT_METHODE_Z_MAX,
+            layerExpressions="1		[;LAYER:([0-9]+).*]		CURA\r\n"+ "1		[; layer ([0-9]+),.*]	Simplify3D\r\n"+ "count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer",
+            showLayerInStatusBar=True,
+            showHeightInStatusBar=True
         )
 
     # ~~ AssetPlugin mixin
@@ -338,8 +420,10 @@ class DisplaylayerprogressPlugin(
         # core UI here.
         return dict(
             js=["js/DisplayLayerProgress.js",
-                "js/ResetSettingsUtil.js"],
-            css=["css/DisplayLayerProgress.css"],
+                "js/ResetSettingsUtil.js",
+                "js/jquery-numberedtextarea-js"],
+            css=["css/DisplayLayerProgress.css",
+                 "css/jquery-numberedtextarea.css"],
             less=["less/DisplayLayerProgress.less"]
         )
 

@@ -9,25 +9,24 @@ function ResetSettingsUtil(){
 
     this.assignResetSettingsFeature = function(PLUGIN_ID_string, mapSettingsToViewModel_function){
         var resetSettingsButtonFunction = function(){
+            console.log("hide restet-button")
             var resetButton = $("#" + RESET_BUTTON_ID).hide();
         }
-        // first: default behaviour -> hide reset button --> if not already assigned
+        // hide reste button when hidding settings. needed because of next dialog-shown event
         var settingsDialog = $("#settings_dialog");
         var settingsDialogDOMElement = settingsDialog.get(0);
-
 
         var eventObject = $._data(settingsDialogDOMElement, 'events');
         if (eventObject != undefined && eventObject.shown != undefined){
             // already there, is it my function
             if (eventObject.shown[0].handler.name != "resetSettingsButtonFunction"){
-                settingsDialog.on('shown', resetSettingsButtonFunction);
+                settingsDialog.on('hide', resetSettingsButtonFunction);
             }
         } else {
-            settingsDialog.on('shown', resetSettingsButtonFunction);
+            settingsDialog.on('hide', resetSettingsButtonFunction);
         }
 
-
-        // second: add click hook for own plugin the check if resetSettings is available
+        // add click hook for own plugin the check if resetSettings is available
         var pluginSettingsLink = $("ul[id=settingsTabs] > li[id^=settings_plugin_"+PLUGIN_ID_string+"] > a[href^=\\#settings_plugin_"+PLUGIN_ID_string+"]:not([hooked])");
         pluginSettingsLink.attr("hooked", PLUGIN_ID_string);
         pluginSettingsLink.click(function() {
@@ -68,6 +67,13 @@ function ResetSettingsUtil(){
                 }
             });
         });
+
+        // default behaviour -> hide reset button --> if not already assigned
+        var otherSettingsLink = $("ul[id=settingsTabs] > li[id^=settings_] > a[href^=\\#settings_]:not([hooked])");
+        if (otherSettingsLink.length != 0){
+            otherSettingsLink.attr("hooked", "otherSettings");
+            otherSettingsLink.click(resetSettingsButtonFunction);
+        }
     }
 
 }
