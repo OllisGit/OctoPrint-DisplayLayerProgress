@@ -424,7 +424,7 @@ class DisplaylayerprogressPlugin(
         return dict(
             js=["js/DisplayLayerProgress.js",
                 "js/ResetSettingsUtil.js",
-                "js/jquery-numberedtextarea-js"],
+                "js/jquery-numberedtextarea.js"],
             css=["css/DisplayLayerProgress.css",
                  "css/jquery-numberedtextarea.css"],
             less=["less/DisplayLayerProgress.less"]
