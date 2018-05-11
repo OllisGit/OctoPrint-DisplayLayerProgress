@@ -35,7 +35,7 @@ $(function () {
             //alert("hallo");
             var element = $("#state").find(".accordion-inner .progress");
             if (element.length) {
-                var busyIndicator = "<i class='fa fa-spinner fa-spin busyIndicator' style='display:none'></i>";
+                var busyIndicator = " <i class='fa fa-spinner fa-spin busyIndicator' style='display:none'></i>";
 
                 // height
                 var label = gettext("Current Height");

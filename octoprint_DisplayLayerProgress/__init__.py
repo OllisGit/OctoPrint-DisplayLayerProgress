@@ -113,7 +113,7 @@ class DisplaylayerprogressPlugin(
         self._showLayerOnPrinterDisplay = False
         self._showHeightOnPrinterDisplay = False
 
-        self._layerExpressionsValid = False
+        self._layerExpressionsValid = True
         self._allLayerExpressions = []
 
     def initialize(self):
@@ -273,8 +273,9 @@ class DisplaylayerprogressPlugin(
         # the stateMessage-format is fixed
         stateMessage = self._currentLayer + " / " + self._layerTotalCount
         # the heightMessage-format is fixed
-        heightMessage = self._currentHeight + " / " + self._totalHeight + "mm"
-
+        heightMessage = self._currentHeight + " / " + self._totalHeight
+        if not self._totalHeight == NOT_PRESENT:
+            heightMessage += "mm"
         # Send to PRINTER
         if self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY]):
             # Optimization, update only if definied in message-pattern
@@ -338,7 +339,6 @@ class DisplaylayerprogressPlugin(
             lines = layerExpressionPatterns .split("\n")
             lineIndex = 0
             try:
-
                 for line in lines:
                     layerExpression = LayerExpression()
 
@@ -382,6 +382,7 @@ class DisplaylayerprogressPlugin(
                 return flask.jsonify(enabled="true")
 
             if ("resetSettings" == action):
+                self._layerExpressionsValid = True
                 self._settings.set([], self.get_settings_defaults())
                 self._settings.save()
 
