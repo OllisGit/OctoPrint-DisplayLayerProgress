@@ -362,10 +362,12 @@ class DisplaylayerprogressPlugin(
         return result
 
     def on_settings_save(self, data):
+        # !!! data includes only the delta settings between the last save-action !!!
         layerExpressions = data.get(SETTINGS_KEY_LAYER_EXPRESSIONS)
-        result = self._parseLayerExpressions(layerExpressions)
-        if result != None:
-            self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage = result))
+        if not layerExpressions == None:
+            result = self._parseLayerExpressions(layerExpressions)
+            if result != None:
+                self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage = result))
 
         # default save function
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
