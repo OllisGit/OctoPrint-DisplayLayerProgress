@@ -37,8 +37,8 @@ The implementation is based on four steps:
 
 ![navbar](screenshots/navbar.jpg "Progress in NavBar")
 ![statebar](screenshots/statebar.jpg "Progress in StateBar")
-![printerdisplay](screenshots/example-printer-display.jpg "Progress in Printer-Display")
 ![desktopPrinterdisplay](screenshots/printerDisplay_popup.jpg "Desktop Printer-Display")
+![printerdisplay](screenshots/example-printer-display.jpg "Progress in Printer-Display")
 
  
 ## Setup
