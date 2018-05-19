@@ -42,17 +42,24 @@ zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
 # Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
 EXTRUSION_EXPRESSION = "G[0|1] .*E[+]*([0-9]+[.]*[0-9]*).*"
 extrusionPattern = re.compile(EXTRUSION_EXPRESSION)
+# Match feedrate
+FEEDRATE_EXPRESSION = "^G[0|1] .*F(\d*\.?\d*).*"
+feedratePattern = re.compile(FEEDRATE_EXPRESSION)
 
 PROGRESS_KEYWORD_EXPRESSION = "[progress]"
 CURRENT_LAYER_KEYWORD_EXPRESSION = "[current_layer]"
 TOTAL_LAYER_KEYWORD_EXPRESSION = "[total_layers]"
 CURRENT_HEIGHT_KEYWORD_EXPRESSION = "[current_height]"
 TOTAL_HEIGHT_KEYWORD_EXPRESSION = "[total_height]"
+FEEDRATE_KEYWORD_EXPRESSION = "[feedrate]"
+FEEDRATE_G0_KEYWORD_EXPRESSION = "[feedrate_g0]"
+FEEDRATE_G1_KEYWORD_EXPRESSION = "[feedrate_g1]"
 
 UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
 UPDATE_DISPLAY_REASON_PROGRESS_CHANGED = "progressChanged"
 UPDATE_DISPLAY_REASON_LAYER_CHANGED = "layerChanged"
+UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED = "feedrateChanged"
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 
@@ -107,11 +114,15 @@ class DisplaylayerprogressPlugin(
     _currentHeight = NOT_PRESENT
     _totalHeightWithExtrusion = NOT_PRESENT
     _totalHeight = NOT_PRESENT
+    _feedrate = NOT_PRESENT
+    _feedrateG0 = NOT_PRESENT
+    _feedrateG1 = NOT_PRESENT
 
     def __init__(self):
         self._showProgressOnPrinterDisplay = False
         self._showLayerOnPrinterDisplay = False
         self._showHeightOnPrinterDisplay = False
+        self._showFeedrateOnPrinterDisplay = False
 
         self._layerExpressionsValid = True
         self._allLayerExpressions = []
@@ -136,7 +147,8 @@ class DisplaylayerprogressPlugin(
                                                                                    self._allLayerExpressions))
 
     # eval current layer from modified g-code
-    def queuingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+    def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+
         commandAsString = str(cmd)
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
             layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
@@ -149,9 +161,17 @@ class DisplaylayerprogressPlugin(
             zHeight = float(matched.group(3))
             self._currentHeight = "%.2f" % zHeight
             self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
-        return
 
-    def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+        matched = feedratePattern.match(commandAsString)
+        if matched:
+            feedrate = matched.group(1)
+            self._feedrate = feedrate
+            if commandAsString.startswith('G0'):
+                self._feedrateG0 = feedrate
+            if commandAsString.startswith('G1'):
+                self._feedrateG1 = feedrate
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED)
+
         if self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES]) == True:
             commandAsString = str(cmd)
             if commandAsString.startswith("M117 "):
@@ -262,7 +282,10 @@ class DisplaylayerprogressPlugin(
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
             TOTAL_LAYER_KEYWORD_EXPRESSION: self._layerTotalCount,
             CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeight,
-            TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeight
+            TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeight,
+            FEEDRATE_KEYWORD_EXPRESSION: self._feedrate,
+            FEEDRATE_G0_KEYWORD_EXPRESSION: self._feedrateG0,
+            FEEDRATE_G1_KEYWORD_EXPRESSION: self._feedrateG1,
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
@@ -286,6 +309,9 @@ class DisplaylayerprogressPlugin(
                 shouldSendToPrinter = True
             elif updateReason == UPDATE_DISPLAY_REASON_LAYER_CHANGED and self._showLayerOnPrinterDisplay == True:
                 shouldSendToPrinter = True
+            elif updateReason == UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED and self._showFeedrateOnPrinterDisplay == True:
+                shouldSendToPrinter = True
+
             elif updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL:
                 shouldSendToPrinter = True
 
@@ -329,6 +355,13 @@ class DisplaylayerprogressPlugin(
             self._showHeightOnPrinterDisplay = True
         else:
             self._showHeightOnPrinterDisplay = False
+        if FEEDRATE_KEYWORD_EXPRESSION in printerMessagePattern \
+                or FEEDRATE_G0_KEYWORD_EXPRESSION in printerMessagePattern \
+                or FEEDRATE_G1_KEYWORD_EXPRESSION in printerMessagePattern:
+            self._showFeedrateOnPrinterDisplay = True
+        else:
+            self._showFeedrateOnPrinterDisplay = False
+
 
     def _parseLayerExpressions(self, layerExpressionPatterns):
         result = None
@@ -407,7 +440,7 @@ class DisplaylayerprogressPlugin(
             showOnNavBar=True,
             showOnPrinterDisplay=True,
             showAllPrinterMessages=True,
-            navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers] Height: [current_height] of [total_height]mm",
+            navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers] Height: [current_height] of [total_height]mm Feedrate: [feedrate] G0: [feedrate_g0] G1: [feedrate_g1]",
             printerDisplayMessagePattern="[progress]% L=[current_layer]/[total_layers]",
             layerOffset=0,
             addTrailingChar=False,
@@ -465,7 +498,7 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
-        "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
+        #"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
         "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook,
         "octoprint.filemanager.preprocessor": __plugin_implementation__.myFilePreProcessor
     }
