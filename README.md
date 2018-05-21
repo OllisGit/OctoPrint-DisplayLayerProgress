@@ -4,7 +4,7 @@ A OctoPrint-Plugin that sends the current progress of a print via M117 command t
 
 A new feature is the "Desktop Printer-Display", which shows all M117 messages in a Desktop PopUp.
 
-It shows the **percentage, the current layer, total layer count, current height and total height**:
+It shows the **percentage, the current layer, total layer count, current height, total height and feedrate**:
 
 - Printer Display: 50% L=60/120 H=23mm/47mm  
 - NavBar: Layer: 60 / 120 Height: 23mm of 47mm
