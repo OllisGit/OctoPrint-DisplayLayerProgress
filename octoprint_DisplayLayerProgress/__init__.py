@@ -46,6 +46,12 @@ extrusionPattern = re.compile(EXTRUSION_EXPRESSION)
 FEEDRATE_EXPRESSION = "^G[0|1] .*F(\d*\.?\d*).*"
 feedratePattern = re.compile(FEEDRATE_EXPRESSION)
 
+# Match Fan speed
+FANSPEED_EXPRESSION = "^M106.* S(\d+).*"
+fanSpeedPattern = re.compile(FANSPEED_EXPRESSION)
+FAN_OFF_EXPRESSION = "^M107.*"
+fanOffPattern = re.compile(FAN_OFF_EXPRESSION)
+
 PROGRESS_KEYWORD_EXPRESSION = "[progress]"
 CURRENT_LAYER_KEYWORD_EXPRESSION = "[current_layer]"
 TOTAL_LAYER_KEYWORD_EXPRESSION = "[total_layers]"
@@ -54,12 +60,14 @@ TOTAL_HEIGHT_KEYWORD_EXPRESSION = "[total_height]"
 FEEDRATE_KEYWORD_EXPRESSION = "[feedrate]"
 FEEDRATE_G0_KEYWORD_EXPRESSION = "[feedrate_g0]"
 FEEDRATE_G1_KEYWORD_EXPRESSION = "[feedrate_g1]"
+FANSPEED_KEYWORD_EXPRESSION = "[fanspeed]"
 
 UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
 UPDATE_DISPLAY_REASON_PROGRESS_CHANGED = "progressChanged"
 UPDATE_DISPLAY_REASON_LAYER_CHANGED = "layerChanged"
 UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED = "feedrateChanged"
+UPDATE_DISPLAY_REASON_FANSPEED_CHANGED = "fanspeedChanged"
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 
@@ -117,12 +125,14 @@ class DisplaylayerprogressPlugin(
     _feedrate = NOT_PRESENT
     _feedrateG0 = NOT_PRESENT
     _feedrateG1 = NOT_PRESENT
+    _fanSpeed = NOT_PRESENT
 
     def __init__(self):
         self._showProgressOnPrinterDisplay = False
         self._showLayerOnPrinterDisplay = False
         self._showHeightOnPrinterDisplay = False
         self._showFeedrateOnPrinterDisplay = False
+        self._showFanSpeedOnPrinterDisplay = False
 
         self._layerExpressionsValid = True
         self._allLayerExpressions = []
@@ -146,22 +156,24 @@ class DisplaylayerprogressPlugin(
                                                         LayerDetectorFileProcessor(file_object.stream(),
                                                                                    self._allLayerExpressions))
 
-    # eval current layer from modified g-code
-    def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
 
+    # eval current layer from modified g-code
+    def sendingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         commandAsString = str(cmd)
+        # layer
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
             layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
             self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + layerOffset)
             self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
             # filter M117 command, not needed any more
             return []
+        # Z-Height
         matched = zHeightPattern.match(commandAsString)
         if matched:
             zHeight = float(matched.group(3))
             self._currentHeight = "%.2f" % zHeight
             self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
-
+        # feedrate
         matched = feedratePattern.match(commandAsString)
         if matched:
             feedrate = matched.group(1)
@@ -171,7 +183,27 @@ class DisplaylayerprogressPlugin(
             if commandAsString.startswith('G1'):
                 self._feedrateG1 = feedrate
             self._updateDisplay(UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED)
+        # fanspeed
+        matched = fanSpeedPattern.match(commandAsString)
+        if matched:
+            fanSpeedText = matched.group(1)
+            fanSpeed = float(fanSpeedText)
+            if fanSpeed == 0:
+                self._fanSpeed = 'Off'
+            else:
+                speed = int(float(fanSpeedText)*100.0/255.0)
+                self._fanSpeed = str(speed) + '%'
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
+        matched = fanOffPattern.match(commandAsString)
+        if matched:
+            self._fanSpeed = 'Off'
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
 
+        return
+
+
+    # eval current layer from modified g-code
+    def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         if self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES]) == True:
             commandAsString = str(cmd)
             if commandAsString.startswith("M117 "):
@@ -266,6 +298,10 @@ class DisplaylayerprogressPlugin(
         self._currentHeight = NOT_PRESENT
         self._totalHeight = NOT_PRESENT
         self._totalHeightWithExtrusion = NOT_PRESENT
+        self._feedrate = NOT_PRESENT
+        self._feedrateG0 = NOT_PRESENT
+        self._feedrateG1 = NOT_PRESENT
+        self._fanSpeed = NOT_PRESENT
 
     def _activateBusyIndicator(self):
         self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
@@ -286,6 +322,7 @@ class DisplaylayerprogressPlugin(
             FEEDRATE_KEYWORD_EXPRESSION: self._feedrate,
             FEEDRATE_G0_KEYWORD_EXPRESSION: self._feedrateG0,
             FEEDRATE_G1_KEYWORD_EXPRESSION: self._feedrateG1,
+            FANSPEED_KEYWORD_EXPRESSION: self._fanSpeed,
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
@@ -310,6 +347,8 @@ class DisplaylayerprogressPlugin(
             elif updateReason == UPDATE_DISPLAY_REASON_LAYER_CHANGED and self._showLayerOnPrinterDisplay == True:
                 shouldSendToPrinter = True
             elif updateReason == UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED and self._showFeedrateOnPrinterDisplay == True:
+                shouldSendToPrinter = True
+            elif updateReason == UPDATE_DISPLAY_REASON_FANSPEED_CHANGED and self._showFanSpeedOnPrinterDisplay == True:
                 shouldSendToPrinter = True
 
             elif updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL:
@@ -361,6 +400,10 @@ class DisplaylayerprogressPlugin(
             self._showFeedrateOnPrinterDisplay = True
         else:
             self._showFeedrateOnPrinterDisplay = False
+        if FANSPEED_KEYWORD_EXPRESSION in printerMessagePattern:
+            self._showFanSpeedOnPrinterDisplay = True
+        else:
+            self._showFanSpeedOnPrinterDisplay = False
 
 
     def _parseLayerExpressions(self, layerExpressionPatterns):
@@ -499,6 +542,7 @@ def __plugin_load__():
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
         #"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
+        "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.sendingGCodeHook,
         "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook,
         "octoprint.filemanager.preprocessor": __plugin_implementation__.myFilePreProcessor
     }

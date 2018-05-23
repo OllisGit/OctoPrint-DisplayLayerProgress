@@ -19,13 +19,13 @@
                     <div>
                         Every <code>M117 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp
                     </div>
-                    <br/>
+
                     <div >
                         <label class="checkbox">Show current height in Statusbar
                             <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showHeightInStatusBar">
                         </label>
                     </div>
-                    <br/>
+
                     <div >
                         <label class="checkbox">Show layer information in Statusbar
                             <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showLayerInStatusBar">
@@ -44,7 +44,7 @@
                     <br/>
                     <div>
                         {{ _('Use the following keywords as a placeholder: <code>[progress], [current_layer], [total_layers],
-                        [current_height], [total_height], [feedrate], [feedrate_g0], [feedrate_g1]</code>') }}
+                        [current_height], [total_height],<br/> [feedrate], [feedrate_g0], [feedrate_g1], [fanspeed]</code>') }}
                     </div>
 
                     <label class="control-label">{{ _('Navigationbar') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
