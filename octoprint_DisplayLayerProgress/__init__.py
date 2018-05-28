@@ -78,9 +78,6 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         self._currentLayerCount = 0
 
     def process_line(self, line):
-        #line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_CURA)
-        #line = self._checkLineForLayerComment(line, LAYER_EXPRESSION_S3D)
-
         for layerExpression in self._allLayerExpressions:
             line = self._checkLineForLayerComment(line, layerExpression)
 
@@ -89,9 +86,7 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
             return None
         return line
 
-#    def _checkLineForLayerComment(self, line, commentPattern):
     def _checkLineForLayerComment(self, line, layerExpression):
-        #pattern = re.compile(commentPattern)
         pattern = layerExpression.expression
         matched = pattern.match(line)
         if matched:
@@ -219,14 +214,15 @@ class DisplaylayerprogressPlugin(
     def on_print_progress(self, storage, path, progress):
         # progress 0 - 100
         self._progress = str(progress)
-        self._logger.info("**** print_progress: '" + self._progress + "'")
+        # logging for debugging self._logger.info("**** print_progress: '" + self._progress + "'")
         self._updateDisplay(UPDATE_DISPLAY_REASON_PROGRESS_CHANGED)
 
     # start/stop event-hook
     def on_event(self, event, payload):
         if event == Events.FILE_SELECTED:
             self._logger.info("File selected. Determining number of layers.")
-            self._resetProgressValues()
+            self._resetCurrentValues()
+            self._resetTotalValues()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
             selectedFile = payload.get("file", "")
@@ -271,11 +267,13 @@ class DisplaylayerprogressPlugin(
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.FILE_DESELECTED:
-            self._resetProgressValues()
+            self._resetCurrentValues()
+            self._resetTotalValues()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.PRINT_STARTED:
             self._logger.info("Printing started. Detailed progress started." + str(payload))
+            self._resetCurrentValues()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
             self._checkLayerExpressionValid()
 
@@ -290,18 +288,20 @@ class DisplaylayerprogressPlugin(
         elif event == Events.CLIENT_OPENED:
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
-    def _resetProgressValues(self):
-        # reset layer-values
-        self._layerTotalCount = NOT_PRESENT
+    def _resetCurrentValues(self):
         self._currentLayer = NOT_PRESENT
         self._progress = str(0)
         self._currentHeight = NOT_PRESENT
-        self._totalHeight = NOT_PRESENT
-        self._totalHeightWithExtrusion = NOT_PRESENT
         self._feedrate = NOT_PRESENT
         self._feedrateG0 = NOT_PRESENT
         self._feedrateG1 = NOT_PRESENT
         self._fanSpeed = NOT_PRESENT
+
+    def _resetTotalValues(self):
+        self._layerTotalCount = NOT_PRESENT
+        self._totalHeight = NOT_PRESENT
+        self._totalHeightWithExtrusion = NOT_PRESENT
+
 
     def _activateBusyIndicator(self):
         self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
@@ -356,7 +356,7 @@ class DisplaylayerprogressPlugin(
 
             if shouldSendToPrinter == True:
                 self._sendCommandToPrinter(printerMessageCommand)
-                self._logger.info("** GCODE:" + printerMessageCommand)
+                # logging for debugging self._logger.info("** GCODE:" + printerMessageCommand)
 
         showHeightInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR])
         showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
@@ -366,7 +366,7 @@ class DisplaylayerprogressPlugin(
                                                                         navBarMessage=navBarMessage,
                                                                         stateMessage=stateMessage,
                                                                         heightMessage=heightMessage))
-        self._logger.info("** NavBar:" + navBarMessage)
+        # logging for debugging self._logger.info("** NavBar:" + navBarMessage)
 
     # printer specific command-manipulation.
     # e.g. ANET E10 cuts the last char from M117-commands, so this helper adds an additional underscore to the message
@@ -374,7 +374,7 @@ class DisplaylayerprogressPlugin(
         if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
             if command.startswith("M117"):
                 command += "_"
-        print("Send GCode:" + command)
+        # logging for debugging print("Send GCode:" + command)
         self._printer.commands(command)
 
     def _evaluatePrinterMessagePattern(self):
@@ -451,7 +451,7 @@ class DisplaylayerprogressPlugin(
         #update new settings
         self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
-    # to allow the front end to trigger an update
+    # to allow the frontend to trigger an update
     def on_api_get(self, request):
         if len(request.values) != 0:
             action = request.values["action"]
