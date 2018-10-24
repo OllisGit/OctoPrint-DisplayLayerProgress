@@ -15,6 +15,10 @@ from octoprint.events import Events
 from octoprint_DisplayLayerProgress import stringUtils
 from octoprint_DisplayLayerProgress.LayerExpression import LayerExpression
 
+################
+#### DEBUGGING FEATURE
+EVENT_LOGGING_ENABLED = False;
+
 SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES = "showAllPrinterMessages"
 SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR = "showHeightInStatusBar"
 SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR = "showLayerInStatusBar"
@@ -219,6 +223,7 @@ class DisplaylayerprogressPlugin(
 
     # start/stop event-hook
     def on_event(self, event, payload):
+        self._eventLogging("EVENT: " + event);
         if event == Events.FILE_SELECTED:
             self._logger.info("File selected. Determining number of layers.")
             self._resetCurrentValues()
@@ -283,8 +288,8 @@ class DisplaylayerprogressPlugin(
             # send to navbar
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
             # send to the printer
-            self._sendCommandToPrinter("M117 Print Done")
-
+            self._eventLogging("M117 Print Done");
+            # not needed could be done via standard code-settings self._sendCommandToPrinter("M117 Print Done")
         elif event == Events.CLIENT_OPENED:
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
@@ -313,6 +318,7 @@ class DisplaylayerprogressPlugin(
                                                           notifyMessage="DisplayProgressPlugin: LayerExpressions not valid! Check Plugin-Settings."))
 
     def _updateDisplay(self, updateReason):
+        self._eventLogging("UPDATE DISPLAY: " + updateReason);
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
@@ -375,6 +381,7 @@ class DisplaylayerprogressPlugin(
             if command.startswith("M117"):
                 command += "_"
         # logging for debugging print("Send GCode:" + command)
+        self._eventLogging("SEND-COMMAND: "+command);
         self._printer.commands(command)
 
     def _evaluatePrinterMessagePattern(self):
@@ -437,6 +444,11 @@ class DisplaylayerprogressPlugin(
 
         return result
 
+    def _eventLogging(self, logMessage):
+        if (EVENT_LOGGING_ENABLED):
+            self._logger.info("******* "+logMessage);
+
+
     def on_settings_save(self, data):
         # !!! data includes only the delta settings between the last save-action !!!
         layerExpressions = data.get(SETTINGS_KEY_LAYER_EXPRESSIONS)
@@ -488,7 +500,7 @@ class DisplaylayerprogressPlugin(
             layerOffset=0,
             addTrailingChar=False,
             totalHeightMethode=HEIGHT_METHODE_Z_MAX,
-            layerExpressions="1		[;LAYER:([0-9]+).*]		CURA\r\n"+ "1		[; layer ([0-9]+),.*]	Simplify3D\r\n"+ "count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer",
+            layerExpressions="1		[;.*LAYER:.*([0-9]+).*]		CURA\r\n"+ "1		[; layer ([0-9]+),.*]	Simplify3D\r\n"+ "count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer",
             showLayerInStatusBar=True,
             showHeightInStatusBar=True
         )
