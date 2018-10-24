@@ -495,7 +495,12 @@ class DisplaylayerprogressPlugin(
             showOnNavBar=True,
             showOnPrinterDisplay=True,
             showAllPrinterMessages=True,
-            navBarMessagePattern="Progress: [progress]% Layer: [current_layer] of [total_layers] Height: [current_height] of [total_height]mm Feedrate: [feedrate] G0: [feedrate_g0] G1: [feedrate_g1]",
+            navBarMessagePattern="Progress: <span style='display: inline-block;width:24px;'>[progress]%</span>\n"
+                                 "Layer: <span style='display: inline-block;width:24px;'>[current_layer]</span> of\n"
+                                 "<span style='display: inline-block;width:24px;'>[total_layers]</span>\n"
+                                 "Height: <span style='display: inline-block;width:42px;'>[current_height]</span> of\n"
+                                 "<span style='display: inline-block;width:42px;'>[total_height]</span>mm",
+#                                 "Feedrate: [feedrate] G0: [feedrate_g0] G1: [feedrate_g1]",
             printerDisplayMessagePattern="[progress]% L=[current_layer]/[total_layers]",
             layerOffset=0,
             addTrailingChar=False,

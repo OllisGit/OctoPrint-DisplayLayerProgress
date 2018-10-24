@@ -50,8 +50,7 @@
                     <label class="control-label">{{ _('Navigationbar') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
                                                                                                   data-bind="checked: settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
                     <div class="controls">
-                        <input type="text" class="input-block-level text-left"
-                               data-bind="value: settings.plugins.DisplayLayerProgress.navBarMessagePattern"/>
+                        <textarea rows="5" cols="60" style="width: auto;" data-bind="value: settings.plugins.DisplayLayerProgress.navBarMessagePattern">'NavBar-Pattern'</textarea>
                     </div>
 
                     <label class="control-label">{{ _('Printer Display') }}&nbsp;&nbsp;&nbsp<input type="checkbox"
