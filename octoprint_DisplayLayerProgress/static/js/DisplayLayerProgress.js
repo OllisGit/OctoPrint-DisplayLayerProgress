@@ -15,6 +15,8 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showAllPrinterMessages(data.showAllPrinterMessages);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern(data.navBarMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern(data.printerDisplayMessagePattern);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayScreenLocation(data.printerDisplayScreenLocation);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayWidth(data.printerDisplayWidth);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.addTrailingChar(data.addTrailingChar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerExpressions(data.layerExpressions);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showLayerInStatusBar(data.showLayerInStatusBar);
@@ -104,21 +106,27 @@ $(function () {
                 }
             }
 			// Printer Display
-			if (data.printerDisplay){
-				if (printerDisplay == null){
-                    var stack_bar_bottom = {"dir1": "up", "dir2": "left", "spacing1": 0, "spacing2": 0};
-					printerDisplay = new PNotify({
-						title: 'Printer Display',
-						type: 'info',
-						width: "25%",
-						addclass: "stack-bottomleft",
-                        stack: stack_bar_bottom,
-						hide: false
-						});
-				}
-				printerDisplay.update({
-					text: '<h3 class="fontsforweb_fontid_507"><font color="lightblue" style="background-color:blue;">'+data.printerDisplay+'</font></h3>'
-				});
+            if ( (printerDisplay == null && data.initPrinterDisplay) ||
+                  data.initPrinterDisplay){
+                if (printerDisplay != null){
+                    $("h4.ui-pnotify-title:contains('Printer Display')").parent().parent().remove();
+                }
+                //var stack_bar_bottom = {"dir1": "up", "dir2": "left", "spacing1": 0, "spacing2": 0};
+                var stack_bar_bottom = JSON.parse("{"+data.printerDisplayScreenLocation+"}");
+                printerDisplay = new PNotify({
+                    title: 'Printer Display',
+                    type: 'info',
+                    width: data.printerDisplayWidth,
+                    //addclass: "stack-bottomleft",
+                    addclass: data.classDefinition,
+                    stack: stack_bar_bottom,
+                    hide: false
+                    });
+            }
+			if (data.printerDisplay && printerDisplay != null){
+                printerDisplay.update({
+                    text: '<h3 class="fontsforweb_fontid_507"><font color="lightblue" style="background-color:blue;">'+data.printerDisplay+'</font></h3>'
+                });
 			}
 			if (data.notifyType){
 			    var notfiyType = data.notifyType;

@@ -8,6 +8,7 @@ import octoprint.printer
 import octoprint.util
 import re
 import flask
+import json
 
 from octoprint.events import Events
 
@@ -17,7 +18,7 @@ from octoprint_DisplayLayerProgress.LayerExpression import LayerExpression
 
 ################
 #### DEBUGGING FEATURE
-EVENT_LOGGING_ENABLED = False;
+EVENT_LOGGING_ENABLED = False
 
 SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES = "showAllPrinterMessages"
 SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR = "showHeightInStatusBar"
@@ -25,6 +26,8 @@ SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR = "showLayerInStatusBar"
 SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY = "showOnPrinterDisplay"
 SETTINGS_KEY_NAVBAR_MESSAGEPATTERN = "navBarMessagePattern"
 SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN = "printerDisplayMessagePattern"
+SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION = "printerDisplayScreenLocation"
+SETTINGS_KEY_PRINTERDISPLAY_WIDTH = "printerDisplayWidth"
 SETTINGS_KEY_ADD_TRAILINGCHAR = "addTrailingChar"
 SETTINGS_KEY_LAYER_OFFSET = "layerOffset"
 SETTINGS_KEY_TOTAL_HEIGHT_METHODE = "totalHeightMethode"
@@ -96,7 +99,7 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         if matched:
             groupIndex = layerExpression.groupIndex
             if layerExpression.type_countable:
-                self._currentLayerCount = self._currentLayerCount +1
+                self._currentLayerCount = self._currentLayerCount + 1
                 currentLayer = str(self._currentLayerCount)
             else:
                 currentLayer = str(matched.group(groupIndex))
@@ -223,7 +226,7 @@ class DisplaylayerprogressPlugin(
 
     # start/stop event-hook
     def on_event(self, event, payload):
-        self._eventLogging("EVENT: " + event);
+        self._eventLogging("EVENT: " + event)
         if event == Events.FILE_SELECTED:
             self._logger.info("File selected. Determining number of layers.")
             self._resetCurrentValues()
@@ -260,8 +263,6 @@ class DisplaylayerprogressPlugin(
                         print("BOOOOOOMMMM")
                         print("#"+lineNumber + " "+line)
 
-
-
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
                 self._totalHeight = str("%.2f" % totalHeight)
             else:
@@ -288,9 +289,10 @@ class DisplaylayerprogressPlugin(
             # send to navbar
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
             # send to the printer
-            self._eventLogging("M117 Print Done");
+            self._eventLogging("M117 Print Done")
             # not needed could be done via standard code-settings self._sendCommandToPrinter("M117 Print Done")
         elif event == Events.CLIENT_OPENED:
+            self._initDesktopPinterDisplay()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
     def _resetCurrentValues(self):
@@ -317,8 +319,38 @@ class DisplaylayerprogressPlugin(
                                                      dict(notifyType="error",
                                                           notifyMessage="DisplayProgressPlugin: LayerExpressions not valid! Check Plugin-Settings."))
 
+
+    def _initDesktopPinterDisplay(self):
+
+        classStyle = ""
+        stackDefinition = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION])
+        isTop = False
+        isRight = False
+        if ("down" in stackDefinition):
+            isTop = True
+        if ("right" in stackDefinition):
+            isRight = True
+
+        if (isTop and isRight):
+            classStyle = "stack-topleft"
+        if (isTop and isRight == False):
+            classStyle = "stack-topright"
+
+        if (isTop == False and isRight):
+            classStyle = "stack-bottomleft"
+        if (isTop == False and isRight == False):
+            classStyle = "stack-bottomright"
+
+        self._plugin_manager.send_plugin_message(self._identifier,
+                                                 dict(initPrinterDisplay=True,
+                                                      printerDisplayScreenLocation=stackDefinition,
+                                                      printerDisplayWidth=self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_WIDTH]),
+                                                      classDefinition=classStyle
+                                                      )
+                                                 )
+
     def _updateDisplay(self, updateReason):
-        self._eventLogging("UPDATE DISPLAY: " + updateReason);
+        self._eventLogging("UPDATE DISPLAY: " + updateReason)
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
@@ -381,7 +413,7 @@ class DisplaylayerprogressPlugin(
             if command.startswith("M117"):
                 command += "_"
         # logging for debugging print("Send GCode:" + command)
-        self._eventLogging("SEND-COMMAND: "+command);
+        self._eventLogging("SEND-COMMAND: "+command)
         self._printer.commands(command)
 
     def _evaluatePrinterMessagePattern(self):
@@ -446,20 +478,37 @@ class DisplaylayerprogressPlugin(
 
     def _eventLogging(self, logMessage):
         if (EVENT_LOGGING_ENABLED):
-            self._logger.info("******* "+logMessage);
+            self._logger.info("******* "+logMessage)
 
 
     def on_settings_save(self, data):
         # !!! data includes only the delta settings between the last save-action !!!
+
         layerExpressions = data.get(SETTINGS_KEY_LAYER_EXPRESSIONS)
         if not layerExpressions == None:
             result = self._parseLayerExpressions(layerExpressions)
             if result != None:
                 self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage = result))
 
+        initDesktopPrinterDisplay = False
+        printerDisplayScreenLocationDefinition = data.get(SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION)
+        if not printerDisplayScreenLocationDefinition == None:
+            try:
+                json.loads("{"+printerDisplayScreenLocationDefinition+"}")
+                initDesktopPrinterDisplay = True
+            except:
+                self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage="Printer ScreenLocation could not parsed!"))
+
+        printerDisplayWidthDefinition = data.get(SETTINGS_KEY_PRINTERDISPLAY_WIDTH)
+        if not printerDisplayWidthDefinition == None:
+            initDesktopPrinterDisplay = True
+
         # default save function
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self._evaluatePrinterMessagePattern()
+
+        if (initDesktopPrinterDisplay):
+            self._initDesktopPinterDisplay()
         #update new settings
         self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
@@ -505,9 +554,11 @@ class DisplaylayerprogressPlugin(
             layerOffset=0,
             addTrailingChar=False,
             totalHeightMethode=HEIGHT_METHODE_Z_MAX,
-            layerExpressions="1		[;.*LAYER:.*([0-9]+).*]		CURA\r\n"+ "1		[; layer ([0-9]+),.*]	Simplify3D\r\n"+ "count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer",
+            layerExpressions="1		[;\s*LAYER:\s*([0-9]+).*]		CURA\r\n"+ "1		[; layer ([0-9]+),.*]	Simplify3D\r\n"+ "count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer",
             showLayerInStatusBar=True,
-            showHeightInStatusBar=True
+            showHeightInStatusBar=True,
+            printerDisplayScreenLocation="\"dir1\": \"up\", \"dir2\": \"left\", \"firstpos1\": 20, \"firstpos2\": 0, \"spacing1\": 0, \"spacing2\": 0",
+            printerDisplayWidth="15%"
         )
 
     # ~~ AssetPlugin mixin
@@ -543,7 +594,6 @@ class DisplaylayerprogressPlugin(
                 pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/archive/{target_version}.zip"
             )
         )
-
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that

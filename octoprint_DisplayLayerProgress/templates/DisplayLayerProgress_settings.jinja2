@@ -11,15 +11,22 @@
             <div class="tab-pane active" id="tabDisplay">
                 <div class="control-group">
                     <legend>Visibility</legend>
-                    <div >
-                        <label class="checkbox">Show printer display on Desktop
-                            <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showAllPrinterMessages">
-                        </label>
+
+                    <label class="checkbox">Show printer display on Desktop
+                        <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showAllPrinterMessages" />
+                    </label>
+                    <label style="padding-left:21px">Every <code>M117 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp</label>
+
+                    <div>
+                        <label class="checkbox">Screen location: (<a target="newTab" href="https://github.com/sciactive/pnotify/tree/2.1.0#example-stacks">description</a>):
+                        <input type="text" class="input-block-level text-left"
+                                                     data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayScreenLocation"/></label>
                     </div>
                     <div>
-                        Every <code>M117 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp
+                        <label class="checkbox">Width:
+                            <input type="text" class="input-block-level text-left"
+                                   data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayWidth"/></label>
                     </div>
-
                     <div >
                         <label class="checkbox">Show current height in Statusbar
                             <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showHeightInStatusBar">
@@ -31,8 +38,6 @@
                             <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showLayerInStatusBar">
                         </label>
                     </div>
-
-
                 </div>
 
                 <div class="control-group">
