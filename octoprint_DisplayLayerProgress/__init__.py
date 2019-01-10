@@ -69,6 +69,7 @@ FEEDRATE_KEYWORD_EXPRESSION = "[feedrate]"
 FEEDRATE_G0_KEYWORD_EXPRESSION = "[feedrate_g0]"
 FEEDRATE_G1_KEYWORD_EXPRESSION = "[feedrate_g1]"
 FANSPEED_KEYWORD_EXPRESSION = "[fanspeed]"
+PRINTTIME_LEFT_EXPRESSION = "[printtime_left]"
 
 UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
@@ -364,8 +365,11 @@ class DisplaylayerprogressPlugin(
 
         currentData = self._printer.get_current_data()
 
-        left = currentData["progress"]["printTimeLeft"]
-        est = currentData["job"]["estimatedPrintTime"]
+        # NOT NEEDED at the moment estPrintTime = currentData["job"]["estimatedPrintTime"]
+        printTimeLeft = ""
+        printTimeLeftInSeconds = currentData["progress"]["printTimeLeft"]
+        if printTimeLeftInSeconds is not None:
+            printTimeLeft = stringUtils.secondsToText(printTimeLeftInSeconds)
 
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
@@ -377,6 +381,7 @@ class DisplaylayerprogressPlugin(
             FEEDRATE_G0_KEYWORD_EXPRESSION: self._feedrateG0,
             FEEDRATE_G1_KEYWORD_EXPRESSION: self._feedrateG1,
             FANSPEED_KEYWORD_EXPRESSION: self._fanSpeed,
+            PRINTTIME_LEFT_EXPRESSION: printTimeLeft
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)

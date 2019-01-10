@@ -9,3 +9,24 @@ def multiple_replace(text, adict):
     def one_xlat(match):
         return adict[match.group(0)]
     return rx.sub(one_xlat, text)
+
+# see https://stackoverflow.com/questions/4048651/python-function-to-convert-seconds-into-minutes-hours-and-days/4048773
+def secondsToText(secs):
+    days = secs // 86400
+    hours = (secs - days * 86400) // 3600
+    minutes = (secs - days * 86400 - hours * 3600) // 60
+    seconds = secs - days * 86400 - hours * 3600 - minutes * 60
+
+    result = ("{}d".format(days) if days else "") + \
+             ("{}h".format(hours) if hours else "") + \
+             ("{}m".format(minutes) if not days and minutes else "") + \
+             ("{}s".format(seconds) if not days and not hours and seconds else "")
+    return result
+
+#day = 0
+#hour = 0
+#minute = 1
+#second = 31
+
+#seconds = day * 24 * 60 * 60 +  hour * 60 * 60 +  minute * 60  + second
+#print(secondsToText(None, seconds) )
