@@ -21,8 +21,8 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerExpressions(data.layerExpressions);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showLayerInStatusBar(data.showLayerInStatusBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showHeightInStatusBar(data.showHeightInStatusBar);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.updatePrinterDisplayWhilePrinting(data.updatePrinterDisplayWhilePrinting);
         });
-
 
         var self = this;
 
@@ -123,11 +123,13 @@ $(function () {
                     hide: false
                     });
             }
-			if (data.printerDisplay && printerDisplay != null){
+			if (data.showDesktopPrinterDisplay && data.printerDisplay && printerDisplay != null){
                 printerDisplay.update({
                     text: '<h3 class="fontsforweb_fontid_507"><font color="lightblue" style="background-color:blue;">'+data.printerDisplay+'</font></h3>'
                 });
 			}
+
+			// NotificationMessages
 			if (data.notifyType){
 			    var notfiyType = data.notifyType;
 			    var notifyMessage = data.notifyMessage;
@@ -139,7 +141,16 @@ $(function () {
                     });
 
 			}
+
         };
+
+        self.onBeforeBinding = function () {
+            self.settings = self.settingsViewModel.settings.plugins.DisplayLayerProgress;
+            // From server-settings to client-settings
+        };
+
+        self.onSettingsBeforeSave = function () {
+        }
     }
 
     /* view model class, parameters for constructor, container to bind to
@@ -151,6 +162,10 @@ $(function () {
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
         dependencies: ["loginStateViewModel", "settingsViewModel"],
         // Elements to bind to, e.g. #settings_plugin_DisplayLayerProgress, #tab_plugin_DisplayLayerProgress, ...
-        elements: [document.getElementById("progressinfo_plugin_navbar")]
+        //elements: [document.getElementById("progressinfo_plugin_navbar")]
+        elements: [
+            document.getElementById("displayLayerProgress_plugin_navbar"),
+            document.getElementById("displayLayerProgress_plugin_settings")
+        ]
     });
 });

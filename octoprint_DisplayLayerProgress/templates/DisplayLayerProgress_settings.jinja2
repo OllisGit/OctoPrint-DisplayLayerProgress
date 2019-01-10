@@ -1,4 +1,5 @@
-<form class="form-horizontal">
+
+<form id="displayLayerProgress_plugin_settings" class="form-horizontal" >
     <div class="tabbable"> <!-- Only required for left/right tabs -->
         <ul class="nav nav-tabs">
             <li class="active"><a href="#tabDisplay" data-toggle="tab">Display</a></li>
@@ -11,40 +12,45 @@
             <div class="tab-pane active" id="tabDisplay">
                 <div class="control-group">
                     <legend>Visibility</legend>
-
                     <label class="checkbox">Show printer display on Desktop
-                        <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showAllPrinterMessages" />
+                        <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showAllPrinterMessages" />
                     </label>
                     <label style="padding-left:21px">Every <code>M117 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp</label>
 
                     <div>
                         <label class="checkbox">Screen location: (<a target="newTab" href="https://github.com/sciactive/pnotify/tree/2.1.0#example-stacks">description</a>):
                         <input type="text" class="input-block-level text-left"
-                                                     data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayScreenLocation"/></label>
+                                                     data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayScreenLocation"/></label>
                     </div>
                     <div>
                         <label class="checkbox">Width:
                             <input type="text" class="input-block-level text-left"
-                                   data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayWidth"/></label>
+                                   data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayWidth"/></label>
                     </div>
                     <div >
                         <label class="checkbox">Show current height in Statusbar
-                            <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showHeightInStatusBar">
+                            <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showHeightInStatusBar">
                         </label>
                     </div>
 
                     <div >
                         <label class="checkbox">Show layer information in Statusbar
-                            <input type="checkbox" data-bind="checked: settings.plugins.DisplayLayerProgress.showLayerInStatusBar">
+                            <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showLayerInStatusBar">
                         </label>
                     </div>
+
+                    <div >
+                        <label class="checkbox">Update Printer Display only while printing
+                            <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.updatePrinterDisplayWhilePrinting">
+                        </label>
+                    </div>
+
                 </div>
 
                 <div class="control-group">
                     <legend>Message output</legend>
-                    <div>
-                        {{ _('You can define where you want to display the layer- and progress-information and also how the message
-                        should be shown.') }}
+                    <div>You can define where you want to display the layer- and progress-information and also how the message
+                        should be shown. For font-color change in Navigationbar, see <a target="_newTab" href="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/62#issuecomment-442627397">Issue#62</a>
                     </div>
                     <br/>
                     <div>
@@ -53,16 +59,16 @@
                     </div>
 
                     <label class="control-label">{{ _('Navigationbar') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
-                                                                                                  data-bind="checked: settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
+                                                                                                  data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
                     <div class="controls">
-                        <textarea rows="5" cols="60" style="width: auto;" data-bind="value: settings.plugins.DisplayLayerProgress.navBarMessagePattern">'NavBar-Pattern'</textarea>
+                        <textarea rows="5" cols="60" style="width: auto;" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern">'NavBar-Pattern'</textarea>
                     </div>
 
                     <label class="control-label">{{ _('Printer Display') }}&nbsp;&nbsp;&nbsp<input type="checkbox"
-                                                                                                   data-bind="checked: settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"></label>
+                                                                                                   data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"></label>
                     <div class="controls">
                         <input type="text" class="input-block-level text-left"
-                               data-bind="value: settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
+                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
                     </div>
                     <div class="help-block">
                         <font color="red">Before changing the printer message, please make sure that your printer can handle the
@@ -92,7 +98,7 @@
                         or you can use <code>count</code>, if the layer-value needs to be calculatetd by the plugin (e.g. KISSlicer).
                     </div>
                     <br/>
-                    <textarea id="layerExpressionTextArea" rows="4" style="width:90%"  data-bind="value: settings.plugins.DisplayLayerProgress.layerExpressions">
+                    <textarea id="layerExpressionTextArea" rows="4" style="width:90%"  data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerExpressions">
 1		[;LAYER:([0-9]+).*]		CURA
 1		[; layer ([0-9]+),.*]	Simplify3D
 count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
@@ -112,7 +118,7 @@ count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
                     <div class="controls">
                         <span class="input-append">
                             <input type="number" step="any" min="0" class="input-mini text-right"
-                                   data-bind="value: settings.plugins.DisplayLayerProgress.layerOffset">
+                                   data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerOffset">
                             <span class="add-on">layers</span>
                         </span>
                     </div>
@@ -124,10 +130,10 @@ count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
                     <label class="control-label">Choose total height methode:</label>
                     <div class="controls">
                         <input type="radio" name="heightMethode" value="zMax"
-                               data-bind="checked: settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max
+                               data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max
                         Z-Value in G-Code<br/>
                         <input type="radio" name="heightMethode" value="zExtrusion"
-                               data-bind="checked: settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max
+                               data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max
                         Z-Value with Extrusion in Z-Layer<br/>
                     </div>
                 </div>
@@ -135,11 +141,12 @@ count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
     <!-- TODO Description -->
                 </p>
             </div>
+
             <!-- ANET E-10 - TAB -->
             <div class="tab-pane" id="tabANETE10">
                 <div class="control-group">
                     <label class="control-label">{{ _('Add trailing character') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
-                                                                                                           data-bind="checked: settings.plugins.DisplayLayerProgress.addTrailingChar"></label>
+                                                                                                           data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.addTrailingChar"></label>
                 </div>
                 <p>
                     {{ _('Use this if your printer display cuts off the last character of the layer message.') }}
@@ -148,6 +155,4 @@ count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
         </div>
     </div>
 </form>
-
-
 

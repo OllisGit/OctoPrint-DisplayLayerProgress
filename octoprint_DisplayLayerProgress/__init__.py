@@ -24,6 +24,7 @@ SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES = "showAllPrinterMessages"
 SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR = "showHeightInStatusBar"
 SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR = "showLayerInStatusBar"
 SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY = "showOnPrinterDisplay"
+SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING = "updatePrinterDisplayWhilePrinting"
 SETTINGS_KEY_NAVBAR_MESSAGEPATTERN = "navBarMessagePattern"
 SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN = "printerDisplayMessagePattern"
 SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION = "printerDisplayScreenLocation"
@@ -128,6 +129,7 @@ class DisplaylayerprogressPlugin(
     _feedrateG0 = NOT_PRESENT
     _feedrateG1 = NOT_PRESENT
     _fanSpeed = NOT_PRESENT
+    _isPrinterRunning = False
 
     def __init__(self):
         self._showProgressOnPrinterDisplay = False
@@ -162,6 +164,7 @@ class DisplaylayerprogressPlugin(
     # eval current layer from modified g-code
     def sendingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         commandAsString = str(cmd)
+
         # layer
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
             layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
@@ -206,15 +209,18 @@ class DisplaylayerprogressPlugin(
 
     # eval current layer from modified g-code
     def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        if self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES]) == True:
+        showDesktopPrinterDisplay = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        if  showDesktopPrinterDisplay == True:
             commandAsString = str(cmd)
+            # logging self._logger.info("********* COMMAND:" + commandAsString)
             if commandAsString.startswith("M117 "):
                 printerMessage = commandAsString[len("M117 "):]
                 if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
                     printerMessage = printerMessage[:-1]
 
                 printerMessage = "&nbsp;" + printerMessage + "&nbsp;"
-                self._plugin_manager.send_plugin_message(self._identifier, dict(printerDisplay=printerMessage))
+                self._plugin_manager.send_plugin_message(self._identifier, dict(showDesktopPrinterDisplay=showDesktopPrinterDisplay,
+                                                                                printerDisplay=printerMessage))
         return
 
     # progress-hook
@@ -227,6 +233,7 @@ class DisplaylayerprogressPlugin(
     # start/stop event-hook
     def on_event(self, event, payload):
         self._eventLogging("EVENT: " + event)
+
         if event == Events.FILE_SELECTED:
             self._logger.info("File selected. Determining number of layers.")
             self._resetCurrentValues()
@@ -278,6 +285,7 @@ class DisplaylayerprogressPlugin(
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.PRINT_STARTED:
+            self._isPrinterRunning = True
             self._logger.info("Printing started. Detailed progress started." + str(payload))
             self._resetCurrentValues()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
@@ -291,6 +299,7 @@ class DisplaylayerprogressPlugin(
             # send to the printer
             self._eventLogging("M117 Print Done")
             # not needed could be done via standard code-settings self._sendCommandToPrinter("M117 Print Done")
+            self._isPrinterRunning = False
         elif event == Events.CLIENT_OPENED:
             self._initDesktopPinterDisplay()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
@@ -321,7 +330,6 @@ class DisplaylayerprogressPlugin(
 
 
     def _initDesktopPinterDisplay(self):
-
         classStyle = ""
         stackDefinition = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION])
         isTop = False
@@ -341,8 +349,10 @@ class DisplaylayerprogressPlugin(
         if (isTop == False and isRight == False):
             classStyle = "stack-bottomright"
 
+        showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        initDesktopDisplay =  showDesktopPrinterDisplay
         self._plugin_manager.send_plugin_message(self._identifier,
-                                                 dict(initPrinterDisplay=True,
+                                                 dict(initPrinterDisplay=initDesktopDisplay,
                                                       printerDisplayScreenLocation=stackDefinition,
                                                       printerDisplayWidth=self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_WIDTH]),
                                                       classDefinition=classStyle
@@ -388,18 +398,27 @@ class DisplaylayerprogressPlugin(
                 shouldSendToPrinter = True
             elif updateReason == UPDATE_DISPLAY_REASON_FANSPEED_CHANGED and self._showFanSpeedOnPrinterDisplay == True:
                 shouldSendToPrinter = True
-
             elif updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL:
                 shouldSendToPrinter = True
 
-            if shouldSendToPrinter == True:
+            if (self._settings.get([SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING])):
+                if (self._isPrinterRunning):
+                #if (self._printer.is_printing()):
+                    shouldSendToPrinter = True
+                else:
+                    shouldSendToPrinter = False
+
+            if (shouldSendToPrinter == True):
                 self._sendCommandToPrinter(printerMessageCommand)
                 # logging for debugging self._logger.info("** GCODE:" + printerMessageCommand)
 
         showHeightInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR])
         showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
+
+        showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
         # Send to STATEBAR and NAVBAR
-        self._plugin_manager.send_plugin_message(self._identifier, dict(showHeightInStatusBar=showHeightInStatusBar,
+        self._plugin_manager.send_plugin_message(self._identifier, dict(showDesktopPrinterDisplay=showDesktopPrinterDisplay,
+                                                                        showHeightInStatusBar=showHeightInStatusBar,
                                                                         showLayerInStatusBar=showLayerInStatusBar,
                                                                         navBarMessage=navBarMessage,
                                                                         stateMessage=stateMessage,
@@ -480,7 +499,6 @@ class DisplaylayerprogressPlugin(
         if (EVENT_LOGGING_ENABLED):
             self._logger.info("******* "+logMessage)
 
-
     def on_settings_save(self, data):
         # !!! data includes only the delta settings between the last save-action !!!
 
@@ -530,11 +548,10 @@ class DisplaylayerprogressPlugin(
         # default/other action
         self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
-
     # ~~ TemplatePlugin mixin
     def get_template_configs(self):
         return [
-            dict(type="settings", custom_bindings=False)
+            dict(type="settings", custom_bindings=True)
         ]
 
     # ~~ SettingsPlugin mixin
@@ -557,7 +574,8 @@ class DisplaylayerprogressPlugin(
             layerExpressions="1		[;\s*LAYER:\s*([0-9]+).*]		CURA\r\n"+ "1		[; layer ([0-9]+),.*]	Simplify3D\r\n"+ "count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer",
             showLayerInStatusBar=True,
             showHeightInStatusBar=True,
-            printerDisplayScreenLocation="\"dir1\": \"up\", \"dir2\": \"left\", \"firstpos1\": 20, \"firstpos2\": 0, \"spacing1\": 0, \"spacing2\": 0",
+            updatePrinterDisplayWhilePrinting=False,
+            printerDisplayScreenLocation="\"dir1\": \"up\", \"dir2\": \"right\", \"firstpos1\": 40, \"firstpos2\": 10, \"spacing1\": 0, \"spacing2\": 0",
             printerDisplayWidth="15%"
         )
 
