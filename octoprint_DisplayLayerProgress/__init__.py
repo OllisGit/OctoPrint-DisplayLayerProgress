@@ -361,6 +361,12 @@ class DisplaylayerprogressPlugin(
 
     def _updateDisplay(self, updateReason):
         self._eventLogging("UPDATE DISPLAY: " + updateReason)
+
+        currentData = self._printer.get_current_data()
+
+        left = currentData["progress"]["printTimeLeft"]
+        est = currentData["job"]["estimatedPrintTime"]
+
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
