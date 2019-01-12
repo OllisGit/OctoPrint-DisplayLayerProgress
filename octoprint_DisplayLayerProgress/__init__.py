@@ -352,6 +352,7 @@ class DisplaylayerprogressPlugin(
 
         showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
         initDesktopDisplay =  showDesktopPrinterDisplay
+
         self._plugin_manager.send_plugin_message(self._identifier,
                                                  dict(initPrinterDisplay=initDesktopDisplay,
                                                       printerDisplayScreenLocation=stackDefinition,
@@ -362,6 +363,11 @@ class DisplaylayerprogressPlugin(
 
     def _updateDisplay(self, updateReason):
         self._eventLogging("UPDATE DISPLAY: " + updateReason)
+
+#        myPlugin = self._plugin_manager.get_plugin("DisplayLayerProgress")
+#        myPluginInfo = self._plugin_manager.get_plugin_info("DisplayLayerProgress")
+#        myImplementation = myPluginInfo.implementation
+#        myImplementation2 = DisplaylayerprogressPlugin(myPluginInfo.implementation)
 
         currentData = self._printer.get_current_data()
 
