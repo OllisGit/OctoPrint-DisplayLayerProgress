@@ -30,3 +30,9 @@ def secondsToText(secs):
 
 #seconds = day * 24 * 60 * 60 +  hour * 60 * 60 +  minute * 60  + second
 #print(secondsToText(None, seconds) )
+
+
+#myformat = "{:.2f}"
+#myvalue = 3.141592
+#myoutput = myformat.format(myvalue)
+#print(myoutput)

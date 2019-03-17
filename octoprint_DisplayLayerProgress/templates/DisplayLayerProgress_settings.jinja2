@@ -6,6 +6,7 @@
             <li><a href="#tabLayer" data-toggle="tab">Layer</a></li>
             <li><a href="#tabHeight" data-toggle="tab">Height</a></li>
             <li><a href="#tabANETE10" data-toggle="tab">ANET E10</a></li>
+            <li><a href="#tabDebugging" data-toggle="tab">Debugging</a></li>
         </ul>
         <div class="tab-content">
             <!-- DISPLAY - TAB -->
@@ -70,6 +71,20 @@
                         <input type="text" class="input-block-level text-left"
                                data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
                     </div>
+
+                    <label class="control-label">Feedrate factor&nbsp;</label>
+                    <div class="controls">
+                        <input type="text" class="text-right"
+                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFactor"/>
+                        &nbsp;Format&nbsp;
+                        <input type="text" class="text-right"
+                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFormat"/>
+                    </div>
+                    <label class="control-label">&nbsp;</label>
+                    <div class="controls">
+                        <p>you can use this <a target="_newTab" href="https://trinket.io/python/1f22413094">link</a> for a "format-playground"</p>
+                    </div>
+
                     <div class="help-block">
                         <font color="red">Before changing the printer message, please make sure that your printer can handle the
                             output. <br/>
@@ -152,6 +167,18 @@ count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
                     {{ _('Use this if your printer display cuts off the last character of the layer message.') }}
                 </p>
             </div>
+
+            <!-- DEBUGGING - TAB -->
+            <div class="tab-pane" id="tabDebugging">
+                <div class="control-group">
+                    <label class="control-label">Event debugging enabled&nbsp;&nbsp;&nbsp;<input type="checkbox"
+                                                                                                           data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.debuggingEnabled"></label>
+                </div>
+                <p>
+                    Enabled Event and G-Code logging. If enabled you can download the log-file from the logging-section ('plugin_DisplayLayerProgress_events.log')
+                </p>
+            </div>
+
         </div>
     </div>
 </form>

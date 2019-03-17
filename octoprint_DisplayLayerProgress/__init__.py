@@ -9,6 +9,8 @@ import octoprint.util
 import re
 import flask
 import json
+import logging
+import threading
 
 from octoprint.events import Events
 
@@ -33,6 +35,9 @@ SETTINGS_KEY_ADD_TRAILINGCHAR = "addTrailingChar"
 SETTINGS_KEY_LAYER_OFFSET = "layerOffset"
 SETTINGS_KEY_TOTAL_HEIGHT_METHODE = "totalHeightMethode"
 SETTINGS_KEY_LAYER_EXPRESSIONS = "layerExpressions"
+SETTINGS_KEY_FEEDRATE_FACTOR = "feedrateFactor"
+SETTINGS_KEY_FEEDRATE_FORMAT = "feedrateFormat"
+SETTINGS_KEY_DEBUGGING_ENABLED = "debuggingEnabled"
 
 HEIGHT_METHODE_Z_MAX = "zMax"
 HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
@@ -143,6 +148,21 @@ class DisplaylayerprogressPlugin(
         self._allLayerExpressions = []
 
     def initialize(self):
+        # setup our custom logger
+        logPostfix = "events"
+        self._event_file_logger = logging.getLogger("octoprint.plugins." + self._settings.plugin_key + "."+logPostfix)
+
+        from octoprint.logging.handlers import CleaningTimedRotatingFileHandler
+        event_logging_handler = CleaningTimedRotatingFileHandler(self._settings.get_plugin_logfile_path(postfix=logPostfix),
+                                                                when="D", backupCount=3)
+        event_logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+        event_logging_handler.setLevel(logging.DEBUG)
+
+        self._event_file_logger.addHandler(event_logging_handler)
+        self._event_file_logger.setLevel(logging.DEBUG)
+        self._event_file_logger.propagate = False
+
+        # prepare expression-settings
         self._evaluatePrinterMessagePattern()
         self._parseLayerExpressions(self._settings.get([SETTINGS_KEY_LAYER_EXPRESSIONS]))
 
@@ -161,11 +181,20 @@ class DisplaylayerprogressPlugin(
                                                         LayerDetectorFileProcessor(file_object.stream(),
                                                                                    self._allLayerExpressions))
 
-
+    _lastM117Command = None
     # eval current layer from modified g-code
     def sendingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         commandAsString = str(cmd)
 
+        self._eventLogging("SENDING-HOOK: " + commandAsString)
+        # prevent double messages
+        if commandAsString.startswith("M117"):
+            if self._lastM117Command == commandAsString:
+                # filter double M117 commands
+                self._eventLogging("SENDING-HOOK DROP COMMAND: " + commandAsString)
+                return []
+            else:
+                self._lastM117Command = commandAsString
         # layer
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
             layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
@@ -213,7 +242,8 @@ class DisplaylayerprogressPlugin(
         showDesktopPrinterDisplay = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
         if  showDesktopPrinterDisplay == True:
             commandAsString = str(cmd)
-            # logging self._logger.info("********* COMMAND:" + commandAsString)
+
+            self._eventLogging("SENT-HOOK: " + commandAsString)
             if commandAsString.startswith("M117 "):
                 printerMessage = commandAsString[len("M117 "):]
                 if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
@@ -269,7 +299,7 @@ class DisplaylayerprogressPlugin(
                             self._totalHeightWithExtrusion = str(currentHeight)
                     except (ValueError, RuntimeError):
                         print("BOOOOOOMMMM")
-                        print("#"+lineNumber + " "+line)
+                        print("#"+str(lineNumber) + " " + line)
 
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
                 self._totalHeight = str("%.2f" % totalHeight)
@@ -297,8 +327,8 @@ class DisplaylayerprogressPlugin(
 
             # send to navbar
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
-            # send to the printer
-            self._eventLogging("M117 Print Done")
+
+            self._eventLogging("event print done!")
             # not needed could be done via standard code-settings self._sendCommandToPrinter("M117 Print Done")
             self._isPrinterRunning = False
         elif event == Events.CLIENT_OPENED:
@@ -335,19 +365,19 @@ class DisplaylayerprogressPlugin(
         stackDefinition = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION])
         isTop = False
         isRight = False
-        if ("down" in stackDefinition):
+        if "down" in stackDefinition:
             isTop = True
-        if ("right" in stackDefinition):
+        if "right" in stackDefinition:
             isRight = True
 
-        if (isTop and isRight):
+        if isTop and isRight:
             classStyle = "stack-topleft"
-        if (isTop and isRight == False):
+        if isTop and isRight == False:
             classStyle = "stack-topright"
 
-        if (isTop == False and isRight):
+        if isTop == False and isRight:
             classStyle = "stack-bottomleft"
-        if (isTop == False and isRight == False):
+        if isTop == False and isRight == False:
             classStyle = "stack-bottomright"
 
         showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
@@ -377,15 +407,19 @@ class DisplaylayerprogressPlugin(
         if printTimeLeftInSeconds is not None:
             printTimeLeft = stringUtils.secondsToText(printTimeLeftInSeconds)
 
+        feedrate = self._calculateFeedrate(self._feedrate)
+        feedrateG0 = self._calculateFeedrate(self._feedrateG0)
+        feedrateG1 = self._calculateFeedrate(self._feedrateG1)
+
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
             TOTAL_LAYER_KEYWORD_EXPRESSION: self._layerTotalCount,
             CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeight,
             TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeight,
-            FEEDRATE_KEYWORD_EXPRESSION: self._feedrate,
-            FEEDRATE_G0_KEYWORD_EXPRESSION: self._feedrateG0,
-            FEEDRATE_G1_KEYWORD_EXPRESSION: self._feedrateG1,
+            FEEDRATE_KEYWORD_EXPRESSION: feedrate,
+            FEEDRATE_G0_KEYWORD_EXPRESSION: feedrateG0,
+            FEEDRATE_G1_KEYWORD_EXPRESSION: feedrateG1,
             FANSPEED_KEYWORD_EXPRESSION: self._fanSpeed,
             PRINTTIME_LEFT_EXPRESSION: printTimeLeft
         }
@@ -401,6 +435,8 @@ class DisplaylayerprogressPlugin(
         heightMessage = self._currentHeight + " / " + self._totalHeight
         if not self._totalHeight == NOT_PRESENT:
             heightMessage += "mm"
+
+
         # Send to PRINTER
         if self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY]):
             # Optimization, update only if definied in message-pattern
@@ -418,16 +454,15 @@ class DisplaylayerprogressPlugin(
             elif updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL:
                 shouldSendToPrinter = True
 
-            if (self._settings.get([SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING])):
-                if (self._isPrinterRunning):
-                #if (self._printer.is_printing()):
+            if self._settings.get([SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING]):
+                if self._isPrinterRunning:
+                #if self._printer.is_printing():
                     shouldSendToPrinter = True
                 else:
                     shouldSendToPrinter = False
 
-            if (shouldSendToPrinter == True):
+            if shouldSendToPrinter == True:
                 self._sendCommandToPrinter(printerMessageCommand)
-                # logging for debugging self._logger.info("** GCODE:" + printerMessageCommand)
 
         showHeightInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR])
         showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
@@ -440,7 +475,16 @@ class DisplaylayerprogressPlugin(
                                                                         navBarMessage=navBarMessage,
                                                                         stateMessage=stateMessage,
                                                                         heightMessage=heightMessage))
-        # logging for debugging self._logger.info("** NavBar:" + navBarMessage)
+
+    def _calculateFeedrate(self, feedrate):
+        if feedrate == "-":
+            return feedrate
+        feedrateFactor = self._settings.get([SETTINGS_KEY_FEEDRATE_FACTOR])
+        feedrateFormat = self._settings.get([SETTINGS_KEY_FEEDRATE_FORMAT])
+
+        newFeedrate = float(feedrateFactor) * float(feedrate)
+        result = feedrateFormat.format(newFeedrate)
+        return result
 
     # printer specific command-manipulation.
     # e.g. ANET E10 cuts the last char from M117-commands, so this helper adds an additional underscore to the message
@@ -484,7 +528,7 @@ class DisplaylayerprogressPlugin(
     def _parseLayerExpressions(self, layerExpressionPatterns):
         result = None
         self._layerExpressionsValid = False
-        if layerExpressionPatterns  != None and len(layerExpressionPatterns ) != 0:
+        if layerExpressionPatterns  is not None and len(layerExpressionPatterns ) != 0:
             self._allLayerExpressions = []
             #patterns = "1		[;LAYER:([0-9]+).*]		CURA\r\n" + "1		[; layer ([0-9]+),.*]	Simplify3D\r\n" + "count	[BEGIN_LAYER_OBJECT]	KISSlicer"
             lines = layerExpressionPatterns .split("\n")
@@ -513,21 +557,24 @@ class DisplaylayerprogressPlugin(
         return result
 
     def _eventLogging(self, logMessage):
-        if (EVENT_LOGGING_ENABLED):
-            self._logger.info("******* "+logMessage)
+        if EVENT_LOGGING_ENABLED or self._settings.get([SETTINGS_KEY_DEBUGGING_ENABLED]):
+            threadName = threading.current_thread().name
+            threadId = str(threading.current_thread().ident)
+            threadPattern = "["+threadId + "::" + threadName + "]"
+            self._event_file_logger.debug(logMessage + " " + threadPattern)
 
     def on_settings_save(self, data):
         # !!! data includes only the delta settings between the last save-action !!!
 
         layerExpressions = data.get(SETTINGS_KEY_LAYER_EXPRESSIONS)
-        if not layerExpressions == None:
+        if layerExpressions is not None:
             result = self._parseLayerExpressions(layerExpressions)
-            if result != None:
+            if result is not None:
                 self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage = result))
 
         initDesktopPrinterDisplay = False
         printerDisplayScreenLocationDefinition = data.get(SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION)
-        if not printerDisplayScreenLocationDefinition == None:
+        if printerDisplayScreenLocationDefinition is not None:
             try:
                 json.loads("{"+printerDisplayScreenLocationDefinition+"}")
                 initDesktopPrinterDisplay = True
@@ -535,14 +582,14 @@ class DisplaylayerprogressPlugin(
                 self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage="Printer ScreenLocation could not parsed!"))
 
         printerDisplayWidthDefinition = data.get(SETTINGS_KEY_PRINTERDISPLAY_WIDTH)
-        if not printerDisplayWidthDefinition == None:
+        if printerDisplayWidthDefinition is not None:
             initDesktopPrinterDisplay = True
 
         # default save function
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self._evaluatePrinterMessagePattern()
 
-        if (initDesktopPrinterDisplay):
+        if initDesktopPrinterDisplay:
             self._initDesktopPinterDisplay()
         #update new settings
         self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
@@ -552,10 +599,10 @@ class DisplaylayerprogressPlugin(
         if len(request.values) != 0:
             action = request.values["action"]
 
-            if ("isResetSettingsEnabled" == action):
+            if "isResetSettingsEnabled" == action:
                 return flask.jsonify(enabled="true")
 
-            if ("resetSettings" == action):
+            if "resetSettings" == action:
                 self._layerExpressionsValid = True
                 self._settings.set([], self.get_settings_defaults())
                 self._settings.save()
@@ -593,7 +640,10 @@ class DisplaylayerprogressPlugin(
             showHeightInStatusBar=True,
             updatePrinterDisplayWhilePrinting=False,
             printerDisplayScreenLocation="\"dir1\": \"up\", \"dir2\": \"right\", \"firstpos1\": 40, \"firstpos2\": 10, \"spacing1\": 0, \"spacing2\": 0",
-            printerDisplayWidth="15%"
+            printerDisplayWidth="15%",
+            feedrateFactor="1.0",
+            feedrateFormat="{:.2f}",
+            debuggingEnabled=False
         )
 
     # ~~ AssetPlugin mixin
@@ -634,7 +684,6 @@ class DisplaylayerprogressPlugin(
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "DisplayLayerProgress Plugin"
-
 
 def __plugin_load__():
     global __plugin_implementation__
