@@ -15,7 +15,6 @@ It shows the **current layer, total layer count, current height, total height, p
 
 *Output pattern is adjustable!*
 
-
 **ATTENTION:** 
 - The layer information works only when the slicer adds "layer-indicator" to the g-code (CURA-Example as comments like ```;LAYER:10```). Then these indicators are parsed via a regular-expression.
 - Currently supported slicers: 
