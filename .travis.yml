@@ -3,7 +3,7 @@
 ##
 
 script:
-  - echo 'Hello World'
+# debug  - echo 'Hello World'
   - zip -r master *
 # debug  - ls -al
 
