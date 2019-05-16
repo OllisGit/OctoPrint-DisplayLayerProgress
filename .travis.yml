@@ -17,8 +17,9 @@ before_deploy:
   - git remote remove gh
 
 deploy:
-  name: "V1.X.X"
-  prerelease: true
+  name: "V1.X.X-draft"
+  #prerelease: true
+  draft: true
   provider: releases
   api_key: "${GITHUB_TOKEN}"
   file: "master.zip"
