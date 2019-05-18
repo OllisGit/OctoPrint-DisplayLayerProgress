@@ -12,8 +12,11 @@ import json
 import logging
 import threading
 
-from octoprint.events import Events
+from octoprint.events import Events, eventManager
 
+from collections import deque
+from datetime import datetime
+from datetime import timedelta
 # CONSTs
 from octoprint_DisplayLayerProgress import stringUtils
 from octoprint_DisplayLayerProgress.LayerExpression import LayerExpression
@@ -38,6 +41,8 @@ SETTINGS_KEY_LAYER_EXPRESSIONS = "layerExpressions"
 SETTINGS_KEY_FEEDRATE_FACTOR = "feedrateFactor"
 SETTINGS_KEY_FEEDRATE_FORMAT = "feedrateFormat"
 SETTINGS_KEY_DEBUGGING_ENABLED = "debuggingEnabled"
+SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT = "layerAverageDurationCount"
+SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN = "layerAverageFormatPattern"
 
 HEIGHT_METHODE_Z_MAX = "zMax"
 HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
@@ -45,9 +50,6 @@ HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
 NOT_PRESENT = "-"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
 LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
-
-#LAYER_EXPRESSION_CURA = ";LAYER:([0-9]+).*"
-#LAYER_EXPRESSION_S3D = "; layer ([0-9]+),.*"
 
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
 Z_HEIGHT_EXPRESSION = "^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
@@ -75,6 +77,8 @@ FEEDRATE_G0_KEYWORD_EXPRESSION = "[feedrate_g0]"
 FEEDRATE_G1_KEYWORD_EXPRESSION = "[feedrate_g1]"
 FANSPEED_KEYWORD_EXPRESSION = "[fanspeed]"
 PRINTTIME_LEFT_EXPRESSION = "[printtime_left]"
+LAYER_AVERAGE_DURATION_EXPRESSION = "[average_layer_duration]"
+LAYER_LAST_DURATION_EXPRESSION = "[last_layer_duration]"
 
 UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
@@ -82,6 +86,9 @@ UPDATE_DISPLAY_REASON_PROGRESS_CHANGED = "progressChanged"
 UPDATE_DISPLAY_REASON_LAYER_CHANGED = "layerChanged"
 UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED = "feedrateChanged"
 UPDATE_DISPLAY_REASON_FANSPEED_CHANGED = "fanspeedChanged"
+
+# Same as setup.py 'plugin_identifier'
+PLUGIN_KEY_PREFIX = "DisplayLayerProgress_"
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 
@@ -93,8 +100,11 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
 
     def process_line(self, line):
         for layerExpression in self._allLayerExpressions:
+            origLine = line
             line = self._checkLineForLayerComment(line, layerExpression)
-
+            if line is not origLine:
+                # pattern matched, skip other expressions
+                break
         # line = strip_comment(line).strip() DO NOT USE, because total-layer count disapears
         if not len(line):
             return None
@@ -136,6 +146,8 @@ class DisplaylayerprogressPlugin(
     _feedrateG1 = NOT_PRESENT
     _fanSpeed = NOT_PRESENT
     _isPrinterRunning = False
+    _layerDurationDeque = None
+    _startLayerTime = None
 
     def __init__(self):
         self._showProgressOnPrinterDisplay = False
@@ -146,6 +158,9 @@ class DisplaylayerprogressPlugin(
 
         self._layerExpressionsValid = True
         self._allLayerExpressions = []
+
+        self._layerDurationDeque = None
+        self._startLayerTime = None
 
     def initialize(self):
         # setup our custom logger
@@ -162,9 +177,12 @@ class DisplaylayerprogressPlugin(
         self._event_file_logger.setLevel(logging.DEBUG)
         self._event_file_logger.propagate = False
 
+        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
+
         # prepare expression-settings
         self._evaluatePrinterMessagePattern()
         self._parseLayerExpressions(self._settings.get([SETTINGS_KEY_LAYER_EXPRESSIONS]))
+
 
     # Modified the GCODE -> replace all Layer-Comments with G-Code Message-Comments
     def myFilePreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args,
@@ -197,8 +215,19 @@ class DisplaylayerprogressPlugin(
                 self._lastM117Command = commandAsString
         # layer
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
+
             layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
             self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + layerOffset)
+
+            ## calculate time of layer printing
+            layerDuration = 0
+            currentTime =  datetime.now()
+            if self._startLayerTime is not None:
+                layerDuration = currentTime - self._startLayerTime
+
+            self._layerDurationDeque.append(layerDuration)
+            self._startLayerTime = currentTime
+
             self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
             # filter M117 command, not needed any more
             return []
@@ -344,6 +373,9 @@ class DisplaylayerprogressPlugin(
         self._feedrateG1 = NOT_PRESENT
         self._fanSpeed = NOT_PRESENT
 
+        self._startLayerTime = None
+        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
+
     def _resetTotalValues(self):
         self._layerTotalCount = NOT_PRESENT
         self._totalHeight = NOT_PRESENT
@@ -394,10 +426,10 @@ class DisplaylayerprogressPlugin(
     def _updateDisplay(self, updateReason):
         self._eventLogging("UPDATE DISPLAY: " + updateReason)
 
-#        myPlugin = self._plugin_manager.get_plugin("DisplayLayerProgress")
-#        myPluginInfo = self._plugin_manager.get_plugin_info("DisplayLayerProgress")
-#        myImplementation = myPluginInfo.implementation
-#        myImplementation2 = DisplaylayerprogressPlugin(myPluginInfo.implementation)
+        #        myPlugin = self._plugin_manager.get_plugin("DisplayLayerProgress")
+        #        myPluginInfo = self._plugin_manager.get_plugin_info("DisplayLayerProgress")
+        #        myImplementation = myPluginInfo.implementation
+        #        myImplementation2 = DisplaylayerprogressPlugin(myPluginInfo.implementation)
 
         currentData = self._printer.get_current_data()
 
@@ -411,6 +443,28 @@ class DisplaylayerprogressPlugin(
         feedrateG0 = self._calculateFeedrate(self._feedrateG0)
         feedrateG1 = self._calculateFeedrate(self._feedrateG1)
 
+        ## calculate layer duration
+        lastLayerDuration = ""
+        averageLayerDuration = ""
+
+        if len(self._layerDurationDeque) > 0:
+            lastLayerDurationTimeDelta = self._layerDurationDeque[-1]
+            lastLayerDuration = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+
+            # avarag calc only if we have engough layer measurments
+            allLayerDurationCount = len(self._layerDurationDeque)
+            if allLayerDurationCount == self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]):
+                calcAverageDuration = 0
+                allLayerDurations = list(self._layerDurationDeque)
+
+                for duration in allLayerDurations:
+                    if type(duration) is timedelta:
+                        calcAverageDuration = calcAverageDuration + duration.total_seconds()
+
+                calcAverageDuration = calcAverageDuration / allLayerDurationCount
+                calcAverageDurationTimeDelta = timedelta(seconds = calcAverageDuration)
+                averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
@@ -421,7 +475,9 @@ class DisplaylayerprogressPlugin(
             FEEDRATE_G0_KEYWORD_EXPRESSION: feedrateG0,
             FEEDRATE_G1_KEYWORD_EXPRESSION: feedrateG1,
             FANSPEED_KEYWORD_EXPRESSION: self._fanSpeed,
-            PRINTTIME_LEFT_EXPRESSION: printTimeLeft
+            PRINTTIME_LEFT_EXPRESSION: printTimeLeft,
+            LAYER_LAST_DURATION_EXPRESSION: lastLayerDuration,
+            LAYER_AVERAGE_DURATION_EXPRESSION: averageLayerDuration
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
@@ -435,7 +491,6 @@ class DisplaylayerprogressPlugin(
         heightMessage = self._currentHeight + " / " + self._totalHeight
         if not self._totalHeight == NOT_PRESENT:
             heightMessage += "mm"
-
 
         # Send to PRINTER
         if self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY]):
@@ -456,7 +511,7 @@ class DisplaylayerprogressPlugin(
 
             if self._settings.get([SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING]):
                 if self._isPrinterRunning:
-                #if self._printer.is_printing():
+                    #if self._printer.is_printing():
                     shouldSendToPrinter = True
                 else:
                     shouldSendToPrinter = False
@@ -475,6 +530,26 @@ class DisplaylayerprogressPlugin(
                                                                         navBarMessage=navBarMessage,
                                                                         stateMessage=stateMessage,
                                                                         heightMessage=heightMessage))
+
+        # Fire Event, so that other Plugins could react on the event
+        if updateReason is not UPDATE_DISPLAY_REASON_FRONTEND_CALL:
+            eventKey = PLUGIN_KEY_PREFIX + updateReason
+            eventPayload = dict(
+                totalLayer = self._layerTotalCount,
+                currentLayer = self._currentLayer,
+                lastLayerDuration = lastLayerDuration,
+                averageLayerDuration = averageLayerDuration,
+                currentHeight = self._currentHeight,
+                totalHeightWithExtrusion = self._totalHeightWithExtrusion,
+                feedrate = self._feedrate,
+                feedrateG0 = self._feedrateG0,
+                feedrateG1 = self._feedrateG1,
+                fanspeed = self._fanSpeed,
+                progress =self._progress,
+                printTimeLeft = printTimeLeft,
+                printTimeLeftInSeconds = printTimeLeftInSeconds,
+            )
+            eventManager().fire(eventKey, eventPayload)
 
     def _calculateFeedrate(self, feedrate):
         if feedrate == "-":
@@ -589,6 +664,8 @@ class DisplaylayerprogressPlugin(
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self._evaluatePrinterMessagePattern()
 
+        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
+
         if initDesktopPrinterDisplay:
             self._initDesktopPinterDisplay()
         #update new settings
@@ -635,7 +712,11 @@ class DisplaylayerprogressPlugin(
             layerOffset=0,
             addTrailingChar=False,
             totalHeightMethode=HEIGHT_METHODE_Z_MAX,
-            layerExpressions="1		[;\s*LAYER:\s*([0-9]+).*]		CURA\r\n"+ "1		[; layer ([0-9]+),.*]	Simplify3D\r\n"+ "count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer",
+            layerExpressions="1\t\t[;\s*LAYER:\s*([0-9]+).*]\t\tCURA\r\n" +
+                             "1\t\t[; layer ([0-9]+),.*]\t\tSimplify3D\r\n" +
+                             "1\t\t[;LAYER:([0-9]+).*]\t\tideaMaker\r\n" +
+                             "count\t[; BEGIN_LAYER_OBJECT.*]\t\tKISSlicer\r\n" +
+                             "count\t[;BEFORE_LAYER_CHANGE]\t\tSlic3r",
             showLayerInStatusBar=True,
             showHeightInStatusBar=True,
             updatePrinterDisplayWhilePrinting=False,
@@ -643,7 +724,9 @@ class DisplaylayerprogressPlugin(
             printerDisplayWidth="15%",
             feedrateFactor="1.0",
             feedrateFormat="{:.2f}",
-            debuggingEnabled=False
+            debuggingEnabled=False,
+            layerAverageDurationCount=5,
+            layerAverageFormatPattern="{H}h:{M:02}m:{S:02}s"
         )
 
     # ~~ AssetPlugin mixin
@@ -676,7 +759,8 @@ class DisplaylayerprogressPlugin(
                 current=self._plugin_version,
 
                 # update method: pip
-                pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/archive/{target_version}.zip"
+                #pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/archive/{target_version}.zip"
+                pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/latest/download/master.zip"
             )
         )
 

@@ -8,7 +8,7 @@ A OctoPrint-Plugin that sends the current progress of a print via M117 command t
 
 A new feature is the "Desktop Printer-Display", which shows all M117 messages in a Desktop PopUp.
 
-It shows the **current layer, total layer count, current height, total height, percentage, printTimeLeft, feedrate and fanspeed**:
+It shows the **current layer, total layer count, last/average layer duration, current height, total height, percentage, printTimeLeft, feedrate and fanspeed**:
 
 - Printer Display: 50% L=60/120 H=23mm/47mm
 - NavBar: Layer: 60 / 120 Height: 23mm of 47mm
@@ -63,5 +63,43 @@ It is possible to change the Output. See Plugin-Settings:
 ## Versions
 see [Release-Overview](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/)
 
+---
+# Developer - Section
+Plugin sends the following custom events to the eventbus like this: 
 
+    eventManager().fire(eventKey, eventPayload)
 
+| EventKey                             |
+| ------------------------------------ |
+| DisplayLayerProgress_progressChanged |
+| DisplayLayerProgress_layerChanged    |
+| DisplayLayerProgress_feedrateChanged |
+| DisplayLayerProgress_fanspeedChanged |
+
+**Payload**
+```javascript
+ { 
+   'totalLayer':'66',
+   'currentLayer':'22',
+   'currentHeight':'6.80',
+   'totalHeightWithExtrusion':'20.0',
+   'feedrate':'2700',
+   'feedrateG0':'7200',
+   'feedrateG1':'2700',
+   'fanspeed':'100%',
+   'progress':'28',
+   'lastLayerDuration':'0h:00m:03s',
+   'averageLayerDuration':'0h:00m:02s',
+   'printTimeLeft':'2m3s',
+   'printTimeLeftInSeconds':123
+ }
+```
+Other Plugins could listen to this events like this:
+
+    eventmanager.subscribe("DisplayLayerProgress_layerChanged", self._myEventListener)
+
+or use `octoprint.plugin.EventHandlerPlugin` with something like this:
+
+    def on_event(self, event, payload):
+        if event == "DisplayLayerProgress_layerChanged":
+            ## do something usefull

@@ -25,6 +25,8 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFactor(data.feedrateFactor);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFormat(data.feedrateFormat);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.debuggingEnabled(data.debuggingEnabled);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageDurationCount(data.layerAverageDurationCount);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageFormatPattern(data.layerAverageFormatPattern);
         });
 
         var self = this;

@@ -55,8 +55,11 @@
                     </div>
                     <br/>
                     <div>
-                        {{ _('Use the following keywords as a placeholder: <code>[current_layer], [total_layers], [progress], [printtime_left],
-                        [current_height], [total_height],<br/> [feedrate], [feedrate_g0], [feedrate_g1], [fanspeed]</code>') }}
+                        {{ _('Use the following keywords as a placeholder:
+                        <code>[current_layer], [total_layers], [progress], [printtime_left], [current_height], [total_height],<br/>
+                            [feedrate], [feedrate_g0], [feedrate_g1], [fanspeed] <br/>
+                            [last_layer_duration], [average_layer_duration]
+                        </code>') }}
                     </div>
 
                     <label class="control-label">{{ _('Navigationbar') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
@@ -83,6 +86,19 @@
                     <label class="control-label">&nbsp;</label>
                     <div class="controls">
                         <p>you can use this <a target="_newTab" href="https://trinket.io/python/1f22413094">link</a> for a "format-playground"</p>
+                    </div>
+
+                    <label class="control-label">Average layer duration</label>
+                    <div class="controls">
+                        <input type="text" class="text-right"
+                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageDurationCount"/>
+                        &nbsp;Format&nbsp;
+                        <input type="text" class="text-right"
+                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageFormatPattern"/>
+                    </div>
+                    <label class="control-label">&nbsp;</label>
+                    <div class="controls">
+                        <p>See <a target="_newTab" href="https://stackoverflow.com/questions/538666/python-format-timedelta-to-string#42320260">link</a> for the format options</p>
                     </div>
 
                     <div class="help-block">
