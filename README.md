@@ -52,7 +52,7 @@ The implementation is based on four steps:
 Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager)
 or manually using this URL:
 
-    https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/archive/master.zip
+    https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/latest/download/master.zip
 
 
 ## Configuration
