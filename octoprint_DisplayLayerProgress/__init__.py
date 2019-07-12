@@ -671,6 +671,11 @@ class DisplaylayerprogressPlugin(
         #update new settings
         self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
+    def get_api_commands(self):
+        return dict(
+            command1=[]
+        )
+
     # to allow the frontend to trigger an update
     def on_api_get(self, request):
         if len(request.values) != 0:
@@ -688,6 +693,16 @@ class DisplaylayerprogressPlugin(
 
         # default/other action
         self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+        return flask.jsonify(
+            layerTotalCount = self._layerTotalCount,
+            currentLayer = self._currentLayer,
+            progress = self._progress,
+            currentHeight = self._currentHeight,
+            totalHeightWithExtrusion = self._totalHeightWithExtrusion,
+            totalHeight = self._totalHeight,
+            feedrate = self._feedrate,
+            fanSpeed = self._fanSpeed
+        )
 
     # ~~ TemplatePlugin mixin
     def get_template_configs(self):
