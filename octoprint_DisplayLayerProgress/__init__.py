@@ -686,8 +686,21 @@ class DisplaylayerprogressPlugin(
 
                 return flask.jsonify(self.get_settings_defaults())
 
-        # default/other action
-        self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+        # return data via the default API endpoint
+        return flask.jsonify({
+            "layer": {
+                "total": self._layerTotalCount,
+                "current": self._currentLayer
+            },
+            "height": {
+                "total": self._totalHeight,
+                "totalWithExtrusion": self._totalHeightWithExtrusion,
+                "current": self._currentHeight
+            },
+            "fanSpeed": self._fanSpeed,
+            "feedrate": self._feedrate
+        })
+
 
     # ~~ TemplatePlugin mixin
     def get_template_configs(self):
