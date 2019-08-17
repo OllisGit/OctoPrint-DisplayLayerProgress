@@ -8,6 +8,7 @@ import octoprint.printer
 import octoprint.util
 import re
 import flask
+from flask import Response
 import json
 import logging
 import threading
@@ -132,7 +133,8 @@ class DisplaylayerprogressPlugin(
     # my stuff
     octoprint.plugin.EventHandlerPlugin,
     octoprint.plugin.ProgressPlugin,
-    octoprint.plugin.SimpleApiPlugin
+    octoprint.plugin.SimpleApiPlugin,
+    octoprint.plugin.BlueprintPlugin
 ):
     # VAR
     _layerTotalCount = NOT_PRESENT
@@ -155,6 +157,11 @@ class DisplaylayerprogressPlugin(
         self._showHeightOnPrinterDisplay = False
         self._showFeedrateOnPrinterDisplay = False
         self._showFanSpeedOnPrinterDisplay = False
+
+        self._printTimeLeft = ""
+        self._printTimeLeftInSeconds = ""
+        self._lastLayerDuration = ""
+        self._averageLayerDuration = ""
 
         self._layerExpressionsValid = True
         self._allLayerExpressions = []
@@ -312,16 +319,18 @@ class DisplaylayerprogressPlugin(
                 for line in f:
                     try:
                         lineNumber += 1
-                        matched = pattern.match(line)
+                        matched = pattern.match(line)   #identify layer count
                         if matched:
                             layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
                             self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
 
                         matched = zHeightPattern.match(line)
                         if matched:
-                            currentHeight = float(matched.group(3))
-                            if currentHeight > totalHeight:
-                                totalHeight = currentHeight
+                            # don't count on negativ extrusion, see issue #76
+                            if ("E-" in line) == False:
+                                currentHeight = float(matched.group(3))
+                                if currentHeight > totalHeight:
+                                    totalHeight = currentHeight
 
                         matched = extrusionPattern.match(line)
                         if matched:
@@ -434,22 +443,24 @@ class DisplaylayerprogressPlugin(
         currentData = self._printer.get_current_data()
 
         # NOT NEEDED at the moment estPrintTime = currentData["job"]["estimatedPrintTime"]
-        printTimeLeft = ""
-        printTimeLeftInSeconds = currentData["progress"]["printTimeLeft"]
-        if printTimeLeftInSeconds is not None:
-            printTimeLeft = stringUtils.secondsToText(printTimeLeftInSeconds)
+        self._printTimeLeft = "-"
+        self._printTimeLeftInSeconds = currentData["progress"]["printTimeLeft"]
+        if self._printTimeLeftInSeconds is not None:
+            self._printTimeLeft = stringUtils.secondsToText(self._printTimeLeftInSeconds)
+        else:
+            self._printTimeLeftInSeconds = "-"
 
         feedrate = self._calculateFeedrate(self._feedrate)
         feedrateG0 = self._calculateFeedrate(self._feedrateG0)
         feedrateG1 = self._calculateFeedrate(self._feedrateG1)
 
         ## calculate layer duration
-        lastLayerDuration = ""
-        averageLayerDuration = ""
+        self._lastLayerDuration = "-"
+        self._averageLayerDuration = "-"
 
         if len(self._layerDurationDeque) > 0:
             lastLayerDurationTimeDelta = self._layerDurationDeque[-1]
-            lastLayerDuration = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+            self._lastLayerDuration = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
 
             # avarag calc only if we have engough layer measurments
             allLayerDurationCount = len(self._layerDurationDeque)
@@ -463,7 +474,7 @@ class DisplaylayerprogressPlugin(
 
                 calcAverageDuration = calcAverageDuration / allLayerDurationCount
                 calcAverageDurationTimeDelta = timedelta(seconds = calcAverageDuration)
-                averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+                self._averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
 
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
@@ -475,9 +486,9 @@ class DisplaylayerprogressPlugin(
             FEEDRATE_G0_KEYWORD_EXPRESSION: feedrateG0,
             FEEDRATE_G1_KEYWORD_EXPRESSION: feedrateG1,
             FANSPEED_KEYWORD_EXPRESSION: self._fanSpeed,
-            PRINTTIME_LEFT_EXPRESSION: printTimeLeft,
-            LAYER_LAST_DURATION_EXPRESSION: lastLayerDuration,
-            LAYER_AVERAGE_DURATION_EXPRESSION: averageLayerDuration
+            PRINTTIME_LEFT_EXPRESSION: self._printTimeLeft,
+            LAYER_LAST_DURATION_EXPRESSION: self._lastLayerDuration,
+            LAYER_AVERAGE_DURATION_EXPRESSION: self._averageLayerDuration
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
@@ -537,8 +548,8 @@ class DisplaylayerprogressPlugin(
             eventPayload = dict(
                 totalLayer = self._layerTotalCount,
                 currentLayer = self._currentLayer,
-                lastLayerDuration = lastLayerDuration,
-                averageLayerDuration = averageLayerDuration,
+                lastLayerDuration = self._lastLayerDuration,
+                averageLayerDuration = self._averageLayerDuration,
                 currentHeight = self._currentHeight,
                 totalHeightWithExtrusion = self._totalHeightWithExtrusion,
                 feedrate = self._feedrate,
@@ -546,8 +557,8 @@ class DisplaylayerprogressPlugin(
                 feedrateG1 = self._feedrateG1,
                 fanspeed = self._fanSpeed,
                 progress =self._progress,
-                printTimeLeft = printTimeLeft,
-                printTimeLeftInSeconds = printTimeLeftInSeconds,
+                printTimeLeft = self._printTimeLeft,
+                printTimeLeftInSeconds = self._printTimeLeftInSeconds,
             )
             eventManager().fire(eventKey, eventPayload)
 
@@ -686,11 +697,19 @@ class DisplaylayerprogressPlugin(
 
                 return flask.jsonify(self.get_settings_defaults())
 
+        # default/other action
+        self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+
+    @octoprint.plugin.BlueprintPlugin.route("/values", methods=["GET"])
+    def get_displayLayerProgressValues(self):
+
         # return data via the default API endpoint
         return flask.jsonify({
             "layer": {
                 "total": self._layerTotalCount,
-                "current": self._currentLayer
+                "current": self._currentLayer,
+                "averageLayerDuration": self._averageLayerDuration,
+                "lastLayerDuration": self._lastLayerDuration
             },
             "height": {
                 "total": self._totalHeight,
@@ -698,7 +717,14 @@ class DisplaylayerprogressPlugin(
                 "current": self._currentHeight
             },
             "fanSpeed": self._fanSpeed,
-            "feedrate": self._feedrate
+            "feedrate": self._feedrate,
+            "feedrateG0": self._feedrateG0,
+            "feedrateG1": self._feedrateG1,
+            "print": {
+                "progress": self._progress,
+                "timeLeft": self._printTimeLeft,
+                "timeLeftInSeconds": self._printTimeLeftInSeconds
+            }
         })
 
 

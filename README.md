@@ -65,6 +65,35 @@ see [Release-Overview](https://github.com/OllisGit/OctoPrint-DisplayLayerProgres
 
 ---
 # Developer - Section
+## REST - API
+You can receive the layer/height and other values via a GET-Call.
+
+    curl -H "X-Api-Key:57FECA453FE94D46851EFC94BC9B5265" http://localhost:5000/plugin/DisplayLayerProgress/values
+
+    {
+      "fanSpeed": "80%",
+      "feedrate": "6000",
+      "feedrateG0": "6000",
+      "feedrateG1": "1575",
+      "height": {
+        "current": "0.96",
+        "total": "15.08",
+        "totalWithExtrusion": "10.08"
+      },
+      "layer": {
+        "averageLayerDuration": "-",
+        "current": "3",
+        "lastLayerDuration": "00m:07s",
+        "total": "41"
+      },
+      "print": {
+        "progress": "2",
+        "timeLeft": "12m7s",
+        "timeLeftInSeconds": 727
+      }
+    }
+
+## Events
 Plugin sends the following custom events to the eventbus like this: 
 
     eventManager().fire(eventKey, eventPayload)
