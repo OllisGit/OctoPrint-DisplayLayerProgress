@@ -44,9 +44,11 @@ SETTINGS_KEY_FEEDRATE_FORMAT = "feedrateFormat"
 SETTINGS_KEY_DEBUGGING_ENABLED = "debuggingEnabled"
 SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT = "layerAverageDurationCount"
 SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN = "layerAverageFormatPattern"
+SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN = "zMaxExpressionPattern"
 
 HEIGHT_METHODE_Z_MAX = "zMax"
 HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
+HEIGHT_METHODE_Z_EXPRESSION = "zExpression"
 
 NOT_PRESENT = "-"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
@@ -55,6 +57,7 @@ LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
 Z_HEIGHT_EXPRESSION = "^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
 zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
+
 # Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
 EXTRUSION_EXPRESSION = "G[0|1] .*E[+]*([0-9]+[.]*[0-9]*).*"
 extrusionPattern = re.compile(EXTRUSION_EXPRESSION)
@@ -311,6 +314,8 @@ class DisplaylayerprogressPlugin(
             markerLayerCount = LAYER_COUNT_EXPRESSION
             pattern = re.compile(markerLayerCount)
 
+            zMaxPattern = re.compile(self._settings.get([SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN]))
+
             totalHeight = 0.0
             currentHeight = 0.0
             lineNumber = 0
@@ -335,17 +340,21 @@ class DisplaylayerprogressPlugin(
                         matched = extrusionPattern.match(line)
                         if matched:
                             self._totalHeightWithExtrusion = str(currentHeight)
+
+                        matched = zMaxPattern.match(line)
+                        if matched != None and (self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXPRESSION):
+                            self._totalHeight = str(matched.group(1))
+
                     except (ValueError, RuntimeError):
                         print("BOOOOOOMMMM")
                         print("#"+str(lineNumber) + " " + line)
 
+
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
                 self._totalHeight = str("%.2f" % totalHeight)
-            else:
+            elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXTRUSION:
                 self._totalHeight = str("%.2f" % float(self._totalHeightWithExtrusion))
 
-            #self._totalHeight = "%.2f" % totalHeight
-            #self._totalHeight = "%.2f" % self._totalHeightWithExtrusion
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.FILE_DESELECTED:
@@ -765,7 +774,8 @@ class DisplaylayerprogressPlugin(
             feedrateFormat="{:.2f}",
             debuggingEnabled=False,
             layerAverageDurationCount=5,
-            layerAverageFormatPattern="{H}h:{M:02}m:{S:02}s"
+            layerAverageFormatPattern="{H}h:{M:02}m:{S:02}s",
+            zMaxExpressionPattern=";MAXZ:([0-9]+[.]*[0-9]*).*"
         )
 
     # ~~ AssetPlugin mixin

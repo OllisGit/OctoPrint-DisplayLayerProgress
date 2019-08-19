@@ -165,7 +165,12 @@ count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
                         Z-Value in G-Code<br/>
                         <input type="radio" name="heightMethode" value="zExtrusion"
                                data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max
-                        Z-Value with Extrusion in Z-Layer<br/>
+                        Z-Value with Extrusion on Z-Layer<br/>
+                        <input type="radio" name="heightMethode" value="zExpression"
+                               data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max
+                        Z-Value from expression<br/>
+                        <input type="text" name="zMaxExpressionValue" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.totalHeightMethode()=='zExpression',
+                                                                                 value: settingsViewModel.settings.plugins.DisplayLayerProgress.zMaxExpressionPattern"  />
                     </div>
                 </div>
                 <p>
