@@ -1,0 +1,10 @@
+Navigationbar:
+
+Fan: <span style='color:orange;font-weight:bold;'>[fanspeed]</span><span style='padding-left:30px;'></span>
+Progress: <span style='color:orange;font-weight:bold;'>[progress]%</span><span style='padding-left:30px;'></span>
+Layer: <span style='color:orange;font-weight:bold;width:30px;'>[current_layer]/[total_layers]</span><span style='padding-left:30px;'></span>
+Height: <span style='color:orange;font-weight:bold;width:30px;'>[current_height]/[total_height] mm</span><span style='padding-left:30px;'></span>
+
+Printer Display:
+
+[progress]% L=[current_layer]/[total_layers]
