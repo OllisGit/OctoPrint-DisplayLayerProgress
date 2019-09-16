@@ -50,7 +50,7 @@ The implementation is based on four steps:
  
 ## Setup
 
-Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager)
+Install via the bundled [Plugin Manager](http://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
 or manually using this URL:
 
     https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/latest/download/master.zip
