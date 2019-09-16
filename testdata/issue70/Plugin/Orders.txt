@@ -1,0 +1,1053 @@
+Connecting to: /dev/ttyUSB0
+Changing monitoring state from "Offline" to "Opening serial port"
+Connected to: Serial<id=0xae535ef0, open=True>(port='/dev/ttyUSB0', baudrate=115200, bytesize=8, parity='N', stopbits=1, timeout=10.0, xonxoff=False, rtscts=False, dsrdtr=False), starting monitor
+Changing monitoring state from "Opening serial port" to "Connecting"
+Send: N0 M110 N0*125
+There was a timeout while trying to connect to the printer
+Changing monitoring state from "Connecting" to "Offline"
+Connection closed, closing down monitor
+Connecting to: /dev/ttyUSB0
+Changing monitoring state from "Offline" to "Opening serial port"
+Connected to: Serial<id=0xb263fa70, open=True>(port='/dev/ttyUSB0', baudrate=115200, bytesize=8, parity='N', stopbits=1, timeout=10.0, xonxoff=False, rtscts=False, dsrdtr=False), starting monitor
+Changing monitoring state from "Opening serial port" to "Connecting"
+Send: N0 M110 N0*125
+Recv: start
+Recv: echo: External Reset
+Recv: Marlin 1.1.9
+Send: N0 M110 N0*125
+Recv: 
+Recv: echo: Last Updated: 2018-08-01 | Author: (Julio, Anet A8)
+Recv: echo:Compiled: Feb 28 2019
+Recv: echo: Free Memory: 12860  PlannerBufferBytes: 1488
+Recv: echo:V55 stored settings retrieved (655 bytes; crc 7784)
+Recv: echo:  G21    ; (mm)
+Recv: echo:  M149 C ; Units in Celsius
+Recv: 
+Recv: echo:Filament settings: Disabled
+Recv: echo:  M200 D1.75
+Recv: echo:  M200 D0
+Recv: echo:Steps per unit:
+Recv: echo:  M92 X100.00 Y100.00 Z400.00 E387.60
+Recv: echo:Maximum feedrates (units/s):
+Recv: echo:  M203 X400.00 Y400.00 Z8.00 E50.00
+Recv: echo:Maximum Acceleration (units/s2):
+Recv: echo:  M201 X2000 Y2000 Z100 E10000
+Recv: echo:Acceleration (units/s2): P<print_accel> R<retract_accel> T<travel_accel>
+Recv: echo:  M204 P650.00 R1000.00 T1000.00
+Recv: echo:Advanced: Q<min_segment_time_us> S<min_feedrate> T<min_travel_feedrate> X<max_x_jerk> Y<max_y_jerk> Z<max_z_jerk> E<max_e_jerk>
+Recv: echo:  M205 Q20000 S0.00 T0.00 X20.00 Y20.00 Z0.40 E5.00
+Recv: echo:Home offset:
+Recv: echo:  M206 X0.00 Y0.00 Z0.00
+Recv: echo:Auto Bed Leveling:
+Recv: echo:  M420 S0 Z10.00
+Recv: echo:  G29 W I0 J0 Z0.16000
+Recv: echo:  G29 W I1 J0 Z0.07500
+Recv: echo:  G29 W I2 J0 Z-0.02000
+Recv: echo:  G29 W I0 J1 Z0.11000
+Recv: echo:  G29 W I1 J1 Z-0.02750
+Recv: echo:  G29 W I2 J1 Z-0.05500
+Recv: echo:  G29 W I0 J2 Z-0.09750
+Recv: echo:  G29 W I1 J2 Z-0.15500
+Recv: echo:  G29 W I2 J2 Z-0.16000
+Recv: echo:Material heatup parameters:
+Recv: echo:  M145 S0 H205 B50 F0
+Recv: echo:  M145 S1 H220 B70 F0
+Recv: echo:PID settings:
+Recv: echo:  M301 P30.62 I2.27 D103.48
+Recv: echo:  M304 P546.10 I102.56 D726.92
+Recv: echo:Z-Probe Offset (mm):
+Recv: echo:  M851 Z1.00
+Recv: ok
+Changing monitoring state from "Connecting" to "Operational"
+Send: N0 M110 N0*125
+Recv: ok
+Send: N1 M115*39
+Recv: FIRMWARE_NAME:Marlin 1.1.9 (Github) SOURCE_CODE_URL:https://github.com/MarlinFirmware/Marlin PROTOCOL_VERSION:1.0 MACHINE_TYPE:Anet A8 EXTRUDER_COUNT:1 UUID:cede2a2f-41a2-4748-9b12-c55c62f367ff
+Recv: Cap:SERIAL_XON_XOFF:0
+Recv: Cap:EEPROM:1
+Recv: Cap:VOLUMETRIC:1
+Recv: Cap:AUTOREPORT_TEMP:1
+Recv: Cap:PROGRESS:0
+Recv: Cap:PRINT_JOB:1
+Recv: Cap:AUTOLEVEL:1
+Recv: Cap:Z_PROBE:1
+Recv: Cap:LEVELING_DATA:1
+Recv: Cap:BUILD_PERCENT:1
+Recv: Cap:SOFTWARE_POWER:0
+Recv: Cap:TOGGLE_LIGHTS:0
+Recv: Cap:CASE_LIGHT_BRIGHTNESS:0
+Recv: Cap:EMERGENCY_PARSER:0
+Recv: Cap:AUTOREPORT_SD_STATUS:0
+Recv: Cap:THERMAL_PROTECTION:1
+Recv: ok
+Send: M155 S2
+Recv: ok
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.38 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Recv:  T:17.14 /0.00 B:16.43 /0.00 @:0 B@:0
+Send: M104 S205
+Recv: ok
+Recv:  T:17.19 /205.00 B:16.43 /0.00 @:127 B@:0
+Send: M140 S50
+Recv: ok
+Recv:  T:18.39 /205.00 B:16.43 /50.00 @:127 B@:127
+Recv:  T:20.62 /205.00 B:16.43 /50.00 @:127 B@:127
+Recv:  T:24.00 /205.00 B:16.52 /50.00 @:127 B@:127
+Recv:  T:28.12 /205.00 B:17.14 /50.00 @:127 B@:127
+Recv:  T:32.39 /205.00 B:17.68 /50.00 @:127 B@:127
+Recv:  T:36.72 /205.00 B:17.86 /50.00 @:127 B@:127
+Recv:  T:41.33 /205.00 B:18.57 /50.00 @:127 B@:127
+Recv:  T:45.89 /205.00 B:19.20 /50.00 @:127 B@:127
+Recv:  T:50.49 /205.00 B:19.29 /50.00 @:127 B@:127
+Recv:  T:54.60 /205.00 B:20.00 /50.00 @:127 B@:127
+Recv:  T:59.01 /205.00 B:20.47 /50.00 @:127 B@:127
+Recv:  T:63.11 /205.00 B:20.53 /50.00 @:127 B@:127
+Recv:  T:67.62 /205.00 B:21.00 /50.00 @:127 B@:127
+Recv:  T:71.74 /205.00 B:21.50 /50.00 @:127 B@:127
+Recv:  T:75.75 /205.00 B:21.62 /50.00 @:127 B@:127
+Recv:  T:79.80 /205.00 B:22.00 /50.00 @:127 B@:127
+Recv:  T:83.59 /205.00 B:22.50 /50.00 @:127 B@:127
+Recv:  T:87.70 /205.00 B:22.72 /50.00 @:127 B@:127
+Recv:  T:91.47 /205.00 B:23.00 /50.00 @:127 B@:127
+Recv:  T:95.09 /205.00 B:23.50 /50.00 @:127 B@:127
+Recv:  T:98.69 /205.00 B:23.59 /50.00 @:127 B@:127
+Recv:  T:102.30 /205.00 B:24.00 /50.00 @:127 B@:127
+Recv:  T:106.12 /205.00 B:24.50 /50.00 @:127 B@:127
+Recv:  T:109.53 /205.00 B:24.53 /50.00 @:127 B@:127
+Recv:  T:112.95 /205.00 B:25.00 /50.00 @:127 B@:127
+Recv:  T:116.25 /205.00 B:25.37 /50.00 @:127 B@:127
+Recv:  T:119.67 /205.00 B:25.50 /50.00 @:127 B@:127
+Recv:  T:122.96 /205.00 B:26.00 /50.00 @:127 B@:127
+Recv:  T:126.15 /205.00 B:26.09 /50.00 @:127 B@:127
+Recv:  T:129.16 /205.00 B:26.50 /50.00 @:127 B@:127
+Recv:  T:132.30 /205.00 B:26.97 /50.00 @:127 B@:127
+Recv:  T:135.59 /205.00 B:27.00 /50.00 @:127 B@:127
+Recv:  T:138.41 /205.00 B:27.50 /50.00 @:127 B@:127
+Recv:  T:141.37 /205.00 B:27.72 /50.00 @:127 B@:127
+Recv:  T:144.44 /205.00 B:28.00 /50.00 @:127 B@:127
+Recv:  T:147.29 /205.00 B:28.50 /50.00 @:127 B@:127
+Recv:  T:150.23 /205.00 B:28.50 /50.00 @:127 B@:127
+Recv:  T:153.13 /205.00 B:29.00 /50.00 @:127 B@:127
+Recv:  T:155.82 /205.00 B:29.25 /50.00 @:127 B@:127
+Recv:  T:158.41 /205.00 B:29.50 /50.00 @:127 B@:127
+Recv:  T:160.96 /205.00 B:30.00 /50.00 @:127 B@:127
+Recv:  T:163.88 /205.00 B:30.04 /50.00 @:127 B@:127
+Recv:  T:166.45 /205.00 B:30.34 /50.00 @:127 B@:127
+Recv:  T:168.81 /205.00 B:30.65 /50.00 @:127 B@:127
+Recv:  T:171.30 /205.00 B:30.69 /50.00 @:127 B@:127
+Recv:  T:174.05 /205.00 B:31.03 /50.00 @:127 B@:127
+Recv:  T:176.67 /205.00 B:31.21 /50.00 @:127 B@:127
+Recv:  T:179.05 /205.00 B:31.38 /50.00 @:127 B@:127
+Recv:  T:181.45 /205.00 B:31.72 /50.00 @:127 B@:127
+Recv:  T:184.09 /205.00 B:31.75 /50.00 @:127 B@:127
+Recv:  T:186.42 /205.00 B:32.07 /50.00 @:127 B@:127
+Recv:  T:188.92 /205.00 B:32.35 /50.00 @:127 B@:127
+Recv:  T:191.09 /205.00 B:32.41 /50.00 @:127 B@:127
+Recv:  T:193.55 /205.00 B:32.76 /50.00 @:127 B@:127
+Recv:  T:195.79 /205.00 B:32.82 /50.00 @:87 B@:127
+Recv:  T:197.86 /205.00 B:33.10 /50.00 @:79 B@:127
+Recv:  T:199.01 /205.00 B:33.45 /50.00 @:88 B@:127
+Recv:  T:200.45 /205.00 B:33.47 /50.00 @:81 B@:127
+Recv:  T:201.43 /205.00 B:33.79 /50.00 @:82 B@:127
+Recv:  T:202.23 /205.00 B:34.09 /50.00 @:83 B@:127
+Recv:  T:203.08 /205.00 B:34.14 /50.00 @:80 B@:127
+Recv:  T:203.57 /205.00 B:34.48 /50.00 @:81 B@:127
+Recv:  T:204.29 /205.00 B:34.81 /50.00 @:73 B@:127
+Recv:  T:204.69 /205.00 B:34.83 /50.00 @:70 B@:127
+Recv:  T:205.00 /205.00 B:35.17 /50.00 @:69 B@:127
+Recv:  T:205.00 /205.00 B:35.47 /50.00 @:74 B@:127
+Recv:  T:205.71 /205.00 B:35.54 /50.00 @:57 B@:127
+Recv:  T:205.71 /205.00 B:35.86 /50.00 @:60 B@:127
+Recv:  T:205.71 /205.00 B:36.21 /50.00 @:62 B@:127
+Recv:  T:205.63 /205.00 B:36.23 /50.00 @:64 B@:127
+Recv:  T:205.13 /205.00 B:36.55 /50.00 @:77 B@:127
+Send: M851
+Recv: echo:Probe Z Offset: 1.00
+Recv: ok
+Recv:  T:205.00 /205.00 B:36.90 /50.00 @:78 B@:127
+Recv:  T:205.40 /205.00 B:36.90 /50.00 @:64 B@:127
+Recv:  T:205.71 /205.00 B:37.24 /50.00 @:56 B@:127
+Recv:  T:205.71 /205.00 B:37.59 /50.00 @:57 B@:127
+Recv:  T:205.71 /205.00 B:37.61 /50.00 @:56 B@:127
+Recv:  T:205.00 /205.00 B:37.93 /50.00 @:75 B@:127
+Recv:  T:205.00 /205.00 B:38.25 /50.00 @:72 B@:127
+Recv:  T:205.00 /205.00 B:38.28 /50.00 @:70 B@:127
+Recv:  T:205.00 /205.00 B:38.62 /50.00 @:69 B@:127
+Recv:  T:205.00 /205.00 B:38.97 /50.00 @:68 B@:127
+Recv:  T:205.00 /205.00 B:39.05 /50.00 @:68 B@:127
+Recv:  T:205.04 /205.00 B:39.31 /50.00 @:67 B@:127
+Recv:  T:205.22 /205.00 B:39.66 /50.00 @:62 B@:127
+Recv:  T:205.31 /205.00 B:39.85 /50.00 @:60 B@:127
+Recv:  T:205.00 /205.00 B:40.00 /50.00 @:69 B@:127
+Recv:  T:205.00 /205.00 B:40.25 /50.00 @:68 B@:127
+Recv:  T:205.00 /205.00 B:40.47 /50.00 @:67 B@:127
+Recv:  T:205.00 /205.00 B:40.50 /50.00 @:67 B@:127
+Recv:  T:205.00 /205.00 B:40.75 /50.00 @:67 B@:127
+Recv:  T:205.00 /205.00 B:41.00 /50.00 @:67 B@:127
+Recv:  T:205.00 /205.00 B:41.05 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:41.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:41.50 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:41.67 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:41.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:42.00 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:42.23 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:42.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:42.50 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:42.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:42.80 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:43.00 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:43.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:43.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:43.50 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:43.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:43.95 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:44.02 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:44.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:44.50 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:44.55 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:44.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:45.00 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:45.19 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:45.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:45.50 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:45.67 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:45.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:46.00 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:46.22 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:46.27 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:46.50 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:46.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:46.95 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:47.00 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:47.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:47.50 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:47.73 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:47.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:48.00 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:48.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:48.39 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:48.52 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:48.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:49.00 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:49.09 /50.00 @:66 B@:127
+Changing monitoring state from "Operational" to "Printing"
+Send: N0 M110 N0*125
+Recv: ok
+Send: N1 M140 S50*81
+Recv: ok
+Send: N2 M105*37
+Recv: ok T:205.00 /205.00 B:49.25 /50.00 @:66 B@:127
+Send: N3 M190 S50*94
+Recv:  T:205.00 /205.00 B:49.25 /50.00 @:66 B@:127 W:?
+Recv:  T:205.00 /205.00 B:49.25 /50.00 @:66 B@:127 W:5
+Recv:  T:205.00 /205.00 B:49.25 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:49.25 /50.00 @:66 B@:127 W:4
+Recv:  T:205.00 /205.00 B:49.36 /50.00 @:66 B@:127 W:3
+Recv:  T:205.00 /205.00 B:49.50 /50.00 @:66 B@:110
+Recv:  T:205.00 /205.00 B:49.50 /50.00 @:66 B@:127 W:2
+Recv:  T:205.00 /205.00 B:49.50 /50.00 @:66 B@:127 W:1
+Recv:  T:205.00 /205.00 B:49.55 /50.00 @:66 B@:122
+Recv:  T:205.00 /205.00 B:49.75 /50.00 @:66 B@:62 W:0
+Recv: ok
+Send: N4 M117 0% L=-/66*70
+Recv: ok
+Send: N5 M104 S205*103
+Recv: ok
+Send: N6 M105*33
+Recv: ok T:205.00 /205.00 B:49.75 /50.00 @:66 B@:66
+Send: N7 M109 S205*104
+Recv:  T:205.00 /205.00 B:49.75 /50.00 @:66 B@:66 W:?
+Recv:  T:205.00 /205.00 B:49.75 /50.00 @:66 B@:89 W:5
+Recv:  T:205.00 /205.00 B:49.75 /50.00 @:66 B@:92
+Recv:  T:205.00 /205.00 B:49.75 /50.00 @:66 B@:109 W:4
+Recv:  T:205.00 /205.00 B:49.75 /50.00 @:66 B@:127 W:3
+Recv:  T:205.00 /205.00 B:49.75 /50.00 @:66 B@:127
+Recv:  T:205.00 /205.00 B:49.75 /50.00 @:66 B@:127 W:2
+Recv:  T:205.00 /205.00 B:49.92 /50.00 @:66 B@:75 W:1
+Recv:  T:205.00 /205.00 B:49.98 /50.00 @:66 B@:54
+Recv:  T:205.00 /205.00 B:50.00 /50.00 @:66 B@:54 W:4294967
+Recv: ok
+Send: N8 M82*17
+Recv: ok
+Send: N9 G21*19
+Recv: echo:Unknown command: "G21"
+Recv: ok
+Send: N10 G90*33
+Recv: ok
+Send: N11 M82*41
+Recv: ok
+Send: N12 M107*22
+Recv: ok
+Send: N13 M117 0% L=-/66*112
+Recv: ok
+Send: N14 G28 X0 Y0*39
+Recv:  T:205.40 /205.00 B:50.00 /50.00 @:54 B@:63
+Recv: X:-16.00 Y:-10.00 Z:5.00 E:0.00 Count X:-1600 Y:-1000 Z:2000
+Recv: ok
+Send: N15 G28 Z0*109
+Recv:  T:205.40 /205.00 B:50.01 /50.00 @:56 B@:65
+Recv:  T:205.45 /205.00 B:50.01 /50.00 @:55 B@:66
+Recv:  T:205.00 /205.00 B:50.01 /50.00 @:68 B@:66
+Recv:  T:204.78 /205.00 B:50.01 /50.00 @:73 B@:65
+Recv:  T:204.29 /205.00 B:50.04 /50.00 @:86 B@:55
+Recv: X:144.00 Y:143.00 Z:10.00 E:0.00 Count X:14400 Y:14300 Z:4000
+Recv: ok
+Send: N16 M117 0% L=-/66*117
+Recv: ok
+Send: N17 G29*36
+Recv:  T:204.29 /205.00 B:49.95 /50.00 @:84 B@:89
+Recv:  T:204.51 /205.00 B:49.94 /50.00 @:75 B@:97
+Recv:  T:204.46 /205.00 B:50.00 /50.00 @:78 B@:74
+Recv:  T:204.55 /205.00 B:50.06 /50.00 @:77 B@:50
+Recv:  T:204.91 /205.00 B:50.06 /50.00 @:67 B@:48
+Recv:  T:205.00 /205.00 B:50.01 /50.00 @:67 B@:64
+Recv:  T:205.04 /205.00 B:50.02 /50.00 @:67 B@:57
+Recv:  T:205.22 /205.00 B:50.01 /50.00 @:64 B@:61
+Recv:  T:205.04 /205.00 B:50.09 /50.00 @:69 B@:31
+Recv:  T:204.87 /205.00 B:49.98 /50.00 @:74 B@:69
+Recv:  T:204.78 /205.00 B:50.04 /50.00 @:76 B@:47
+Recv:  T:205.22 /205.00 B:49.98 /50.00 @:62 B@:68
+Recv:  T:205.22 /205.00 B:49.98 /50.00 @:63 B@:69
+Recv:  T:205.45 /205.00 B:49.98 /50.00 @:57 B@:69
+Recv: Bilinear Leveling Grid:
+Recv:       0      1      2
+Recv:  0 +0.192 +0.075 +0.005
+Recv:  1 +0.105 -0.010 -0.017
+Recv:  2 -0.080 -0.165 -0.117
+Recv: 
+Recv: X:219.00 Y:218.00 Z:10.12 E:0.00 Count X:21900 Y:21800 Z:4047
+Recv: ok
+Send: N18 G1 Z15.0 F9000*30
+Recv: ok
+Send: N19 M117 0% L=-/66*122
+Recv: ok
+Send: N20 M117 0% L=-/66*112
+Recv: ok
+Send: N21 G92 E0*116
+Recv: X:219.00 Y:218.00 Z:15.00 E:0.00 Count X:21900 Y:21800 Z:4047
+Recv: ok
+Send: N22 G1 F200 E1*24
+Recv: ok
+Send: N23 M117 0% L=-/66*115
+Recv: ok
+Send: N24 G92 E0*113
+Recv: X:219.00 Y:218.00 Z:15.00 E:0.00 Count X:21900 Y:21800 Z:4240
+Recv: ok
+Send: N25 G1 F9000*112
+Recv: ok
+Send: N26 M117 0% L=-/66*118
+Recv: ok
+Send: N27 M117 Printing...*46
+Recv: ok
+Send: N28 G92 E0*125
+Recv: X:219.00 Y:218.00 Z:15.00 E:0.00 Count X:21900 Y:21800 Z:4656
+Recv: ok
+Send: N29 M117 0% L=0/66*100
+Recv: ok
+Send: N30 M107*22
+Recv: ok
+Send: N31 M117 0% L=0/66*109
+Recv: ok
+Send: N32 G0 F3600 X97.365 Y97.007 Z0.2*43
+Recv:  T:205.40 /205.00 B:50.02 /50.00 @:60 B@:52
+Recv: ok
+Send: N33 M117 0% L=0/66*111
+Recv: ok
+Send: N34 M117 0% L=0/66*104
+Recv: ok
+Send: N35 G1 F1350 X97.815 Y96.665 E0.0188*12
+Recv: ok
+Send: N36 M117 0% L=0/66*106
+Recv: ok
+Send: N37 G1 X98.308 Y96.389 E0.03759*89
+Recv: ok
+Send: N38 G1 X98.836 Y96.185 E0.05642*83
+Recv: ok
+Send: N39 G1 X99.386 Y96.058 E0.07519*93
+Recv: ok
+Send: N40 G1 X100.009 Y96.009 E0.09598*101
+Recv: ok
+Send: N41 G1 X119.991 Y96.01 E0.76058*93
+Recv: ok
+Send: N42 G1 X120.555 Y96.05 E0.77939*91
+Recv: ok
+Send: N43 G1 X121.108 Y96.169 E0.7982*91
+Recv: ok
+Send: N44 G1 X121.638 Y96.365 E0.817*108
+Recv: ok
+Send: N45 G1 X122.136 Y96.633 E0.83581*104
+Recv: ok
+Send: N46 G1 X122.59 Y96.97 E0.85461*98
+Recv:  T:205.54 /205.00 B:49.97 /50.00 @:56 B@:73
+Recv: ok
+Send: N47 G1 X122.993 Y97.366 E0.8734*86
+Recv: ok
+Send: N48 G1 X123.336 Y97.816 E0.89222*106
+Recv: ok
+Send: N49 G1 X123.611 Y98.309 E0.911*107
+Recv: ok
+Send: N50 G1 X123.815 Y98.837 E0.92982*110
+Recv: ok
+Send: N51 G1 X123.942 Y99.388 E0.94863*106
+Recv: ok
+Send: N52 G1 X123.991 Y100.01 E0.96938*105
+Recv: ok
+Send: N53 G1 X123.991 Y119.991 E1.63395*86
+Recv: ok
+Send: N54 G1 X123.951 Y120.555 E1.65276*89
+Recv: ok
+Send: N55 G1 X123.832 Y121.108 E1.67157*83
+Recv: ok
+Send: N56 G1 X123.636 Y121.638 E1.69037*87
+Recv: ok
+Send: N57 G1 X123.368 Y122.135 E1.70915*80
+Recv: ok
+Send: N58 G1 X123.032 Y122.59 E1.72796*111
+Recv: ok
+Send: N59 G1 X122.635 Y122.993 E1.74678*86
+Recv: ok
+Send: N60 G1 X122.185 Y123.335 E1.76558*84
+Recv: ok
+Send: N61 G1 X121.692 Y123.611 E1.78437*82
+Recv: ok
+Send: N62 G1 X121.164 Y123.815 E1.80319*89
+Recv: ok
+Send: N63 G1 X120.614 Y123.942 E1.82197*92
+Recv: ok
+Send: N64 G1 X119.991 Y123.991 E1.84275*84
+Recv: ok
+Send: N65 G1 X100.009 Y123.991 E2.50736*93
+Recv:  T:205.09 /205.00 B:50.00 /50.00 @:68 B@:59
+Recv: ok
+Send: N66 G1 X99.445 Y123.951 E2.52616*110
+Recv: ok
+Send: N67 G1 X98.892 Y123.832 E2.54498*110
+Recv: ok
+Send: N68 G1 X98.362 Y123.636 E2.56377*107
+Recv: ok
+Send: N69 G1 X97.865 Y123.368 E2.58255*104
+Recv: ok
+Send: N70 G1 X97.41 Y123.032 E2.60136*95
+Recv: ok
+Send: N71 G1 X97.007 Y122.635 E2.62018*99
+Recv: ok
+Send: N72 G1 X96.665 Y122.185 E2.63898*110
+Recv: ok
+Send: N73 G1 X96.389 Y121.692 E2.65777*98
+Recv: ok
+Send: N74 G1 X96.185 Y121.164 E2.6766*80
+Recv: ok
+Send: N75 G1 X96.058 Y120.614 E2.69537*110
+Recv: ok
+Send: N76 G1 X96.009 Y119.991 E2.71616*104
+Recv: ok
+Send: N77 G1 X96.009 Y100.009 E3.38076*101
+Recv: ok
+Send: N78 G1 X96.049 Y99.445 E3.39957*88
+Recv: ok
+Send: N79 G1 X96.168 Y98.892 E3.41838*91
+Recv: ok
+Send: N80 G1 X96.364 Y98.362 E3.43718*88
+Recv: ok
+Send: N81 G1 X96.632 Y97.865 E3.45596*94
+Recv: ok
+Send: N82 G1 X96.968 Y97.41 E3.47477*111
+Recv: ok
+Send: N83 G1 X97.365 Y97.007 E3.49358*94
+Recv: ok
+Send: N84 G0 F3600 X97.756 Y97.201*112
+Recv: ok
+Send: N85 M117 0% L=0/66*98
+Recv: ok
+Send: N86 G1 F1350 X98.198 Y96.898 E3.51141*57
+Recv: ok
+Send: N87 M117 0% L=0/66*96
+Recv: ok
+Send: N88 G1 X98.681 Y96.663 E3.52927*88
+Recv: ok
+Send: N89 G1 X99.192 Y96.503 E3.54708*93
+Recv: ok
+Send: N90 G1 X99.722 Y96.42 E3.56492*106
+Recv: ok
+Send: N91 G1 X100.009 Y96.409 E3.57448*105
+Recv: ok
+Send: N92 G1 X119.991 Y96.41 E4.23908*95
+Recv:  T:204.64 /205.00 B:49.95 /50.00 @:79 B@:77
+Recv: ok
+Send: N93 G1 X120.526 Y96.45 E4.25692*90
+Recv: ok
+Send: N94 G1 X121.049 Y96.569 E4.27476*97
+Recv: ok
+Send: N95 G1 X121.548 Y96.764 E4.29258*111
+Recv: ok
+Send: N96 G1 X122.013 Y97.032 E4.31043*96
+Recv: ok
+Send: N97 G1 X122.433 Y97.365 E4.32826*110
+Recv: ok
+Send: N98 G1 X122.799 Y97.757 E4.3461*90
+Recv: ok
+Send: N99 G1 X123.103 Y98.199 E4.36394*111
+Recv: ok
+Send: N100 G1 X123.337 Y98.682 E4.38179*89
+Recv: ok
+Send: N101 G1 X123.497 Y99.194 E4.39963*86
+Recv: ok
+Send: N102 G1 X123.58 Y99.723 E4.41744*108
+Recv: ok
+Send: N103 G1 X123.591 Y100.01 E4.427*88
+Recv: ok
+Send: N104 G1 X123.591 Y119.991 E5.09157*109
+Recv: ok
+Send: N105 G1 X123.551 Y120.526 E5.10941*109
+Recv: ok
+Send: N106 G1 X123.432 Y121.049 E5.12725*105
+Recv: ok
+Send: N107 G1 X123.237 Y121.548 E5.14507*107
+Recv: ok
+Send: N108 G1 X122.969 Y122.013 E5.16292*100
+Recv:  T:204.38 /205.00 B:50.00 /50.00 @:84 B@:60
+Recv: ok
+Send: N109 G1 X122.636 Y122.433 E5.18075*99
+Recv: ok
+Send: N110 G1 X122.244 Y122.799 E5.19858*111
+Recv: ok
+Send: N111 G1 X121.802 Y123.102 E5.21641*109
+Recv: ok
+Send: N112 G1 X121.319 Y123.337 E5.23427*107
+Recv: ok
+Send: N113 G1 X120.808 Y123.497 E5.25208*96
+Recv: ok
+Send: N114 G1 X120.278 Y123.58 E5.26993*87
+Recv: ok
+Send: N115 G1 X119.991 Y123.591 E5.27948*103
+Recv: ok
+Send: N116 G1 X100.009 Y123.591 E5.94408*101
+Recv: ok
+Send: N117 G1 X99.474 Y123.551 E5.96193*82
+Recv: ok
+Send: N118 G1 X98.951 Y123.432 E5.97977*81
+Recv: ok
+Send: N119 G1 X98.452 Y123.237 E5.99759*81
+Recv: ok
+Send: N120 G1 X97.987 Y122.969 E6.01544*92
+Recv: ok
+Send: N121 G1 X97.567 Y122.636 E6.03326*90
+Recv: ok
+Send: N122 G1 X97.201 Y122.244 E6.0511*110
+Recv: ok
+Send: N123 G1 X96.898 Y121.802 E6.06892*95
+Recv: ok
+Send: N124 G1 X96.663 Y121.319 E6.08679*86
+Recv: ok
+Send: N125 G1 X96.503 Y120.808 E6.1046*107
+Recv: ok
+Send: N126 G1 X96.42 Y120.278 E6.12244*103
+Recv: ok
+Send: N127 G1 X96.409 Y119.991 E6.13199*89
+Recv: ok
+Send: N128 G1 X96.409 Y100.009 E6.7966*107
+Recv: ok
+Send: N129 M117 1% L=0/66*84
+Recv: ok
+Send: N130 G1 X96.449 Y99.474 E6.81444*106
+Recv:  T:204.24 /205.00 B:50.00 /50.00 @:86 B@:61
+Recv: ok
+Send: N131 G1 X96.568 Y98.951 E6.83228*108
+Recv: ok
+Send: N132 G1 X96.763 Y98.452 E6.8501*87
+Recv: ok
+Send: N133 G1 X97.031 Y97.987 E6.86795*100
+Recv: ok
+Send: N134 G1 X97.364 Y97.567 E6.88578*109
+Recv: ok
+Send: N135 G1 X97.756 Y97.201 E6.90362*106
+Recv: ok
+Send: N136 G0 F3600 X97.758 Y97.734*69
+Recv: ok
+Send: N137 M117 1% L=0/66*91
+Recv: ok
+Send: N138 G1 F1350 X98.145 Y97.408 E6.92045*6
+Recv: ok
+Send: N139 M117 1% L=0/66*85
+Recv: ok
+Send: N140 G1 X98.578 Y97.147 E6.93726*111
+Recv: ok
+Send: N141 G1 X99.046 Y96.957 E6.95406*104
+Recv: ok
+Send: N142 G1 X99.539 Y96.844 E6.97088*101
+Recv: ok
+Send: N143 G1 X100.009 Y96.809 E6.98656*80
+Recv: ok
+Send: N144 G1 X119.991 Y96.81 E7.65116*111
+Recv: ok
+Send: N145 G1 X120.495 Y96.85 E7.66798*106
+Recv: ok
+Send: N146 G1 X120.987 Y96.969 E7.68482*90
+Recv: ok
+Send: N147 G1 X121.453 Y97.164 E7.70162*88
+Recv: ok
+Send: N148 G1 X121.883 Y97.429 E7.71842*80
+Recv: ok
+Send: N149 G1 X122.266 Y97.76 E7.73525*99
+Recv: ok
+Send: N150 G1 X122.592 Y98.146 E7.75206*90
+Recv: ok
+Send: N151 G1 X122.853 Y98.579 E7.76887*83
+Recv: ok
+Send: N152 G1 X123.043 Y99.048 E7.7857*101
+Recv: ok
+Send: N153 G1 X123.156 Y99.54 E7.80249*102
+Recv: ok
+Send: N154 G1 X123.191 Y100.01 E7.81817*91
+Recv: ok
+Send: N155 G1 X123.191 Y119.991 E8.48274*103
+Recv: ok
+Send: N156 G1 X123.151 Y120.495 E8.49956*97
+Recv:  T:204.33 /205.00 B:49.98 /50.00 @:83 B@:69
+Recv: ok
+Send: N157 G1 X123.032 Y120.986 E8.51636*107
+Recv: ok
+Send: N158 G1 X122.838 Y121.453 E8.53318*104
+Recv: ok
+Send: N159 G1 X122.572 Y121.883 E8.55*87
+Recv: ok
+Send: N160 G1 X122.242 Y122.266 E8.56681*103
+Recv: ok
+Send: N161 G1 X121.855 Y122.592 E8.58364*101
+Recv: ok
+Send: N162 G1 X121.422 Y122.853 E8.60046*98
+Recv: ok
+Send: N163 G1 X120.954 Y123.043 E8.61726*102
+Recv: ok
+Send: N164 G1 X120.461 Y123.156 E8.63408*98
+Recv: ok
+Send: N165 G1 X119.991 Y123.191 E8.64975*96
+Recv: ok
+Send: N166 G1 X100.009 Y123.191 E9.31436*104
+Recv: ok
+Send: N167 G1 X99.505 Y123.151 E9.33117*89
+Recv: ok
+Send: N168 G1 X99.014 Y123.032 E9.34798*81
+Recv: ok
+Send: N169 G1 X98.547 Y122.838 E9.3648*105
+Recv: ok
+Send: N170 G1 X98.117 Y122.572 E9.38161*87
+Recv: ok
+Send: N171 G1 X97.734 Y122.242 E9.39843*82
+Recv: ok
+Send: N172 G1 X97.408 Y121.855 E9.41526*83
+Recv: ok
+Send: N173 G1 X97.147 Y121.422 E9.43207*86
+Recv: ok
+Send: N174 G1 X96.957 Y120.954 E9.44887*81
+Recv: ok
+Send: N175 G1 X96.844 Y120.461 E9.4657*111
+Recv: ok
+Send: N176 G1 X96.809 Y119.991 E9.48137*84
+Recv: ok
+Send: N177 G1 X96.809 Y100.009 E10.14598*101
+Recv:  T:204.69 /205.00 B:50.04 /50.00 @:73 B@:48
+Recv: ok
+Send: N178 G1 X96.849 Y99.505 E10.16279*92
+Recv: ok
+Send: N179 G1 X96.968 Y99.014 E10.1796*104
+Recv: ok
+Send: N180 G1 X97.162 Y98.547 E10.19641*93
+Recv: ok
+Send: N181 G1 X97.428 Y98.117 E10.21323*92
+Recv: ok
+Send: N182 G1 X97.758 Y97.734 E10.23005*86
+Recv: ok
+Send: N183 G0 F3600 X100.614 Y99.335*118
+Recv: ok
+Send: N184 M117 1% L=0/66*83
+Recv: ok
+Send: N185 G0 X100.614 Y100.614*36
+Recv: ok
+Send: N186 G0 X119.33 Y119.33*39
+Recv: ok
+Send: N187 G0 X119.4 Y119.4*38
+Recv: ok
+Send: N188 G1 F1350 X100.6 Y119.4 E10.85534*54
+Recv: ok
+Send: N189 M117 1% L=0/66*94
+Recv: ok
+Send: N190 G1 X100.6 Y100.6 E11.48063*83
+Recv: ok
+Send: N191 G1 X119.4 Y100.6 E12.10592*93
+Recv:  T:205.04 /205.00 B:50.01 /50.00 @:64 B@:57
+Recv: ok
+Send: N192 G1 X119.4 Y119.4 E12.73121*93
+Recv: ok
+Send: N193 G0 F3600 X119.8 Y119.8*64
+Recv: ok
+Send: N194 M117 1% L=0/66*82
+Recv: ok
+Send: N195 G1 F1350 X100.2 Y119.8 E13.38311*54
+Recv: ok
+Send: N196 M117 1% L=0/66*80
+Recv: ok
+Send: N197 G1 X100.2 Y100.2 E14.03501*95
+Recv: ok
+Send: N198 G1 X119.8 Y100.2 E14.6869*100
+Recv:  T:205.22 /205.00 B:50.07 /50.00 @:61 B@:31
+Recv: ok
+Send: N199 G1 X119.8 Y119.8 E15.3388*103
+Recv: ok
+Send: N200 G0 F3600 X119.6 Y119.8*71
+Recv: ok
+Send: N201 M117 1% L=0/66*93
+Recv: ok
+Send: N202 G0 X119.33 Y119.33*40
+Recv: ok
+Send: N203 G0 X119.01 Y119.01*41
+Recv: ok
+Send: N204 G1 F1350 X100.99 Y119.01 E15.93815*62
+Recv:  T:205.13 /205.00 B:50.01 /50.00 @:66 B@:52
+Recv: ok
+Send: N205 M117 1% L=0/66*89
+Recv: ok
+Send: N206 G1 X100.99 Y100.99 E16.5375*101
+Recv: ok
+Send: N207 G1 X119.01 Y100.99 E17.13685*81
+Recv:  T:204.87 /205.00 B:49.97 /50.00 @:75 B@:67
+Recv: ok
+Send: N208 G1 X119.01 Y119.01 E17.73619*84
+Recv: ok
+Send: N209 G0 F3600 X118.829 Y101.293*67
+Recv: ok
+Send: N210 M117 1% L=0/66*93
+Recv: ok
+Send: N211 G1 F1350 X118.706 Y101.17 E17.74198*11
+Recv: ok
+Send: N212 M117 1% L=0/66*95
+Recv: ok
+Send: N213 G0 F3600 X118.14 Y101.17*64
+Recv: ok
+Send: N214 M117 1% L=0/66*89
+Recv: ok
+Recv:  T:204.96 /205.00 B:50.00 /50.00 @:72 B@:55
+Send: N215 G1 F1350 X118.829 Y101.858 E17.77436*60
+Recv: ok
+Send: N216 M117 1% L=0/66*91
+Recv: ok
+Send: N217 G0 F3600 X118.829 Y102.424*69
+Recv: ok
+Send: N218 M117 1% L=0/66*85
+Recv: ok
+Send: N219 G1 F1350 X117.574 Y101.17 E17.83337*4
+Recv: ok
+Send: N220 M117 1% L=0/66*94
+Recv: ok
+Send: N221 G0 F3600 X117.009 Y101.17*114
+Recv: ok
+Send: N222 M117 1% L=0/66*92
+Recv: ok
+Send: N223 G1 F1350 X118.829 Y102.99 E17.91898*15
+Recv: ok
+Send: N224 M117 1% L=0/66*90
+Recv: ok
+Send: N225 G0 F3600 X118.829 Y103.555*66
+Recv: ok
+Send: N226 M117 1% L=0/66*88
+Recv: ok
+Send: N227 G1 F1350 X116.443 Y101.17 E18.03119*4
+Recv: ok
+Send: N228 M117 1% L=0/66*86
+Recv: ok
+Send: N229 G0 F3600 X115.877 Y101.17*121
+Recv:  T:205.04 /205.00 B:49.98 /50.00 @:70 B@:62
+Recv: ok
+Send: N230 M117 1% L=0/66*95
+Recv: ok
+Send: N231 G1 F1350 X118.829 Y104.121 E18.17002*50
+Recv: ok
+Send: N232 M117 1% L=0/66*93
+Recv: ok
+Send: N233 G0 F3600 X118.829 Y104.687*78
+Recv: ok
+Send: N234 M117 1% L=0/66*91
+Recv: ok
+Send: N235 G1 F1350 X115.312 Y101.17 E18.33544*8
+Recv: ok
+Send: N236 M117 1% L=0/66*89
+Recv: ok
+Send: N237 G0 F3600 X114.746 Y101.17*122
+Recv: ok
+Send: N238 M117 1% L=0/66*87
+Recv: ok
+Send: N239 G1 F1350 X118.829 Y105.252 E18.52747*59
+Recv: ok
+Send: N240 M117 1% L=0/66*88
+Recv: ok
+Send: N241 G0 F3600 X118.829 Y105.818*66
+Recv: ok
+Send: N242 M117 1% L=0/66*90
+Recv: ok
+Send: N243 G1 F1350 X114.18 Y101.17 E18.74612*50
+Recv: ok
+Send: N244 M117 1% L=0/66*92
+Recv: ok
+Send: N245 G0 F3600 X113.615 Y101.17*127
+Recv: ok
+Send: N246 M117 1% L=0/66*94
+Recv: ok
+Send: N247 G1 F1350 X118.829 Y106.384 E18.99137*61
+Recv: ok
+Send: N248 M117 1% L=0/66*80
+Recv: ok
+Send: N249 G0 F3600 X118.829 Y106.949*76
+Recv: ok
+Send: N250 M117 1% L=0/66*89
+Recv: ok
+Send: N251 G1 F1350 X113.049 Y101.17 E19.26322*2
+Recv: ok
+Send: N252 M117 1% L=0/66*91
+Recv: ok
+Send: N253 G0 F3600 X112.483 Y101.17*116
+Recv: ok
+Send: N254 M117 1% L=0/66*93
+Recv: ok
+Send: N255 G1 F1350 X118.829 Y107.515 E19.5617*0
+Recv: ok
+Send: N256 M117 1% L=0/66*95
+Recv: ok
+Send: N257 G0 F3600 X118.829 Y108.081*64
+Recv: ok
+Send: N258 M117 1% L=0/66*81
+Recv: ok
+Send: N259 G1 F1350 X111.918 Y101.17 E19.88677*4
+Recv: ok
+Send: N260 M117 1% L=0/66*90
+Recv:  T:204.73 /205.00 B:50.02 /50.00 @:79 B@:49
+Recv: ok
+Send: N261 G0 F3600 X111.352 Y101.17*125
+Recv: ok
+Send: N262 M117 1% L=0/66*88
+Recv: ok
+Send: N263 G1 F1350 X118.829 Y108.646 E20.23844*57
+Recv: ok
+Send: N264 M117 1% L=0/66*94
+Recv: ok
+Send: N265 G0 F3600 X118.829 Y109.212*72
+Recv: ok
+Send: N266 M117 1% L=0/66*92
+Recv: ok
+Send: N267 G1 F1350 X110.786 Y101.17 E20.61674*15
+Recv: ok
+Send: N268 M117 1% L=0/66*82
+Recv: ok
+Send: N269 G0 F3600 X110.22 Y101.17*64
+Recv: ok
+Send: N270 M117 1% L=0/66*91
+Recv: ok
+Send: N271 G1 F1350 X118.829 Y109.778 E21.02165*63
+Recv: ok
+Send: N272 M117 1% L=0/66*89
+Recv: ok
+Send: N273 G0 F3600 X118.829 Y110.344*69
+Recv: ok
+Send: N274 M117 2% L=0/66*92
+Recv: ok
+Send: N275 M117 2% L=0/66*93
+Recv: ok
+Send: N276 G1 F1350 X109.655 Y101.17 E21.45317*15
+Recv: ok
+Send: N277 M117 2% L=0/66*95
+Recv: ok
+Send: N278 G0 F3600 X109.089 Y101.17*121
+Recv: ok
+Send: N279 M117 2% L=0/66*81
+Recv: ok
+Send: N280 G1 F1350 X118.829 Y110.909 E21.91129*51
+Recv:  T:204.82 /205.00 B:50.02 /50.00 @:76 B@:49
+Recv: ok
+Send: N281 M117 2% L=0/66*86
+Recv: ok
+Send: N282 G0 F3600 X118.829 Y111.475*79
+Recv: ok
+Send: N283 M117 2% L=0/66*84
+Recv: ok
+Send: N284 G1 F1350 X108.523 Y101.17 E22.39603*9
+Recv: ok
+Send: N285 M117 2% L=0/66*82
+Recv: ok
+Send: N286 G0 F3600 X107.958 Y101.17*115
+Recv: ok
+Send: N287 M117 2% L=0/66*80
+Recv: ok
+Send: N288 G1 F1350 X118.829 Y112.041 E22.90736*54
+Recv: ok
+Send: N289 M117 2% L=0/66*94
+Recv: ok
+Send: N290 G0 F3600 X118.829 Y112.606*73
+Recv: ok
+Send: N291 M117 2% L=0/66*87
+Recv: ok
+Send: N292 G1 F1350 X107.392 Y101.17 E23.4453*53
+Recv:  T:204.87 /205.00 B:50.04 /50.00 @:75 B@:42
+Recv: ok
+Send: N293 M117 2% L=0/66*85
+Recv: ok
+Send: N294 G0 F3600 X106.826 Y101.17*121
+Recv: ok
+Send: N295 M117 2% L=0/66*83
+Recv: ok
+Send: N296 G1 F1350 X118.829 Y113.172 E24.00986*51
+Recv: ok
+Send: N297 M117 2% L=0/66*81
+Recv: ok
+Send: N298 G0 F3600 X118.829 Y113.738*76
+Recv: ok
+Send: N299 M117 2% L=0/66*95
+Recv: ok
+Send: N300 G1 F1350 X106.261 Y101.17 E24.60102*7
+Recv: ok
+Send: N301 M117 2% L=0/66*95
+Recv: ok
+Send: N302 G0 F3600 X105.695 Y101.17*114
+Recv: ok
+Send: N303 M117 2% L=0/66*93
+Recv: ok
+Send: N304 G1 F1350 X118.829 Y114.303 E25.21878*56
+Recv:  T:204.87 /205.00 B:50.04 /50.00 @:76 B@:40
+Recv: ok
+Send: N305 M117 2% L=0/66*91
+Recv: ok
+Send: N306 G0 F3600 X118.829 Y114.869*70
+Recv: ok
+Send: N307 M117 2% L=0/66*89
+Recv: ok
+Send: N308 G1 F1350 X105.129 Y101.17 E25.86317*12
+Recv: ok
+Send: N309 M117 2% L=0/66*87
+Recv: ok
+Send: N310 G0 F3600 X104.564 Y101.17*125
+Recv: ok
+Send: N311 M117 2% L=0/66*94
+Recv: ok
+Send: N312 G1 F1350 X118.829 Y115.435 E26.53415*61
+Recv:  T:205.09 /205.00 B:50.04 /50.00 @:70 B@:39
