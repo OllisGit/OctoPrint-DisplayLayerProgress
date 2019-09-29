@@ -72,27 +72,30 @@ You can receive the layer/height and other values via a GET-Call.
     curl -H "X-Api-Key:57FECA453FE94D46851EFC94BC9B5265" http://localhost:5000/plugin/DisplayLayerProgress/values
 
     {
-      "fanSpeed": "80%",
-      "feedrate": "6000",
-      "feedrateG0": "6000",
-      "feedrateG1": "1575",
+      "fanSpeed": "69%",
+      "feedrate": "3000",
+      "feedrateG0": "3000",
+      "feedrateG1": "953.8",
       "height": {
-        "current": "0.96",
-        "total": "15.08",
-        "totalWithExtrusion": "10.08"
+        "current": "8.00",
+        "total": "15.00",
+        "totalWithExtrusion": "10.0"
       },
       "layer": {
-        "averageLayerDuration": "-",
-        "current": "3",
-        "lastLayerDuration": "00m:07s",
-        "total": "41"
+        "averageLayerDuration": 63,
+        "averageLayerDurationInSeconds": "0h:01m:03s",
+        "current": "39",
+        "lastLayerDuration": 58,
+        "lastLayerDurationInSeconds": "0h:00m:58s",
+        "total": "49"
       },
       "print": {
-        "progress": "2",
-        "timeLeft": "12m7s",
-        "timeLeftInSeconds": 727
+        "progress": "73",
+        "timeLeft": "40s",
+        "timeLeftInSeconds": 40
       }
     }
+
 
 ## Events
 Plugin sends the following custom events to the eventbus like this: 
@@ -118,8 +121,10 @@ Plugin sends the following custom events to the eventbus like this:
    'feedrateG1':'2700',
    'fanspeed':'100%',
    'progress':'28',
-   'lastLayerDuration':'0h:00m:03s',
-   'averageLayerDuration':'0h:00m:02s',
+   'lastLayerDuration':'3',
+   'lastLayerDurationInSeconds':'0h:00m:03s',
+   'averageLayerDuration':'1',
+   'averageLayerDurationInSeconds':'0h:00m:02s',
    'printTimeLeft':'2m3s',
    'printTimeLeftInSeconds':123
  }
