@@ -474,10 +474,10 @@ class DisplaylayerprogressPlugin(
         if len(self._layerDurationDeque) > 0:
             lastLayerDurationTimeDelta = self._layerDurationDeque[-1]
             if isinstance( lastLayerDurationTimeDelta, int):
-                self._lastLayerDuration = lastLayerDurationTimeDelta
+                self._lastLayerDurationInSeconds = lastLayerDurationTimeDelta
             else:
-                self._lastLayerDuration = lastLayerDurationTimeDelta.seconds
-            self._lastLayerDurationInSeconds = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+                self._lastLayerDurationInSeconds = lastLayerDurationTimeDelta.seconds
+            self._lastLayerDuration = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
 
             # avarag calc only if we have engough layer measurments
             allLayerDurationCount = len(self._layerDurationDeque)
@@ -491,8 +491,8 @@ class DisplaylayerprogressPlugin(
 
                 calcAverageDuration = calcAverageDuration / allLayerDurationCount
                 calcAverageDurationTimeDelta = timedelta(seconds = calcAverageDuration)
-                self._averageLayerDuration = calcAverageDurationTimeDelta.seconds
-                self._averageLayerDurationInSeconds = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+                self._averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+                self._averageLayerDurationInSeconds = calcAverageDurationTimeDelta.seconds
 
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
@@ -505,8 +505,8 @@ class DisplaylayerprogressPlugin(
             FEEDRATE_G1_KEYWORD_EXPRESSION: feedrateG1,
             FANSPEED_KEYWORD_EXPRESSION: self._fanSpeed,
             PRINTTIME_LEFT_EXPRESSION: self._printTimeLeft,
-            LAYER_LAST_DURATION_EXPRESSION: self._lastLayerDurationInSeconds,
-            LAYER_AVERAGE_DURATION_EXPRESSION: self._averageLayerDurationInSeconds
+            LAYER_LAST_DURATION_EXPRESSION: self._lastLayerDuration,
+            LAYER_AVERAGE_DURATION_EXPRESSION: self._averageLayerDuration
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)

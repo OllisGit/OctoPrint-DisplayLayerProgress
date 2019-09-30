@@ -82,11 +82,11 @@ You can receive the layer/height and other values via a GET-Call.
         "totalWithExtrusion": "10.0"
       },
       "layer": {
-        "averageLayerDuration": 63,
-        "averageLayerDurationInSeconds": "0h:01m:03s",
+        "averageLayerDuration": "0h:01m:03s",
+        "averageLayerDurationInSeconds": 63,
         "current": "39",
-        "lastLayerDuration": 58,
-        "lastLayerDurationInSeconds": "0h:00m:58s",
+        "lastLayerDuration": "0h:00m:58s",
+        "lastLayerDurationInSeconds": 58,
         "total": "49"
       },
       "print": {
@@ -121,10 +121,10 @@ Plugin sends the following custom events to the eventbus like this:
    'feedrateG1':'2700',
    'fanspeed':'100%',
    'progress':'28',
-   'lastLayerDuration':'3',
-   'lastLayerDurationInSeconds':'0h:00m:03s',
-   'averageLayerDuration':'1',
-   'averageLayerDurationInSeconds':'0h:00m:02s',
+   'lastLayerDuration':'0h:00m:03s',
+   'lastLayerDurationInSeconds':3,
+   'averageLayerDuration':'0h:00m:02s',
+   'averageLayerDurationInSeconds':2,
    'printTimeLeft':'2m3s',
    'printTimeLeftInSeconds':123
  }
