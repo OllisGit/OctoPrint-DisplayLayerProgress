@@ -6,7 +6,15 @@
 
 A OctoPrint-Plugin that sends the current progress of a print via M117 command to the printer-display and also to the top navigation bar.
 
-A new feature is the "Desktop Printer-Display", which shows all M117 messages in a Desktop PopUp.
+#### Support my Efforts
+
+This plugin, as well as my [other plugins](https://github.com/OllisGit/) were developed in my spare time.
+If you like it, I would be thankful about a cup of coffee :) 
+
+[![More coffee, more code](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=2BJP2XFEKNG9J&source=url)
+
+
+A new feature (since V1.4.0) is the "Desktop Printer-Display", which shows all M117 messages in a Desktop PopUp.
 
 It shows the **current layer, total layer count, last/average layer duration, current height, total height, percentage, printTimeLeft, feedrate and fanspeed**:
 
