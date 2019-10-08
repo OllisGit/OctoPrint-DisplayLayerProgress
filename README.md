@@ -114,6 +114,7 @@ Plugin sends the following custom events to the eventbus like this:
 | ------------------------------------ |
 | DisplayLayerProgress_progressChanged |
 | DisplayLayerProgress_layerChanged    |
+| DisplayLayerProgress_heightChanged   |
 | DisplayLayerProgress_feedrateChanged |
 | DisplayLayerProgress_fanspeedChanged |
 
