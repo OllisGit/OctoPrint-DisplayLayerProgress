@@ -66,7 +66,8 @@ FEEDRATE_EXPRESSION = "^G[0|1] .*F(\d*\.?\d*).*"
 feedratePattern = re.compile(FEEDRATE_EXPRESSION)
 
 # Match Fan speed
-FANSPEED_EXPRESSION = "^M106.* S(\d+).*"
+FANSPEED_EXPRESSION = "^M106.* S(\d+\.?\d*).*"
+
 fanSpeedPattern = re.compile(FANSPEED_EXPRESSION)
 FAN_OFF_EXPRESSION = "^M107.*"
 fanOffPattern = re.compile(FAN_OFF_EXPRESSION)
@@ -267,7 +268,8 @@ class DisplaylayerprogressPlugin(
             if fanSpeed == 0:
                 self._fanSpeed = 'Off'
             else:
-                speed = int(float(fanSpeedText)*100.0/255.0)
+                speedFloat = float(fanSpeedText)*100.0/255.0
+                speed = int(round(speedFloat))
                 self._fanSpeed = str(speed) + '%'
             self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
         matched = fanOffPattern.match(commandAsString)
@@ -581,6 +583,7 @@ class DisplaylayerprogressPlugin(
                 printTimeLeftInSeconds = self._printTimeLeftInSeconds,
             )
             eventManager().fire(eventKey, eventPayload)
+            pass
 
     def _calculateFeedrate(self, feedrate):
         if feedrate == "-":
@@ -843,3 +846,4 @@ def __plugin_load__():
         "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook,
         "octoprint.filemanager.preprocessor": __plugin_implementation__.myFilePreProcessor
     }
+
