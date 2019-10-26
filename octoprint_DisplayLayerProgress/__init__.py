@@ -95,6 +95,9 @@ UPDATE_DISPLAY_REASON_FANSPEED_CHANGED = "fanspeedChanged"
 # Same as setup.py 'plugin_identifier'
 PLUGIN_KEY_PREFIX = "DisplayLayerProgress_"
 
+MOVEMENT_ABSOLUTE = "g90_abs"
+MOVEMENT_RELATIVE = "g91_real"
+
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 
 
@@ -175,6 +178,9 @@ class DisplaylayerprogressPlugin(
         self._layerDurationDeque = None
         self._startLayerTime = None
 
+        self._movementMode = MOVEMENT_ABSOLUTE
+        self._currentHeightFloat = 0.0
+
     def initialize(self):
         # setup our custom logger
         logPostfix = "events"
@@ -244,11 +250,22 @@ class DisplaylayerprogressPlugin(
             self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
             # filter M117 command, not needed any more
             return []
+
+        if "G90" == gcode:
+            self._movementMode = MOVEMENT_ABSOLUTE
+        if "G91" == gcode:
+            self._movementMode = MOVEMENT_RELATIVE
+
         # Z-Height
         matched = zHeightPattern.match(commandAsString)
         if matched:
             zHeight = float(matched.group(3))
-            self._currentHeight = "%.2f" % zHeight
+            if self._movementMode == MOVEMENT_RELATIVE:
+                self._currentHeightFloat = self._currentHeightFloat + zHeight
+            else:
+                self._currentHeightFloat = zHeight
+
+            self._currentHeight = "%.2f" % self._currentHeightFloat
             self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
         # feedrate
         matched = feedratePattern.match(commandAsString)
@@ -357,8 +374,10 @@ class DisplaylayerprogressPlugin(
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
                 self._totalHeight = str("%.2f" % totalHeight)
             elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXTRUSION:
-                self._totalHeight = str("%.2f" % float(self._totalHeightWithExtrusion))
-
+                if not self._totalHeightWithExtrusion == NOT_PRESENT:
+                    self._totalHeight = str("%.2f" % float(self._totalHeightWithExtrusion))
+                else:
+                    self._totalHeight = NOT_PRESENT
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.FILE_DESELECTED:
@@ -397,6 +416,7 @@ class DisplaylayerprogressPlugin(
 
         self._startLayerTime = None
         self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
+        self._currentHeightFloat = 0.0
 
     def _resetTotalValues(self):
         self._layerTotalCount = NOT_PRESENT
