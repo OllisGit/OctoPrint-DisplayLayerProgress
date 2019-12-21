@@ -107,6 +107,9 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         self._currentLayerCount = 0
 
     def process_line(self, line):
+        if not len(line):
+            return None
+        line = line.decode('utf-8')
         for layerExpression in self._allLayerExpressions:
             origLine = line
             line = self._checkLineForLayerComment(line, layerExpression)
@@ -114,8 +117,7 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
                 # pattern matched, skip other expressions
                 break
         # line = strip_comment(line).strip() DO NOT USE, because total-layer count disapears
-        if not len(line):
-            return None
+        line = line.encode('utf-8')
         return line
 
     def _checkLineForLayerComment(self, line, layerExpression):
@@ -331,7 +333,7 @@ class DisplaylayerprogressPlugin(
             self._resetTotalValues()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
-            selectedFile = payload.get("file", "")
+            selectedFile = self._file_manager.path_on_disk(payload.get("origin"), payload.get("path"))
             markerLayerCount = LAYER_COUNT_EXPRESSION
             pattern = re.compile(markerLayerCount)
 
@@ -401,9 +403,12 @@ class DisplaylayerprogressPlugin(
             self._eventLogging("event print done!")
             # not needed could be done via standard code-settings self._sendCommandToPrinter("M117 Print Done")
             self._isPrinterRunning = False
-        elif event == Events.CLIENT_OPENED:
+        elif event == Events.CLIENT_OPENED or event == Events.SETTINGS_UPDATED:
             self._initDesktopPinterDisplay()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+
+        self._eventLogging("EVENT processed::" + event)
+
 
     def _resetCurrentValues(self):
         self._currentLayer = NOT_PRESENT
@@ -456,7 +461,10 @@ class DisplaylayerprogressPlugin(
 
         showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
         initDesktopDisplay =  showDesktopPrinterDisplay
-
+        # start-workaround https://github.com/foosel/OctoPrint/issues/3400
+        import time
+        time.sleep(5)
+        # end-workaround
         self._plugin_manager.send_plugin_message(self._identifier,
                                                  dict(initPrinterDisplay=initDesktopDisplay,
                                                       printerDisplayScreenLocation=stackDefinition,
@@ -464,6 +472,7 @@ class DisplaylayerprogressPlugin(
                                                       classDefinition=classStyle
                                                       )
                                                  )
+        pass
 
     def _updateDisplay(self, updateReason):
         self._eventLogging("UPDATE DISPLAY: " + updateReason)
@@ -853,6 +862,7 @@ class DisplaylayerprogressPlugin(
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "DisplayLayerProgress Plugin"
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 def __plugin_load__():
     global __plugin_implementation__

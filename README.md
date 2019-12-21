@@ -6,6 +6,9 @@
 
 A OctoPrint-Plugin that sends the current progress of a print via M117 command to the printer-display and also to the top navigation bar.
 
+
+**Now compatible with OctoPrint V1.4.0, Python 3 and 2**  
+
 #### Support my Efforts
 
 This plugin, as well as my [other plugins](https://github.com/OllisGit/) were developed in my spare time.
