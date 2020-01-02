@@ -6,7 +6,6 @@
 
 A OctoPrint-Plugin that sends the current progress of a print via M117 command to the printer-display and also to the top navigation bar.
 
-
 **Now compatible with OctoPrint V1.4.0, Python 3 and 2**  
 
 #### Support my Efforts
@@ -27,13 +26,13 @@ It shows the **current layer, total layer count, last/average layer duration, cu
 *Output pattern is adjustable!*
 
 **ATTENTION:** 
-- The layer information works only when the slicer adds "layer-indicator" to the g-code (CURA-Example as comments like ```;LAYER:10```). Then these indicators are parsed via a regular-expression.
-- Currently supported slicers: 
+- The layer information works only when the slicer adds "layer-indicator" as comments to the G-Code (CURA-Example as comments like ```;LAYER:10```). Then these indicators are parsed via a regular-expression.
+- The G-Code is modified during selection! The "layer-indicators" from the slicer were replaced with a "neutral" M117 G-Code. This is necessary, because during printing OctoPrint removes all comments from g-code.
+- Out of the box supported slicers: 
   - **CURA, Simplify3D, ideaMaker, KISSlicer, Slic3r** 
   - You can add your own layer-expressions in Plugin-Settings
 - If you are not able find a layer-expression, try to add a "post processiong script in your slicer" E.g. for "slic3r", see [Enhancement #8](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/8)
 - Sometimes there is a "post processing script" that deletes all comments (e.g. see [Issue #33](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/33))
-- You need to upload your G-Code after installation of the plugin again (if you want to reuse already stored models in OctoPrint), because while uploading the G-Code is modfied
 - The total height "calculation" can be done in three ways: 
     1)the max Z-Value in the G-Code, 2) max Z-Value with extrusion in this height, 3) define a expression like this ```;MAXZ:([0-9]+[.]*[0-9]*).*``` to evaluate the max height [Issue #82](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/82)
 - The height/layer information is sometimes not matching with G-Code Viewer, because the viewer did a lot of "magic" (e.g. add extrusion diameter to height)
@@ -46,9 +45,9 @@ Simplify3D: ```; layer 10, Z = 1.640```
 
 The implementation is based on four steps:
 
-1. PreProcessing the uploaded G-Code (replace layer-comment with M117) 
+1. PreProcessing the selected G-Code (replace layer-comment with M117 indicator G-Code) 
 2. Read total layer count from G-Code before start (used last layer-comment)
-3. G-Code-Hook to collect the current layer information (M117-command from step 1)
+3. G-Code-hook to collect the current layer information (M117-command from step 1)
 4. Progress-Hook to write all information to the printer/navbar
 
 
@@ -90,7 +89,10 @@ You can receive the layer/height and other values via a GET-Call.
       "height": {
         "current": "8.00",
         "total": "15.00",
-        "totalWithExtrusion": "10.0"
+        "totalWithExtrusion": "10.0",
+        "currentFormatted": "8",
+        "totalFormatted": "15",
+        "totalWithExtrusionFormatted": "10"
       },
       "layer": {
         "averageLayerDuration": "0h:01m:03s",
@@ -128,6 +130,8 @@ Plugin sends the following custom events to the eventbus like this:
    'currentLayer':'22',
    'currentHeight':'6.80',
    'totalHeightWithExtrusion':'20.0',
+   'currentHeightFormatted':'6',
+   'totalHeightWithExtrusionFormatted':'20',
    'feedrate':'2700',
    'feedrateG0':'7200',
    'feedrateG1':'2700',

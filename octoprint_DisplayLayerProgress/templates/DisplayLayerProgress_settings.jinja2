@@ -75,6 +75,16 @@
                                data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
                     </div>
 
+                    <label class="control-label">Height format&nbsp;</label>
+                    <div class="controls" style="float: right;">
+                        <input type="text" class="text-right"
+                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.heightFormat"/>
+                    </div>
+                    <label class="control-label" >&nbsp;</label>
+                    <div class="controls">
+                        <p style="float: right;">you can use this <a target="_newTab" href="https://trinket.io/python/1f22413094">link</a> for a "format-playground"</p>
+                    </div>
+
                     <label class="control-label">Feedrate factor&nbsp;</label>
                     <div class="controls">
                         <input type="text" class="text-right"
@@ -85,7 +95,7 @@
                     </div>
                     <label class="control-label">&nbsp;</label>
                     <div class="controls">
-                        <p>you can use this <a target="_newTab" href="https://trinket.io/python/1f22413094">link</a> for a "format-playground"</p>
+                        <p style="float: right;">you can use this <a target="_newTab" href="https://trinket.io/python/1f22413094">link</a> for a "format-playground"</p>
                     </div>
 
                     <label class="control-label">Layer count for average layer duration</label>
@@ -98,9 +108,9 @@
                     </div>
                     <label class="control-label">&nbsp;</label>
                     <div class="controls">
-                        <p>See <a target="_newTab" href="https://stackoverflow.com/questions/538666/python-format-timedelta-to-string#42320260">link</a> for the format options</p>
+                        <p style="float: right;">See <a target="_newTab" href="https://stackoverflow.com/questions/538666/python-format-timedelta-to-string#42320260">link</a> for the format options</p>
                     </div>
-
+                    <br><br>
                     <div class="help-block">
                         <font color="red">Before changing the printer message, please make sure that your printer can handle the
                             output. <br/>

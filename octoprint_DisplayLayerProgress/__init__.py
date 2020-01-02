@@ -1,6 +1,8 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+import os
+
 import octoprint.filemanager
 import octoprint.filemanager.util
 import octoprint.plugin
@@ -8,7 +10,6 @@ import octoprint.printer
 import octoprint.util
 import re
 import flask
-from flask import Response
 import json
 import logging
 import threading
@@ -39,6 +40,7 @@ SETTINGS_KEY_ADD_TRAILINGCHAR = "addTrailingChar"
 SETTINGS_KEY_LAYER_OFFSET = "layerOffset"
 SETTINGS_KEY_TOTAL_HEIGHT_METHODE = "totalHeightMethode"
 SETTINGS_KEY_LAYER_EXPRESSIONS = "layerExpressions"
+SETTINGS_KEY_HEIGHT_FORMAT = "heightFormat"
 SETTINGS_KEY_FEEDRATE_FACTOR = "feedrateFactor"
 SETTINGS_KEY_FEEDRATE_FORMAT = "feedrateFormat"
 SETTINGS_KEY_DEBUGGING_ENABLED = "debuggingEnabled"
@@ -52,7 +54,7 @@ HEIGHT_METHODE_Z_EXPRESSION = "zExpression"
 
 NOT_PRESENT = "-"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
-LAYER_COUNT_EXPRESSION = LAYER_MESSAGE_PREFIX + "([0-9]*)"
+LAYER_COUNT_EXPRESSION = ".*\n?" +LAYER_MESSAGE_PREFIX + "([0-9]*)"
 
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
 Z_HEIGHT_EXPRESSION = "^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
@@ -98,40 +100,41 @@ PLUGIN_KEY_PREFIX = "DisplayLayerProgress_"
 MOVEMENT_ABSOLUTE = "g90_abs"
 MOVEMENT_RELATIVE = "g91_real"
 
-class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
+# class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
+#
+#     def __init__(self, fileBufferedReader, allLayerExpressions):
+#         super(LayerDetectorFileProcessor, self).__init__(fileBufferedReader)
+#         self._allLayerExpressions = allLayerExpressions
+#         self._currentLayerCount = 0
+#
+#     def process_line(self, line):
+#         if not len(line):
+#             return None
+#         line = line.decode('utf-8')
+#         for layerExpression in self._allLayerExpressions:
+#             origLine = line
+#             line = self._checkLineForLayerComment(line, layerExpression)
+#             if line is not origLine:
+#                 # pattern matched, skip other expressions
+#                 break
+#         # line = strip_comment(line).strip() DO NOT USE, because total-layer count disapears
+#         line = line.encode('utf-8')
+#         return line
+#
+#     def _checkLineForLayerComment(self, line, layerExpression):
+#         pattern = layerExpression.expression
+#         matched = pattern.match(line)
+#         if matched:
+#             groupIndex = layerExpression.groupIndex
+#             if layerExpression.type_countable:
+#                 self._currentLayerCount = self._currentLayerCount + 1
+#                 currentLayer = str(self._currentLayerCount)
+#             else:
+#                 currentLayer = str(matched.group(groupIndex))
+#             line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
+#         return line
 
 
-    def __init__(self, fileBufferedReader, allLayerExpressions):
-        super(LayerDetectorFileProcessor, self).__init__(fileBufferedReader)
-        self._allLayerExpressions = allLayerExpressions
-        self._currentLayerCount = 0
-
-    def process_line(self, line):
-        if not len(line):
-            return None
-        line = line.decode('utf-8')
-        for layerExpression in self._allLayerExpressions:
-            origLine = line
-            line = self._checkLineForLayerComment(line, layerExpression)
-            if line is not origLine:
-                # pattern matched, skip other expressions
-                break
-        # line = strip_comment(line).strip() DO NOT USE, because total-layer count disapears
-        line = line.encode('utf-8')
-        return line
-
-    def _checkLineForLayerComment(self, line, layerExpression):
-        pattern = layerExpression.expression
-        matched = pattern.match(line)
-        if matched:
-            groupIndex = layerExpression.groupIndex
-            if layerExpression.type_countable:
-                self._currentLayerCount = self._currentLayerCount + 1
-                currentLayer = str(self._currentLayerCount)
-            else:
-                currentLayer = str(matched.group(groupIndex))
-            line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
-        return line
 
 
 class DisplaylayerprogressPlugin(
@@ -146,6 +149,8 @@ class DisplaylayerprogressPlugin(
     octoprint.plugin.BlueprintPlugin
 ):
     # VAR
+    _currentTotalHeight = 0.0
+    _currentLayerCount = 0
     _layerTotalCount = NOT_PRESENT
     _currentLayer = NOT_PRESENT
     _progress = str(0)
@@ -183,6 +188,11 @@ class DisplaylayerprogressPlugin(
         self._movementMode = MOVEMENT_ABSOLUTE
         self._currentHeightFloat = 0.0
 
+        self._currentHeighFormatted = "-"
+        self._totalHeightFormatted = "-"
+        self._totalHeightWithExtrusionFormatted = "-"
+
+
     def initialize(self):
         # setup our custom logger
         logPostfix = "events"
@@ -206,19 +216,19 @@ class DisplaylayerprogressPlugin(
 
 
     # Modified the GCODE -> replace all Layer-Comments with G-Code Message-Comments
-    def myFilePreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args,
-                           **kwargs):
-        if not octoprint.filemanager.valid_file_type(path, type="gcode"):
-            return file_object
-
-        import os
-        name, _ = os.path.splitext(file_object.filename)
-
-        self._checkLayerExpressionValid()
-
-        return octoprint.filemanager.util.StreamWrapper(file_object.filename,
-                                                        LayerDetectorFileProcessor(file_object.stream(),
-                                                                                   self._allLayerExpressions))
+    # def myFilePreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args,
+    #                        **kwargs):
+    #     if not octoprint.filemanager.valid_file_type(path, type="gcode"):
+    #         return file_object
+    #
+    #     import os
+    #     name, _ = os.path.splitext(file_object.filename)
+    #
+    #     self._checkLayerExpressionValid()
+    #
+    #     return octoprint.filemanager.util.StreamWrapper(file_object.filename,
+    #                                                     LayerDetectorFileProcessor(file_object.stream(),
+    #                                                                                self._allLayerExpressions))
 
     _lastM117Command = None
     # eval current layer from modified g-code
@@ -335,46 +345,65 @@ class DisplaylayerprogressPlugin(
 
             selectedFile = self._file_manager.path_on_disk(payload.get("origin"), payload.get("path"))
             markerLayerCount = LAYER_COUNT_EXPRESSION
-            pattern = re.compile(markerLayerCount)
+            layerNumberPattern = re.compile(markerLayerCount)
 
             zMaxPattern = re.compile(self._settings.get([SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN]))
 
-            totalHeight = 0.0
-            currentHeight = 0.0
+            self._currentLayerCount = 0
+            self._currentTotalHeight = 0.0
+
             lineNumber = 0
             self._activateBusyIndicator()
-            with open(selectedFile, "r") as f:
-                for line in f:
-                    try:
+            self._disablePrintButton()
+
+            fileAlreadyChanged = False
+            fileChanged = False
+            try:
+                tempFilename = selectedFile + ".tmp"
+                writeFileHandler = open(tempFilename, "w")
+                with open(selectedFile, "r") as f:
+                    for line in f:
                         lineNumber += 1
-                        matched = pattern.match(line)   #identify layer count
-                        if matched:
-                            layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
-                            self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
 
-                        matched = zHeightPattern.match(line)
-                        if matched:
-                            # don't count on negativ extrusion, see issue #76
-                            if ("E-" in line) == False:
-                                currentHeight = float(matched.group(3))
-                                if currentHeight > totalHeight:
-                                    totalHeight = currentHeight
+                        # 1. check for layer-comments only once
+                        if (line.startswith(LAYER_MESSAGE_PREFIX) and fileAlreadyChanged == False):
+                            self._eventLogging("FILE '"+selectedFile+"' already modfied")
+                            fileAlreadyChanged = True
+                            # send info to browser -> enable print-button, because file will not be changed
+                            self._enablePrintButton()
 
-                        matched = extrusionPattern.match(line)
-                        if matched:
-                            self._totalHeightWithExtrusion = str(currentHeight)
+                        processedLine = line
+                        if (fileAlreadyChanged == False):
+                            processedLine = self._analyseLineForLayerExpressions(line)
+                            if (processedLine != line):
+                                fileChanged = True
+                            # write down modfied and not modified line
+                            writeFileHandler.write(processedLine)
 
-                        matched = zMaxPattern.match(line)
-                        if matched != None and (self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXPRESSION):
-                            self._totalHeight = str(matched.group(1))
+                        # 2. extract layerHeight-information
+                        self._extractLayerHeightInformation(processedLine, layerNumberPattern, zMaxPattern)
 
-                    except (ValueError, RuntimeError):
-                        print("BOOOOOOMMMM")
-                        print("#"+str(lineNumber) + " " + line)
+                writeFileHandler.close()
+            except (ValueError, RuntimeError) as error:
+                errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
+                print(errorMessage)
+                self._eventLogging(errorMessage)
+                self._enablePrintButton()
+                try:
+                    writeFileHandler.close()
+                except:
+                    pass
 
+            if (fileChanged == True and fileAlreadyChanged == False):
+                self._eventLogging("File was changed, delete orig file and rename temp to orig")
+                os.remove(selectedFile)
+                os.rename(tempFilename, selectedFile)
+            else:
+                self._eventLogging("Just delete temp file")
+                os.remove(tempFilename)
 
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
-                self._totalHeight = str("%.2f" % totalHeight)
+                self._totalHeight = str("%.2f" % self._currentTotalHeight)
             elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXTRUSION:
                 if not self._totalHeightWithExtrusion == NOT_PRESENT:
                     self._totalHeight = str("%.2f" % float(self._totalHeightWithExtrusion))
@@ -409,6 +438,56 @@ class DisplaylayerprogressPlugin(
 
         self._eventLogging("EVENT processed::" + event)
 
+    def _analyseLineForLayerExpressions(self, line):
+        if not len(line):
+            return None
+        line = line.decode('utf-8')
+        for layerExpression in self._allLayerExpressions:
+            origLine = line
+            line = self._modifyLineIfLayerComment(line, layerExpression)
+            if line is not origLine:
+                # pattern matched, skip other expressions
+                break
+        # line = strip_comment(line).strip() DO NOT USE, because total-layer count disapears
+        line = line.encode('utf-8')
+        return line
+
+    def _modifyLineIfLayerComment(self, line, layerExpression):
+        pattern = layerExpression.expression
+        matched = pattern.match(line)
+        if matched:
+            groupIndex = layerExpression.groupIndex
+            if layerExpression.type_countable:
+                self._currentLayerCount = self._currentLayerCount + 1
+                currentLayer = str(self._currentLayerCount)
+            else:
+                currentLayer = str(matched.group(groupIndex))
+            line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
+        return line
+
+    # method reads layer/heigh informations from selected file
+    def _extractLayerHeightInformation(self, line, layerNumberPattern, zMaxPattern):
+        matched = layerNumberPattern.match(line)  # identify layer count
+        if matched:
+            layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+            self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
+
+        currentHeight = 0.0
+        matched = zHeightPattern.match(line)
+        if matched:
+            # don't count on negativ extrusion, see issue #76
+            if ("E-" in line) == False:
+                currentHeight = float(matched.group(3))
+                if currentHeight > self._currentTotalHeight:
+                    self._currentTotalHeight = currentHeight
+
+        matched = extrusionPattern.match(line)
+        if matched:
+            self._totalHeightWithExtrusion = str(currentHeight)
+
+        matched = zMaxPattern.match(line)
+        if matched != None and (self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXPRESSION):
+            self._totalHeight = str(matched.group(1))
 
     def _resetCurrentValues(self):
         self._currentLayer = NOT_PRESENT
@@ -428,16 +507,20 @@ class DisplaylayerprogressPlugin(
         self._totalHeight = NOT_PRESENT
         self._totalHeightWithExtrusion = NOT_PRESENT
 
-
     def _activateBusyIndicator(self):
         self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
+
+    def _disablePrintButton(self):
+        self._plugin_manager.send_plugin_message(self._identifier, dict(disablePrint=True))
+
+    def _enablePrintButton(self):
+        self._plugin_manager.send_plugin_message(self._identifier, dict(enablePrint=True))
 
     def _checkLayerExpressionValid(self):
         if self._layerExpressionsValid == False:
             self._plugin_manager.send_plugin_message(self._identifier,
                                                      dict(notifyType="error",
                                                           notifyMessage="DisplayProgressPlugin: LayerExpressions not valid! Check Plugin-Settings."))
-
 
     def _initDesktopPinterDisplay(self):
         classStyle = ""
@@ -492,6 +575,13 @@ class DisplaylayerprogressPlugin(
         else:
             self._printTimeLeftInSeconds = "-"
 
+
+        ## formate height values
+        self._currentHeightFormatted = self._formatHeightValue(self._currentHeight)
+        self._totalHeightFormatted = self._formatHeightValue(self._totalHeight)
+        self._totalHeightWithExtrusionFormatted = self._formatHeightValue(self._totalHeightWithExtrusion)
+
+        ## calculate feedrate
         feedrate = self._calculateFeedrate(self._feedrate)
         feedrateG0 = self._calculateFeedrate(self._feedrateG0)
         feedrateG1 = self._calculateFeedrate(self._feedrateG1)
@@ -502,6 +592,7 @@ class DisplaylayerprogressPlugin(
         self._averageLayerDuration = "-"
         self._averageLayerDurationInSeconds = "-"
 
+        # calculate layer duratins
         if len(self._layerDurationDeque) > 0:
             lastLayerDurationTimeDelta = self._layerDurationDeque[-1]
             if isinstance( lastLayerDurationTimeDelta, int):
@@ -529,8 +620,10 @@ class DisplaylayerprogressPlugin(
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
             TOTAL_LAYER_KEYWORD_EXPRESSION: self._layerTotalCount,
-            CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeight,
-            TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeight,
+            # CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeight,
+            CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeightFormatted,
+            # TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeight,
+            TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeightFormatted,
             FEEDRATE_KEYWORD_EXPRESSION: feedrate,
             FEEDRATE_G0_KEYWORD_EXPRESSION: feedrateG0,
             FEEDRATE_G1_KEYWORD_EXPRESSION: feedrateG1,
@@ -548,7 +641,8 @@ class DisplaylayerprogressPlugin(
         # the stateMessage-format is fixed
         stateMessage = self._currentLayer + " / " + self._layerTotalCount
         # the heightMessage-format is fixed
-        heightMessage = self._currentHeight + " / " + self._totalHeight
+        # heightMessage = self._currentHeight + " / " + self._totalHeight
+        heightMessage = self._currentHeightFormatted + " / " + self._totalHeightFormatted
         if not self._totalHeight == NOT_PRESENT:
             heightMessage += "mm"
 
@@ -602,7 +696,9 @@ class DisplaylayerprogressPlugin(
                 averageLayerDuration = self._averageLayerDuration,
                 averageLayerDurationInSeconds = self._averageLayerDurationInSeconds,
                 currentHeight = self._currentHeight,
+                currentHeightFormatted = self._currentHeightFormatted,
                 totalHeightWithExtrusion = self._totalHeightWithExtrusion,
+                totalHeightWithExtrusionFormatted = self._totalHeightWithExtrusionFormatted,
                 feedrate = self._feedrate,
                 feedrateG0 = self._feedrateG0,
                 feedrateG1 = self._feedrateG1,
@@ -622,6 +718,23 @@ class DisplaylayerprogressPlugin(
 
         newFeedrate = float(feedrateFactor) * float(feedrate)
         result = feedrateFormat.format(newFeedrate)
+        return result
+
+    def _formatHeightValue(self, heightValue):
+        result = heightValue
+        heightFormat = "unknown"
+        heightValueAsFloat = None
+        try:
+            heightValueAsFloat = float(heightValue)
+        except Exception:
+            return result
+
+        try:
+            heightFormat = self._settings.get([SETTINGS_KEY_HEIGHT_FORMAT])
+            result = heightFormat.format(heightValueAsFloat)
+        except (Exception) as error:
+            errorMessage = "ERROR during format '" + heightFormat + "' height value '" + str(heightValueAsFloat) + "'. Message: '" + str(error) + "'"
+            self._eventLogging(errorMessage)
         return result
 
     # printer specific command-manipulation.
@@ -661,7 +774,6 @@ class DisplaylayerprogressPlugin(
             self._showFanSpeedOnPrinterDisplay = True
         else:
             self._showFanSpeedOnPrinterDisplay = False
-
 
     def _parseLayerExpressions(self, layerExpressionPatterns):
         result = None
@@ -768,7 +880,10 @@ class DisplaylayerprogressPlugin(
             "height": {
                 "total": self._totalHeight,
                 "totalWithExtrusion": self._totalHeightWithExtrusion,
-                "current": self._currentHeight
+                "current": self._currentHeight,
+                "totalFormatted": self._totalHeightFormatted,
+                "totalWithExtrusionFormatted": self._totalHeightWithExtrusionFormatted,
+                "currentFormatted": self._currentHeightFormatted
             },
             "fanSpeed": self._fanSpeed,
             "feedrate": self._feedrate,
@@ -815,6 +930,7 @@ class DisplaylayerprogressPlugin(
             updatePrinterDisplayWhilePrinting=False,
             printerDisplayScreenLocation="\"dir1\": \"up\", \"dir2\": \"right\", \"firstpos1\": 40, \"firstpos2\": 10, \"spacing1\": 0, \"spacing2\": 0",
             printerDisplayWidth="15%",
+            heightFormat="{:.1f}",
             feedrateFactor="1.0",
             feedrateFormat="{:.2f}",
             debuggingEnabled=False,
@@ -873,7 +989,7 @@ def __plugin_load__():
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
         #"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
         "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.sendingGCodeHook,
-        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook,
-        "octoprint.filemanager.preprocessor": __plugin_implementation__.myFilePreProcessor
+        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook
+        #"octoprint.filemanager.preprocessor": __plugin_implementation__.myFilePreProcessor
     }
 

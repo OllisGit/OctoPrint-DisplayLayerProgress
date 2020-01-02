@@ -22,6 +22,7 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showLayerInStatusBar(data.showLayerInStatusBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showHeightInStatusBar(data.showHeightInStatusBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.updatePrinterDisplayWhilePrinting(data.updatePrinterDisplayWhilePrinting);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.heightFormat(data.heightFormat);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFactor(data.feedrateFactor);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFormat(data.feedrateFormat);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.debuggingEnabled(data.debuggingEnabled);
@@ -70,11 +71,20 @@ $(function () {
             if (plugin != PLUGIN_ID) {
                 return;
             }
+            if (data.disablePrint){
+                $("#job_print").attr("disabled", "disabled");
+                return
+            }
+            if (data.enablePrint){
+                $("#job_print").removeAttr("disabled");
+                return
+            }
 
             if (data.busy){
                 $(".busyIndicator").show();
             } else {
                 $(".busyIndicator").hide();
+                $("#job_print").removeAttr("disabled");
             }
 
             // NavBar
