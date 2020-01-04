@@ -361,6 +361,7 @@ class DisplaylayerprogressPlugin(
             try:
                 tempFilename = selectedFile + ".tmp"
                 writeFileHandler = open(tempFilename, "w")
+                self._logger.info("Selected file '"+selectedFile+"' Temp file '"+tempFilename+"'")
                 with open(selectedFile, "r") as f:
                     for line in f:
                         lineNumber += 1
@@ -368,6 +369,7 @@ class DisplaylayerprogressPlugin(
                         # 1. check for layer-comments only once
                         if (line.startswith(LAYER_MESSAGE_PREFIX) and fileAlreadyChanged == False):
                             self._eventLogging("FILE '"+selectedFile+"' already modfied")
+                            self._logger.info("FILE '"+selectedFile+"' already modfied")
                             fileAlreadyChanged = True
                             # send info to browser -> enable print-button, because file will not be changed
                             self._enablePrintButton()
@@ -376,6 +378,7 @@ class DisplaylayerprogressPlugin(
                         if (fileAlreadyChanged == False):
                             processedLine = self._analyseLineForLayerExpressions(line)
                             if (processedLine != line):
+                                self._logger.info("Line was CHANGED orig '"+line+"' mod '"+processedLine+"'")
                                 fileChanged = True
                             # write down modfied and not modified line
                             writeFileHandler.write(processedLine)
@@ -386,7 +389,7 @@ class DisplaylayerprogressPlugin(
                 writeFileHandler.close()
             except (ValueError, RuntimeError) as error:
                 errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
-                print(errorMessage)
+                self._logger.error(errorMessage)
                 self._eventLogging(errorMessage)
                 self._enablePrintButton()
                 try:
@@ -395,10 +398,12 @@ class DisplaylayerprogressPlugin(
                     pass
 
             if (fileChanged == True and fileAlreadyChanged == False):
+                self._logger.info("File was changed, delete orig file and rename temp to orig")
                 self._eventLogging("File was changed, delete orig file and rename temp to orig")
                 os.remove(selectedFile)
                 os.rename(tempFilename, selectedFile)
             else:
+                self._logger.info("Just delete temp file")
                 self._eventLogging("Just delete temp file")
                 os.remove(tempFilename)
 
@@ -410,6 +415,7 @@ class DisplaylayerprogressPlugin(
                 else:
                     self._totalHeight = NOT_PRESENT
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+            self._logger.info("File select-event processing done!'")
 
         elif event == Events.FILE_DESELECTED:
             self._resetCurrentValues()
@@ -469,8 +475,10 @@ class DisplaylayerprogressPlugin(
     def _extractLayerHeightInformation(self, line, layerNumberPattern, zMaxPattern):
         matched = layerNumberPattern.match(line)  # identify layer count
         if matched:
+            self._logger.info("Layer indicator found")
             layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
             self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
+            self._logger.info("Count '"+self._layerTotalCount+"'")
 
         currentHeight = 0.0
         matched = zHeightPattern.match(line)
@@ -734,6 +742,7 @@ class DisplaylayerprogressPlugin(
             result = heightFormat.format(heightValueAsFloat)
         except (Exception) as error:
             errorMessage = "ERROR during format '" + heightFormat + "' height value '" + str(heightValueAsFloat) + "'. Message: '" + str(error) + "'"
+            self._logger.error(errorMessage)
             self._eventLogging(errorMessage)
         return result
 
