@@ -6,6 +6,19 @@
 
 A OctoPrint-Plugin that sends the current progress of a print via M117 command to the printer-display and also to the top navigation bar.
 
+# ATTENTION !!!!
+**Version 1.16.0 is only working when you manually select the g-code file in octoprint and after that press the print button.**
+
+**It is not working if you use "autostart-print" from your slicer.**
+
+**But 1.16.0 works together with the** 
+- Plugin "Ultimaker Format Package"
+- Lagre files
+- and shared upload folder
+
+**If you need "autoprint" and not the mentioned plugin, large fiels, etc., then use Version 1.15.0**
+-----------
+
 **Now compatible with OctoPrint V1.4.0, Python 3 and 2**  
 
 #### Support my Efforts
