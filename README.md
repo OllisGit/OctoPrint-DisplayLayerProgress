@@ -17,7 +17,8 @@ A OctoPrint-Plugin that sends the current progress of a print via M117 command t
 - and shared upload folder
 
 **If you need "autoprint" and not the mentioned plugin, large files, etc., then use Version 1.15.0**
-**Version 1.15.0:** https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/download/1.15.0/master.zip
+**Version 1.15.0:** 
+https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/download/1.15.0/master.zip
 -----------
 
 **Now compatible with OctoPrint V1.4.0, Python 3 and 2**  
