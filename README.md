@@ -13,8 +13,8 @@ A OctoPrint-Plugin that sends the current progress of a print via M117 command t
 
 **But 1.16.0 works together with the** 
 - Plugin "Ultimaker Format Package"
-- Lagre files
-- and shared upload folder
+- Large files
+- Shared upload folder
 
 **If you need "autoprint" and not the mentioned plugin, large files, etc., then use Version 1.15.0:**
 
