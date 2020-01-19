@@ -6,24 +6,6 @@
 
 A OctoPrint-Plugin that sends the current progress of a print via M117 command to the printer-display and also to the top navigation bar.
 
-# ATTENTION !!!!
-**Version 1.16.0 is only working when you manually select the g-code file in octoprint and after that press the print button.**
-
-**It is not working if you use "autostart-print" from your slicer.**
-
-**But 1.16.0 works together with the** 
-- Plugin "Ultimaker Format Package"
-- Large files
-- Shared upload folder
-
-**If you need "autoprint" and not the mentioned plugin, large files, etc., then use Version 1.15.0:**
-
-
-https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/download/1.15.0/master.zip
------------
-
-**Now compatible with OctoPrint V1.4.0, Python 3 and 2**  
-
 #### Support my Efforts
 
 This plugin, as well as my [other plugins](https://github.com/OllisGit/) were developed in my spare time.
@@ -32,18 +14,18 @@ If you like it, I would be thankful about a cup of coffee :)
 [![More coffee, more code](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=2BJP2XFEKNG9J&source=url)
 
 
-A new feature (since V1.4.0) is the "Desktop Printer-Display", which shows all M117 messages in a Desktop PopUp.
+It shows the ```progress, estimatedEndTime, printTimeLeft, currentLayer, totalLayerCount, last/average layerDuration, currentHeight, totalHeight, feedrate and fanspeed```.
 
-It shows the **current layer, total layer count, last/average layer duration, current height, total height, percentage, printTimeLeft, feedrate and fanspeed**:
-
-- Printer Display: 50% L=60/120 H=23mm/47mm
-- NavBar: Layer: 60 / 120 Height: 23mm of 47mm
+Some output examples:
+- Printer Display: ```50% L=60/120 H=23mm/47mm```
+- NavBar: Layer: ```60 / 120 Height: 23mm of 47mm```
+- Browser TabTitle: ```12% 19:32 o'clock```
 
 *Output pattern is adjustable!*
 
 **ATTENTION:** 
 - The layer information works only when the slicer adds "layer-indicator" as comments to the G-Code (CURA-Example as comments like ```;LAYER:10```). Then these indicators are parsed via a regular-expression.
-- The G-Code is modified during selection! The "layer-indicators" from the slicer were replaced with a "neutral" M117 G-Code. This is necessary, because during printing OctoPrint removes all comments from g-code.
+- The G-Code is modified during upload! The "layer-indicators" from the slicer were replaced with a "neutral" M117 G-Code. This is necessary, because during printing OctoPrint removes all comments from g-code.
 - Out of the box supported slicers: 
   - **CURA, Simplify3D, ideaMaker, KISSlicer, Slic3r** 
   - You can add your own layer-expressions in Plugin-Settings
@@ -62,11 +44,12 @@ Simplify3D: ```; layer 10, Z = 1.640```
 The implementation is based on four steps:
 
 1. PreProcessing the selected G-Code (replace layer-comment with M117 indicator G-Code) 
-2. Read total layer count from G-Code before start (used last layer-comment)
+2. Read total layer and height count from G-Code before start (used last layer-comment)
 3. G-Code-hook to collect the current layer information (M117-command from step 1)
-4. Progress-Hook to write all information to the printer/navbar
+4. Progress-Hook to write all information to the printer/navbar/browserTitle
 
 
+![browserTitle](screenshots/browser-title-tab.png "Progress in Browser Tab")
 ![navbar](screenshots/navbar.jpg "Progress in NavBar")
 ![statebar](screenshots/statebar.jpg "Progress in StateBar")
 ![desktopPrinterdisplay](screenshots/printerDisplay_popup.jpg "Desktop Printer-Display")
@@ -121,7 +104,8 @@ You can receive the layer/height and other values via a GET-Call.
       "print": {
         "progress": "73",
         "timeLeft": "40s",
-        "timeLeftInSeconds": 40
+        "timeLeftInSeconds": 40,
+        "estimatedEndTime": "20:24"
       }
     }
 
@@ -158,7 +142,8 @@ Plugin sends the following custom events to the eventbus like this:
    'averageLayerDuration':'0h:00m:02s',
    'averageLayerDurationInSeconds':2,
    'printTimeLeft':'2m3s',
-   'printTimeLeftInSeconds':123
+   'printTimeLeftInSeconds':123,
+   'estimatedEndTime':'20:24'
  }
 ```
 Other Plugins could listen to this events like this:

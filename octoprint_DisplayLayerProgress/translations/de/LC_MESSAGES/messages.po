@@ -48,14 +48,6 @@ msgstr ""
 "Fortschritts anzupassen. Zum einen wo die Ausgabe erfolgt und zum anderen"
 " der auszugebene Inhalt."
 
-#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:9
-msgid ""
-"Use the following keywords as a placeholder: <code>[progress], "
-"[current_layer], [total_layers], [current_height], [total_height]</code>"
-msgstr ""
-"Benutze die folgenden Schlüsselwörter als Platzhalter:<code>[progress], "
-"[current_layer], [total_layers], [current_height], [total_height]</code>"
-
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:13
 msgid "Navigationbar"
 msgstr "Navigationsmenü"

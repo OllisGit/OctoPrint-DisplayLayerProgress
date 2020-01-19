@@ -55,62 +55,70 @@
                     </div>
                     <br/>
                     <div>
-                        {{ _('Use the following keywords as a placeholder:
-                        <code>[current_layer], [total_layers], [progress], [printtime_left], [current_height], [total_height],<br/>
+                        Use the following keywords as a placeholder:
+                        <code>[progress], [current_layer], [total_layers], [estimated_end_time], [printtime_left], <br/>
+                            [current_height], [total_height],<br/>
                             [feedrate], [feedrate_g0], [feedrate_g1], [fanspeed] <br/>
                             [last_layer_duration], [average_layer_duration]
-                        </code>') }}
+                        </code>
                     </div>
+<br>
+<div class="control-group" >
+    <label class="checkbox">{{ _('Navigationbar') }}<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
+    <textarea rows="5" cols="60" style="min-width: 96%" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar, value: settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern">'NavBar-Pattern'</textarea>
+</div>
 
-                    <label class="control-label">{{ _('Navigationbar') }}&nbsp;&nbsp;&nbsp;<input type="checkbox"
-                                                                                                  data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
-                    <div class="controls">
-                        <textarea rows="5" cols="60" style="width: auto;" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern">'NavBar-Pattern'</textarea>
-                    </div>
+<div class="control-group" >
+    <label class="checkbox">{{ _('Printer Display') }}<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"/></label>
+    <input type="text" class="input-block-level text-left" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay, value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
+</div>
 
-                    <label class="control-label">{{ _('Printer Display') }}&nbsp;&nbsp;&nbsp<input type="checkbox"
-                                                                                                   data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"></label>
-                    <div class="controls">
-                        <input type="text" class="input-block-level text-left"
-                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
-                    </div>
+<div class="control-group" >
+    <label class="checkbox">Browser-Title<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnBrowserTitle"/></label>
+    <input type="text" class="input-block-level text-left" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnBrowserTitle, value: settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMessagePattern"/>
+    <label class="radio">
+        <input type="radio" name="browserTitleMode" value="overwrite" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMode"> Overwrite title
+    </label>
+    <label class="radio">
+        <input type="radio" name="browserTitleMode" value="append" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMode"> Append title
+    </label>
+</div>
 
-                    <label class="control-label">Height format&nbsp;</label>
-                    <div class="controls" style="float: right;">
-                        <input type="text" class="text-right"
-                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.heightFormat"/>
-                    </div>
-                    <label class="control-label" >&nbsp;</label>
-                    <div class="controls">
-                        <p style="float: right;">you can use this <a target="_newTab" href="https://trinket.io/python/1f22413094">link</a> for a "format-playground"</p>
-                    </div>
 
-                    <label class="control-label">Feedrate factor&nbsp;</label>
-                    <div class="controls">
-                        <input type="text" class="text-right"
-                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFactor"/>
-                        &nbsp;Format&nbsp;
-                        <input type="text" class="text-right"
-                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFormat"/>
-                    </div>
-                    <label class="control-label">&nbsp;</label>
-                    <div class="controls">
-                        <p style="float: right;">you can use this <a target="_newTab" href="https://trinket.io/python/1f22413094">link</a> for a "format-playground"</p>
-                    </div>
 
-                    <label class="control-label">Layer count for average layer duration</label>
-                    <div class="controls">
-                        <input type="text" class="text-right"
-                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageDurationCount"/>
-                        &nbsp;Format&nbsp;
-                        <input type="text" class="text-right"
-                               data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageFormatPattern"/>
-                    </div>
-                    <label class="control-label">&nbsp;</label>
-                    <div class="controls">
-                        <p style="float: right;">See <a target="_newTab" href="https://stackoverflow.com/questions/538666/python-format-timedelta-to-string#42320260">link</a> for the format options</p>
-                    </div>
-                    <br><br>
+
+
+
+<div class="control-group">
+    <label class="control-label" >Feedrate factor</label>
+    <div style="float: right;">
+        <input type="text" class="text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFactor"/>
+        &nbsp;format*&nbsp;<input type="text" class="text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFormat"/>
+    </div>
+</div>
+
+<div class="control-group">
+    <label class="control-label" >Layer count for average layer duration</label>
+    <div style="float: right;">
+        <input type="text" class="text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageDurationCount"/>
+        &nbsp;format*&nbsp;<input type="text" class="text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageFormatPattern"/>
+    </div>
+</div>
+
+<div class="control-group">
+    <label class="control-label" >Height format*</label>
+    <div style="float: right;">
+        <input type="text" class="text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.heightFormat"/>
+    </div>
+</div>
+
+<div class="control-group">
+    <label class="control-label">&nbsp;</label>
+    <div class="controls">
+        <p style="float: right;">*Format pattern: Date-Format look <a target="_newTab" href="https://stackoverflow.com/questions/538666/python-format-timedelta-to-string#42320260">here</a>. Number-Format look <a target="_newTab" href="https://trinket.io/python/1f22413094">here</a></p>
+    </div>
+</div>
+
                     <div class="help-block">
                         <font color="red">Before changing the printer message, please make sure that your printer can handle the
                             output. <br/>

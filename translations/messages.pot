@@ -44,11 +44,6 @@ msgid ""
 "information and also how the message should be shown."
 msgstr ""
 
-#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:9
-msgid ""
-"Use the following keywords as a placeholder: <code>[progress], "
-"[current_layer], [total_layers], [current_height], [total_height]</code>"
-msgstr ""
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:13
 msgid "Navigationbar"

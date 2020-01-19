@@ -12,9 +12,12 @@ $(function () {
                                 // assign new settings-values // TODO find a more generic way
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar(data.showOnNavBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay(data.showOnPrinterDisplay);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnBrowserTitle(data.showOnBrowserTitle);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showAllPrinterMessages(data.showAllPrinterMessages);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern(data.navBarMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern(data.printerDisplayMessagePattern);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMessagePattern(data.browserTitleMessagePattern);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMode(data.browserTitleMode);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayScreenLocation(data.printerDisplayScreenLocation);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayWidth(data.printerDisplayWidth);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.addTrailingChar(data.addTrailingChar);
@@ -38,6 +41,7 @@ $(function () {
         self.settingsViewModel = parameters[1];
 
         self.navBarMessage = ko.observable();
+        self.defaultBrowserTitleMessage = "";
 
         // startup
         self.onStartup = function () {
@@ -63,6 +67,16 @@ $(function () {
 
             $("#layerExpressionTextArea").numberedtextarea();
         };
+
+        self.onAllBound = function() {
+            self.defaultBrowserTitleMessage = document.title;
+            self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnBrowserTitle.subscribe(function(newValue){
+                if (newValue == false){
+                    document.title = self.defaultBrowserTitleMessage
+                }
+            });
+        }
+
 
         var printerDisplay = null;
         // receive data from server
@@ -92,6 +106,16 @@ $(function () {
                 self.navBarMessage(data.navBarMessage);
             }
 
+            // BrowserTitle
+            if (data.browserTitle){
+                if (data.browserTitle.browserTitleMode == "overwrite"){
+                    document.title =   data.browserTitle.message;
+                } else {
+                    document.title = self.defaultBrowserTitleMessage + " " + data.browserTitle.message;
+                }
+            }
+
+            // StatusBar
             // visibility of height/layer in statebar
             if (data.showHeightInStatusBar != null){
                 if(data.showHeightInStatusBar == true){

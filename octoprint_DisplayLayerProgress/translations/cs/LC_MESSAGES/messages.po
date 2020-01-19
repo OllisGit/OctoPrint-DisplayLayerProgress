@@ -47,14 +47,6 @@ msgstr ""
 "Zde můžete nastavit kde chcete zobrazit informace o vrstvách a stavu "
 "tisku a jak má tato zpráva vypadat."
 
-#: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:9
-msgid ""
-"Use the following keywords as a placeholder: <code>[progress], "
-"[current_layer], [total_layers], [current_height], [total_height]</code>"
-msgstr ""
-"Následující klíčová slova použijte jako zástupný symbol: "
-"<code>[progress], [current_layer], [total_layers], [current_height], "
-"[total_height]</code>"
 
 #: octoprint_DisplayLayerProgress/templates/DisplayLayerProgress_settings.jinja2:13
 msgid "Navigationbar"
