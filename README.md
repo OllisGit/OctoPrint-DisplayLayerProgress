@@ -9,9 +9,9 @@ A OctoPrint-Plugin that sends the current progress of a print via M117 command t
 #### Support my Efforts
 
 This plugin, as well as my [other plugins](https://github.com/OllisGit/) were developed in my spare time.
-If you like it, I would be thankful about a cup of coffee :) 
+If you like it, I would be thankful about a cup of coffee :)
 
-[![More coffee, more code](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=2BJP2XFEKNG9J&source=url)
+[![More coffee, more code](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6SW5R6ZUKLB5E&source=url)
 
 
 It shows the ```progress, estimatedEndTime, printTimeLeft, currentLayer, totalLayerCount, last/average layerDuration, currentHeight, totalHeight, feedrate and fanspeed```.
@@ -23,15 +23,15 @@ Some output examples:
 
 *Output pattern is adjustable!*
 
-**ATTENTION:** 
+**ATTENTION:**
 - The layer information works only when the slicer adds "layer-indicator" as comments to the G-Code (CURA-Example as comments like ```;LAYER:10```). Then these indicators are parsed via a regular-expression.
 - The G-Code is modified during upload! The "layer-indicators" from the slicer were replaced with a "neutral" M117 G-Code. This is necessary, because during printing OctoPrint removes all comments from g-code.
-- Out of the box supported slicers: 
-  - **CURA, Simplify3D, ideaMaker, KISSlicer, Slic3r** 
+- Out of the box supported slicers:
+  - **CURA, Simplify3D, ideaMaker, KISSlicer, Slic3r**
   - You can add your own layer-expressions in Plugin-Settings
 - If you are not able find a layer-expression, try to add a "post processiong script in your slicer" E.g. for "slic3r", see [Enhancement #8](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/8)
 - Sometimes there is a "post processing script" that deletes all comments (e.g. see [Issue #33](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/33))
-- The total height "calculation" can be done in three ways: 
+- The total height "calculation" can be done in three ways:
     1)the max Z-Value in the G-Code, 2) max Z-Value with extrusion in this height, 3) define a expression like this ```;MAXZ:([0-9]+[.]*[0-9]*).*``` to evaluate the max height [Issue #82](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/82)
 - The height/layer information is sometimes not matching with G-Code Viewer, because the viewer did a lot of "magic" (e.g. add extrusion diameter to height)
 
@@ -43,7 +43,7 @@ Simplify3D: ```; layer 10, Z = 1.640```
 
 The implementation is based on four steps:
 
-1. PreProcessing the selected G-Code (replace layer-comment with M117 indicator G-Code) 
+1. PreProcessing the selected G-Code (replace layer-comment with M117 indicator G-Code)
 2. Read total layer and height count from G-Code before start (used last layer-comment)
 3. G-Code-hook to collect the current layer information (M117-command from step 1)
 4. Progress-Hook to write all information to the printer/navbar/browserTitle
@@ -56,7 +56,7 @@ The implementation is based on four steps:
 ![desktopPrinterdisplayWithPrintTimeLeft](screenshots/desktop-printer-display_printTimeLeft.jpg "Desktop Printer-Display with printTimeLeft")
 ![printerdisplay](screenshots/example-printer-display.jpg "Progress in Printer-Display")
 
- 
+
 ## Setup
 
 Install via the bundled [Plugin Manager](http://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
@@ -88,10 +88,10 @@ You can receive the layer/height and other values via a GET-Call.
       "height": {
         "current": "8.00",
         "total": "15.00",
-        "totalWithExtrusion": "10.0",
+        "totalWithExtrusion": "10.0",  //DEPRECATED don't use it will be removed in next version
         "currentFormatted": "8",
         "totalFormatted": "15",
-        "totalWithExtrusionFormatted": "10"
+        "totalWithExtrusionFormatted": "10"  //DEPRECATED don't use it will be removed in next version
       },
       "layer": {
         "averageLayerDuration": "0h:01m:03s",
@@ -111,7 +111,7 @@ You can receive the layer/height and other values via a GET-Call.
 
 
 ## Events
-Plugin sends the following custom events to the eventbus like this: 
+Plugin sends the following custom events to the eventbus like this:
 
     eventManager().fire(eventKey, eventPayload)
 
@@ -125,13 +125,13 @@ Plugin sends the following custom events to the eventbus like this:
 
 **Payload**
 ```javascript
- { 
+ {
    'totalLayer':'66',
    'currentLayer':'22',
    'currentHeight':'6.80',
-   'totalHeightWithExtrusion':'20.0',
+   'totalHeightWithExtrusion':'20.0',  //DEPRECATED don't use it will be removed in next version
    'currentHeightFormatted':'6',
-   'totalHeightWithExtrusionFormatted':'20',
+   'totalHeightWithExtrusionFormatted':'20',  //DEPRECATED don't use it will be removed in next version
    'feedrate':'2700',
    'feedrateG0':'7200',
    'feedrateG1':'2700',

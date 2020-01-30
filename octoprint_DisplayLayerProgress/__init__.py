@@ -755,10 +755,10 @@ class DisplaylayerprogressPlugin(
             },
             "height": {
                 "total": self._totalHeight,
-                "totalWithExtrusion": self._totalHeightWithExtrusion,
+                "totalWithExtrusion": self._totalHeightWithExtrusion,  # DEPRECATED
                 "current": self._currentHeight,
                 "totalFormatted": self._totalHeightFormatted,
-                "totalWithExtrusionFormatted": self._totalHeightWithExtrusionFormatted,
+                "totalWithExtrusionFormatted": self._totalHeightWithExtrusionFormatted, # DEPRECATED
                 "currentFormatted": self._currentHeightFormatted
             },
             "fanSpeed": self._fanSpeed,
