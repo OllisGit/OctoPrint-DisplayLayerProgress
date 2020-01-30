@@ -1,6 +1,8 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+import os
+
 import octoprint.filemanager
 import octoprint.filemanager.util
 import octoprint.plugin
@@ -106,13 +108,13 @@ MOVEMENT_RELATIVE = "g91_real"
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 
-    def __init__(self, fileBufferedReader, allLayerExpressions):
+    def __init__(self, fileBufferedReader, allLayerExpressions, logger):
         super(LayerDetectorFileProcessor, self).__init__(fileBufferedReader)
         self._allLayerExpressions = allLayerExpressions
         self._currentLayerCount = 0
+        self._logger = logger
 
     def process_line(self, origLine):
-
         if not len(origLine):
             return None
 
@@ -158,14 +160,16 @@ class DisplaylayerprogressPlugin(
     octoprint.plugin.BlueprintPlugin
 ):
     # VAR
-    _currentTotalHeight = 0.0
+    _tempCurrentHeightFromFile = 0.0
+    _tempCurrentTotalHeight = 0.0
     _currentLayerCount = 0
     _layerTotalCount = NOT_PRESENT
     _currentLayer = NOT_PRESENT
     _progress = str(0)
     _currentHeight = NOT_PRESENT
-    _totalHeightWithExtrusion = NOT_PRESENT
     _totalHeight = NOT_PRESENT
+    _totalHeightWithExtrusion = NOT_PRESENT # DEPRECATED will be skiped in next release
+    _totalHeightFromExpression = NOT_PRESENT
     _feedrate = NOT_PRESENT
     _feedrateG0 = NOT_PRESENT
     _feedrateG1 = NOT_PRESENT
@@ -198,11 +202,12 @@ class DisplaylayerprogressPlugin(
         self._startLayerTime = None
 
         self._movementMode = MOVEMENT_ABSOLUTE
-        self._currentHeightFloat = 0.0
 
-        self._currentHeighFormatted = "-"
+        self._currentHeightFloat = 0.0
+        self._currentHeightFormatted = "-"
         self._totalHeightFormatted = "-"
         self._totalHeightWithExtrusionFormatted = "-"
+
 
     def initialize(self):
         # setup our custom logger
@@ -237,14 +242,23 @@ class DisplaylayerprogressPlugin(
         if not octoprint.filemanager.valid_file_type(fileName, type="gcode"):
             return file_object
 
+        # check filesize
+        # filePath = file_object.path
+        # if (filePath != None):
+        #     fileSize = os.path.getsize(filePath)
+        #     if fileSize > (50 *1024 *1024):
+        #         # send notification to the user, file is to big
+        #         # start extra thread for processing
+        #         return file_object
+
         result = self._checkLayerExpressionValid()
         if (result == False):
             return file_object
-
         fileStream = file_object.stream()
+
         return octoprint.filemanager.util.StreamWrapper(fileName,
-                                                        LayerDetectorFileProcessor(fileStream,
-                                                                                   self._allLayerExpressions))
+                                                        LayerDetectorFileProcessor(fileStream, self._allLayerExpressions, self._logger)
+                                                        )
 
     # eval current layer from modified g-code
     def sendingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
@@ -342,9 +356,10 @@ class DisplaylayerprogressPlugin(
 
     #################################################################################################### PRIVATE METHODS
 
-    # method reads layer/heigh informations from selected file
+    # method reads layer/height informations from selected file
     def _extractLayerAndHeightInformation(self, line, layerNumberPattern, zMaxPattern):
         result = False
+        ## Layer evaluation
         matched = layerNumberPattern.match(line)  # identify layer count
         if matched:
             # self._logger.info("Layer indicator found")
@@ -353,22 +368,22 @@ class DisplaylayerprogressPlugin(
             self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
             # self._logger.info("Count '"+self._layerTotalCount+"'")
 
-        currentHeight = 0.0
+        ## Height evalluation
         matched = zHeightPattern.match(line)
         if matched:
             # don't count on negativ extrusion, see issue #76
             if ("E-" in line) == False:
-                currentHeight = float(matched.group(3))
-                if currentHeight > self._currentTotalHeight:
-                    self._currentTotalHeight = currentHeight
+                self._tempCurrentHeightFromFile = float(matched.group(3))
+                if self._tempCurrentHeightFromFile  > self._tempCurrentTotalHeight:
+                    self._tempCurrentTotalHeight = self._tempCurrentHeightFromFile
 
         matched = extrusionPattern.match(line)
         if matched:
-            self._totalHeightWithExtrusion = str(currentHeight)
+            self._totalHeightWithExtrusion = str(self._tempCurrentHeightFromFile )
 
         matched = zMaxPattern.match(line)
-        if matched != None and (self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXPRESSION):
-            self._totalHeight = str(matched.group(1))
+        if matched:
+            self._totalHeightFromExpression = str(matched.group(1))
 
         return result
 
@@ -390,6 +405,7 @@ class DisplaylayerprogressPlugin(
         self._layerTotalCount = NOT_PRESENT
         self._totalHeight = NOT_PRESENT
         self._totalHeightWithExtrusion = NOT_PRESENT
+        self._totalHeightFromExpression = NOT_PRESENT
 
     def _activateBusyIndicator(self):
         self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
@@ -453,9 +469,13 @@ class DisplaylayerprogressPlugin(
         if self._printTimeLeftInSeconds is not None:
             self._printTimeLeft = stringUtils.secondsToText(self._printTimeLeftInSeconds)
 
-            current_time = datetime.today()
-            finish_time = current_time + timedelta(0,self._printTimeLeftInSeconds)
-            self._currentETA = format_time(finish_time, format="short")
+            # current_time = datetime.today()
+            # finish_time = current_time + timedelta(0,self._printTimeLeftInSeconds)
+            # self._currentETA = format_time(finish_time, format="short")
+
+            import time
+            self._currentETA  = time.strftime("%H:%M", time.localtime(time.time() + self._printTimeLeftInSeconds))  #hijacked from displalayer-plugin
+            pass
         else:
             self._printTimeLeftInSeconds = NOT_PRESENT
             self._currentETA = NOT_PRESENT
@@ -788,8 +808,8 @@ class DisplaylayerprogressPlugin(
             zMaxPattern = re.compile(self._settings.get([SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN]))
 
             self._currentLayerCount = 0
-            self._currentTotalHeight = 0.0
-
+            self._tempCurrentHeightFromFile = 0.0
+            self._tempCurrentTotalHeight = 0.0
             lineNumber = 0
             self._activateBusyIndicator()
 
@@ -799,7 +819,6 @@ class DisplaylayerprogressPlugin(
                 with open(selectedFile, "r") as f:
                     for line in f:
                         lineNumber += 1
-
                         layerIndicatorFound = self._extractLayerAndHeightInformation(line, layerNumberPattern, zMaxPattern)
                         if (layerIndicatorFound == True and layerIndicatorAlreadyFound == False):
                             layerIndicatorAlreadyFound = True
@@ -818,13 +837,20 @@ class DisplaylayerprogressPlugin(
                 self._logger.error(errorMessage)
                 self._eventLogging(errorMessage)
 
+            # Height values are evaluated. Depending on the ZMode, assign value to final totalHeight-Variable
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
-                self._totalHeight = str("%.2f" % self._currentTotalHeight)
+                self._totalHeight = str("%.2f" % self._tempCurrentTotalHeight)
             elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXTRUSION:
                 if not self._totalHeightWithExtrusion == NOT_PRESENT:
                     self._totalHeight = str("%.2f" % float(self._totalHeightWithExtrusion))
                 else:
                     self._totalHeight = NOT_PRESENT
+            elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXPRESSION:
+                if not self._totalHeightFromExpression == NOT_PRESENT:
+                    self._totalHeight = str("%.2f" % float(self._totalHeightFromExpression))
+                else:
+                    self._totalHeight = NOT_PRESENT
+
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
             self._logger.info("File select-event processing done!'")
 
