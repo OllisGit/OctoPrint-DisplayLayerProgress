@@ -62,7 +62,7 @@ LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
 LAYER_COUNT_EXPRESSION = ".*\n?" +LAYER_MESSAGE_PREFIX + "([0-9]*)"
 
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
-Z_HEIGHT_EXPRESSION = "^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
+Z_HEIGHT_EXPRESSION = "^G[0|1](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
 zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
 
 # Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
