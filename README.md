@@ -55,6 +55,7 @@ The implementation is based on four steps:
 
 ![browserTitle](screenshots/browser-title-tab.png "Progress in Browser Tab")
 ![navbar](screenshots/navbar.jpg "Progress in NavBar")
+![navbar](screenshots/example-navbar-filamentchange.png "Progress in NavBar")
 ![statebar](screenshots/statebar.jpg "Progress in StateBar")
 ![desktopPrinterdisplay](screenshots/printerDisplay_popup.jpg "Desktop Printer-Display")
 ![desktopPrinterdisplayWithPrintTimeLeft](screenshots/desktop-printer-display_printTimeLeft.jpg "Desktop Printer-Display with printTimeLeft")
