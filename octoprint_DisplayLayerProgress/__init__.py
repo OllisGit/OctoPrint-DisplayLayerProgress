@@ -21,6 +21,8 @@ from collections import deque
 from datetime import datetime
 from datetime import timedelta
 
+import time
+
 from octoprint_DisplayLayerProgress import stringUtils
 from octoprint_DisplayLayerProgress.LayerExpression import LayerExpression
 
@@ -62,7 +64,9 @@ LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
 LAYER_COUNT_EXPRESSION = ".*\n?" +LAYER_MESSAGE_PREFIX + "([0-9]*)"
 
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
-Z_HEIGHT_EXPRESSION = "^G[0|1](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
+# mine: ^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)
+# pr:   ^G[0|1](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)
+Z_HEIGHT_EXPRESSION = "^[^;]*G[0|1](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
 zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
 
 # Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
@@ -74,10 +78,12 @@ feedratePattern = re.compile(FEEDRATE_EXPRESSION)
 
 # Match Fan speed
 FANSPEED_EXPRESSION = "^M106.* S(\d+\.?\d*).*"
-
 fanSpeedPattern = re.compile(FANSPEED_EXPRESSION)
 FAN_OFF_EXPRESSION = "^M107.*"
 fanOffPattern = re.compile(FAN_OFF_EXPRESSION)
+
+M600_EXPRESSION = "^M600.*"
+m600Pattern = re.compile(M600_EXPRESSION)
 
 PROGRESS_KEYWORD_EXPRESSION = "[progress]"
 CURRENT_LAYER_KEYWORD_EXPRESSION = "[current_layer]"
@@ -92,6 +98,10 @@ PRINTTIME_LEFT_EXPRESSION = "[printtime_left]"
 LAYER_AVERAGE_DURATION_EXPRESSION = "[average_layer_duration]"
 LAYER_LAST_DURATION_EXPRESSION = "[last_layer_duration]"
 ETA_KEYWORD_EXPRESSION = "[estimated_end_time]"
+ETA_CHANGEFILAMENT_KEYWORD_EXPRESSION = "[estimated_changefilament_time]"
+CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION = "[changefilamenttime_left]"
+CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION = "[changefilament_count]"
+
 
 UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
@@ -179,6 +189,8 @@ class DisplaylayerprogressPlugin(
     _startLayerTime = None
     _currentETA = NOT_PRESENT
     _lastM117Command = None
+    _m600LayerList = list()
+    _m600LayerProcessingList = list()
 
     def __init__(self):
         self._showProgressOnPrinterDisplay = False
@@ -204,9 +216,13 @@ class DisplaylayerprogressPlugin(
         self._movementMode = MOVEMENT_ABSOLUTE
 
         self._currentHeightFloat = 0.0
-        self._currentHeightFormatted = "-"
-        self._totalHeightFormatted = "-"
-        self._totalHeightWithExtrusionFormatted = "-"
+        self._currentHeightFormatted = NOT_PRESENT
+        self._totalHeightFormatted = NOT_PRESENT
+        self._totalHeightWithExtrusionFormatted = NOT_PRESENT
+
+        self._filamentChangeTimeLeftInSeconds = 0
+        self._filamentChangeTimeLeftFormatted = NOT_PRESENT
+        self._filamentChangeETAFormatted = NOT_PRESENT
 
 
     def initialize(self):
@@ -368,7 +384,7 @@ class DisplaylayerprogressPlugin(
             self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
             # self._logger.info("Count '"+self._layerTotalCount+"'")
 
-        ## Height evalluation
+        ## Height evaluation
         matched = zHeightPattern.match(line)
         if matched:
             # don't count on negativ extrusion, see issue #76
@@ -400,6 +416,11 @@ class DisplaylayerprogressPlugin(
         self._startLayerTime = None
         self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
         self._currentHeightFloat = 0.0
+
+        self._filamentChangeTimeLeftInSeconds = 0
+        self._filamentChangeTimeLeftFormatted = NOT_PRESENT
+        self._filamentChangeETAFormatted = NOT_PRESENT
+
 
     def _resetTotalValues(self):
         self._layerTotalCount = NOT_PRESENT
@@ -473,7 +494,6 @@ class DisplaylayerprogressPlugin(
             # finish_time = current_time + timedelta(0,self._printTimeLeftInSeconds)
             # self._currentETA = format_time(finish_time, format="short")
 
-            import time
             self._currentETA  = time.strftime("%H:%M", time.localtime(time.time() + self._printTimeLeftInSeconds))  #hijacked from displalayer-plugin
             pass
         else:
@@ -520,6 +540,31 @@ class DisplaylayerprogressPlugin(
                 self._averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
                 self._averageLayerDurationInSeconds = calcAverageDurationTimeDelta.seconds
 
+
+        # layerChanged event, then calculate the predicted filamentChange time
+        if (updateReason == UPDATE_DISPLAY_REASON_LAYER_CHANGED):   #TODO only if it is included into message output pattern in settings-ui
+            currenLayerNumber = int(self._currentLayer)
+
+            if (len(self._m600LayerProcessingList) > 0):
+                self._nextM600Layer = self._m600LayerProcessingList[0]
+
+                if (self._nextM600Layer == currenLayerNumber):
+                    self._m600LayerProcessingList.pop(0)
+                    self._nextM600Layer == 0
+            else:
+                self._nextM600Layer = 0
+
+            layerDiff = self._nextM600Layer - currenLayerNumber
+            if (layerDiff >= 0):
+                layerDuration = self._lastLayerDurationInSeconds
+                # for a better precision, tkat avarage layerDuration and not the last one
+                if (type(self._averageLayerDurationInSeconds) == int and int(self._averageLayerDurationInSeconds) > 0):
+                    layerDuration = self._averageLayerDurationInSeconds
+
+                self._filamentChangeTimeLeftInSeconds = layerDuration * layerDiff
+                self._filamentChangeTimeLeftFormatted = stringUtils.secondsToText(self._filamentChangeTimeLeftInSeconds)
+                self._filamentChangeETAFormatted = time.strftime("%H:%M", time.localtime(time.time() + self._filamentChangeTimeLeftInSeconds))
+
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
@@ -535,7 +580,10 @@ class DisplaylayerprogressPlugin(
             PRINTTIME_LEFT_EXPRESSION: self._printTimeLeft,
             LAYER_LAST_DURATION_EXPRESSION: self._lastLayerDuration,
             LAYER_AVERAGE_DURATION_EXPRESSION: self._averageLayerDuration,
-            ETA_KEYWORD_EXPRESSION: self._currentETA
+            ETA_KEYWORD_EXPRESSION: self._currentETA,
+            ETA_CHANGEFILAMENT_KEYWORD_EXPRESSION: self._filamentChangeETAFormatted,
+            CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION: self._filamentChangeTimeLeftFormatted,
+            CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION: str(len(self._m600LayerProcessingList))
         }
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
@@ -620,6 +668,8 @@ class DisplaylayerprogressPlugin(
                 averageLayerDurationInSeconds = self._averageLayerDurationInSeconds,
                 currentHeight = self._currentHeight,
                 currentHeightFormatted = self._currentHeightFormatted,
+                totalHeight = self._totalHeight,
+                totalHeightFormatted = self._totalHeightFormatted,
                 totalHeightWithExtrusion = self._totalHeightWithExtrusion,
                 totalHeightWithExtrusionFormatted = self._totalHeightWithExtrusionFormatted,
                 feedrate = self._feedrate,
@@ -629,7 +679,11 @@ class DisplaylayerprogressPlugin(
                 progress =self._progress,
                 printTimeLeft = self._printTimeLeft,
                 printTimeLeftInSeconds = self._printTimeLeftInSeconds,
-                estimatedEndTime = self._currentETA
+                estimatedEndTime = self._currentETA,
+                estimatedChangedFilamentTime = self._filamentChangeETAFormatted,
+                changeFilamentTimeLeft = self._filamentChangeTimeLeftFormatted,
+                changeFilamentTimeLeftInSeconds  = self._filamentChangeTimeLeftInSeconds,
+                changeFilamentCount  = len(self._m600LayerProcessingList)
             )
             eventManager().fire(eventKey, eventPayload)
             pass
@@ -769,7 +823,11 @@ class DisplaylayerprogressPlugin(
                 "progress": self._progress,
                 "timeLeft": self._printTimeLeft,
                 "timeLeftInSeconds": self._printTimeLeftInSeconds,
-                "estimatedEndTime": self._currentETA
+                "estimatedEndTime": self._currentETA,
+                "estimatedChangedFilamentTime": self._filamentChangeETAFormatted,
+                "changeFilamentTimeLeft": self._filamentChangeTimeLeftFormatted,
+                "changeFilamentTimeLeftInSeconds": self._filamentChangeTimeLeftInSeconds,
+                "changeFilamentCount": len(self._m600LayerProcessingList)
             }
         })
 
@@ -810,21 +868,42 @@ class DisplaylayerprogressPlugin(
             self._currentLayerCount = 0
             self._tempCurrentHeightFromFile = 0.0
             self._tempCurrentTotalHeight = 0.0
+            self._nextM600Layer = 0
+            self._m600LayerList = list()
+            self._m600LayerProcessingList = list()
+
+            self._filamentChangeTimeLeftInSeconds = 0
+            self._filamentChangeTimeLeftFormatted = NOT_PRESENT
+            self._filamentChangeETAFormatted = NOT_PRESENT
+
             lineNumber = 0
+
             self._activateBusyIndicator()
 
             layerIndicatorAlreadyFound = False
             try:
-
+                currentLayerNumber = 0
                 with open(selectedFile, "r") as f:
                     for line in f:
                         lineNumber += 1
                         layerIndicatorFound = self._extractLayerAndHeightInformation(line, layerNumberPattern, zMaxPattern)
+
                         if (layerIndicatorFound == True and layerIndicatorAlreadyFound == False):
                             layerIndicatorAlreadyFound = True
                             logMessage = "LayerIndicator found in line '"+str(lineNumber)+"'"
                             self._logger.info(logMessage)
                             self._eventLogging(logMessage)
+
+                        if (layerIndicatorFound == True):
+                            currentLayerNumber = self._layerTotalCount
+                        else:
+                            # check for M600 filament change
+                            matched = m600Pattern.match(line)  # identify layer count
+                            if matched:
+                                # filemant change detected
+                                self._m600LayerList.append(int(currentLayerNumber))
+
+
                 if (layerIndicatorAlreadyFound == False):
                     logMessage = "No LayerIndicator found!!!"
                     self._logger.warn(logMessage)
@@ -863,6 +942,9 @@ class DisplaylayerprogressPlugin(
             self._isPrinterRunning = True
             self._logger.info("Printing started. Detailed progress started." + str(payload))
             self._resetCurrentValues()
+            # which M600 layers should be processed
+            self._m600LayerProcessingList = list(self._m600LayerList)
+
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
             self._checkLayerExpressionValid()
 

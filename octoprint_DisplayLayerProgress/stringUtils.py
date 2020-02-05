@@ -12,16 +12,29 @@ def multiple_replace(text, adict):
 
 # see https://stackoverflow.com/questions/4048651/python-function-to-convert-seconds-into-minutes-hours-and-days/4048773
 def secondsToText(secs):
-    days = secs // 86400
-    hours = (secs - days * 86400) // 3600
-    minutes = (secs - days * 86400 - hours * 3600) // 60
-    seconds = secs - days * 86400 - hours * 3600 - minutes * 60
+	result = ""
+	days = secs // 86400
+	hours = (secs - days * 86400) // 3600
+	minutes = (secs - days * 86400 - hours * 3600) // 60
+	seconds = secs - days * 86400 - hours * 3600 - minutes * 60
+	if (days > 0):
+		result = "{}d".format(days) + "{}h".format(hours) + "{}m".format(minutes) + "{}s".format(seconds)
+	elif (hours > 0):
+		result = "{}h".format(hours) + "{}m".format(minutes) + "{}s".format(seconds)
+	elif (minutes > 0):
+		result = "{}m".format(minutes) + "{}s".format(seconds)
+	elif (seconds >= 0):
+		result = "{}s".format(seconds)
+    # result = ("{}d".format(days) if days else "") + \
+    #          ("{}h".format(hours) if hours else "") + \
+    #          ("{}m".format(minutes) if not days and minutes else "") + \
+    #          ("{}s".format(seconds) if not days and not hours and seconds else "0s")
+	return result
 
-    result = ("{}d".format(days) if days else "") + \
-             ("{}h".format(hours) if hours else "") + \
-             ("{}m".format(minutes) if not days and minutes else "") + \
-             ("{}s".format(seconds) if not days and not hours and seconds else "")
-    return result
+
+
+
+
 
 
 from string import Formatter

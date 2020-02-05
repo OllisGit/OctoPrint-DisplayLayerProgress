@@ -14,7 +14,11 @@ If you like it, I would be thankful about a cup of coffee :)
 [![More coffee, more code](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6SW5R6ZUKLB5E&source=url)
 
 
-It shows the ```progress, estimatedEndTime, printTimeLeft, currentLayer, totalLayerCount, last/average layerDuration, currentHeight, totalHeight, feedrate and fanspeed```.
+It shows:
+* ```progress, estimatedEndTime, printTimeLeft,```
+* ```currentLayer, totalLayerCount, last/average layerDuration,```
+* ```currentHeight, totalHeight, feedrate, fanspeed,```
+* ```changeFilamentTimeLeft, estimatedChangeFilamentTime and changefilamentCount```
 
 Some output examples:
 - Printer Display: ```50% L=60/120 H=23mm/47mm```
@@ -87,11 +91,11 @@ You can receive the layer/height and other values via a GET-Call.
       "feedrateG1": "953.8",
       "height": {
         "current": "8.00",
+        "currentFormatted": "8"
         "total": "15.00",
-        "totalWithExtrusion": "10.0",  //DEPRECATED don't use it will be removed in next version
-        "currentFormatted": "8",
         "totalFormatted": "15",
-        "totalWithExtrusionFormatted": "10"  //DEPRECATED don't use it will be removed in next version
+        "totalWithExtrusion": "10.0",  //DEPRECATED don't use it will be removed in version 1.19.0
+        "totalWithExtrusionFormatted": "10"  //DEPRECATED don't use it will be removed in version 1.19.0
       },
       "layer": {
         "averageLayerDuration": "0h:01m:03s",
@@ -105,7 +109,11 @@ You can receive the layer/height and other values via a GET-Call.
         "progress": "73",
         "timeLeft": "40s",
         "timeLeftInSeconds": 40,
-        "estimatedEndTime": "20:24"
+        "estimatedEndTime": "20:24",
+        "changeFilamentCount": 3,
+        "changeFilamentTimeLeft": "32s",
+        "changeFilamentTimeLeftInSeconds": 32,
+        "estimatedChangedFilamentTime": "22:36",
       }
     }
 
@@ -129,9 +137,11 @@ Plugin sends the following custom events to the eventbus like this:
    'totalLayer':'66',
    'currentLayer':'22',
    'currentHeight':'6.80',
-   'totalHeightWithExtrusion':'20.0',  //DEPRECATED don't use it will be removed in next version
    'currentHeightFormatted':'6',
-   'totalHeightWithExtrusionFormatted':'20',  //DEPRECATED don't use it will be removed in next version
+   'totalHeight':15
+   'totalHeightFormatted':'15',
+   'totalHeightWithExtrusion':'20.0',  //DEPRECATED don't use it will be removed in version 1.19.0
+   'totalHeightWithExtrusionFormatted':'20',  //DEPRECATED don't use it will be removed in next version 1.19.0
    'feedrate':'2700',
    'feedrateG0':'7200',
    'feedrateG1':'2700',
@@ -143,7 +153,11 @@ Plugin sends the following custom events to the eventbus like this:
    'averageLayerDurationInSeconds':2,
    'printTimeLeft':'2m3s',
    'printTimeLeftInSeconds':123,
-   'estimatedEndTime':'20:24'
+   'estimatedEndTime':'20:24',
+   'estimatedChangedFilamentTime': '20:22',
+   'changeFilamentTimeLeft': '1m12s,
+   'changeFilamentTimeLeftInSeconds': 72
+   'changeFilamentCount': 2
  }
 ```
 Other Plugins could listen to this events like this:
