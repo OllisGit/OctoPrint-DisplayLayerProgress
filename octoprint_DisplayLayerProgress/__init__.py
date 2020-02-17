@@ -128,11 +128,10 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         if not len(origLine):
             return None
 
-        origStripedLine = origLine.lstrip()
-        line = origStripedLine
+        line = origLine.decode('utf-8')
+        line = line.lstrip()
 
         if (len(line) != 0 and line[0] == ";"):
-            line = line.decode('utf-8')
             for layerExpression in self._allLayerExpressions:
                 inputLine = line
                 line = self._modifyLineIfLayerComment(inputLine, layerExpression)
@@ -555,9 +554,10 @@ class DisplaylayerprogressPlugin(
                 self._nextM600Layer = 0
 
             layerDiff = self._nextM600Layer - currenLayerNumber
-            if (layerDiff >= 0):
+            # Only calculate the M600 time if the layer one is already printed
+            if (layerDiff >= 0 and self._lastLayerDurationInSeconds > 0 and currenLayerNumber > 1):
                 layerDuration = self._lastLayerDurationInSeconds
-                # for a better precision, tkat avarage layerDuration and not the last one
+                # for a better precision, take avarage layerDuration and not the last one
                 if (type(self._averageLayerDurationInSeconds) == int and int(self._averageLayerDurationInSeconds) > 0):
                     layerDuration = self._averageLayerDurationInSeconds
 
