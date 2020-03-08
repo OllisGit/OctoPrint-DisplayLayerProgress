@@ -265,10 +265,13 @@ class DisplaylayerprogressPlugin(
         #         # send notification to the user, file is to big
         #         # start extra thread for processing
         #         return file_object
-
+        self._logger.info("FilePreProcessor. Checking LayerExpressions.")
         result = self._checkLayerExpressionValid()
         if (result == False):
+            self._logger.error("LayerExpressions not valid.")
             return file_object
+
+        self._logger.info("FilePreProcessor. LayerExpression valid. Start processing...")
         fileStream = file_object.stream()
 
         return octoprint.filemanager.util.StreamWrapper(fileName,
@@ -277,7 +280,10 @@ class DisplaylayerprogressPlugin(
 
     # eval current layer from modified g-code
     def sendingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        commandAsString = str(cmd)
+        # needed to handle non utf-8 characters
+        # commandAsString = cmd.encode('ascii', 'ignore')
+        # commandAsString = octoprint.util.to_native_str(cmd)
+        commandAsString = stringUtils.to_native_str(cmd)
 
         self._eventLogging("SENDING-HOOK: " + commandAsString)
         # prevent double messages
@@ -356,7 +362,10 @@ class DisplaylayerprogressPlugin(
     def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         showDesktopPrinterDisplay = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
         if  showDesktopPrinterDisplay == True:
-            commandAsString = str(cmd)
+            # needed to handle non utf-8 characters
+            # commandAsString = cmd.encode('ascii', 'ignore')
+            # commandAsString = octoprint.util.to_native_str(cmd)
+            commandAsString = stringUtils.to_native_str(cmd)
 
             self._eventLogging("SENT-HOOK: " + commandAsString)
             if commandAsString.startswith("M117 "):
@@ -729,30 +738,28 @@ class DisplaylayerprogressPlugin(
     def _evaluatePrinterMessagePattern(self):
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
 
-        if PROGRESS_KEYWORD_EXPRESSION in printerMessagePattern:
-            self._showProgressOnPrinterDisplay = True
-        else:
-            self._showProgressOnPrinterDisplay = False
-        if CURRENT_LAYER_KEYWORD_EXPRESSION in printerMessagePattern \
-                or TOTAL_LAYER_KEYWORD_EXPRESSION in printerMessagePattern:
-            self._showLayerOnPrinterDisplay = True
-        else:
-            self._showLayerOnPrinterDisplay = False
-        if CURRENT_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern \
-                or TOTAL_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern:
-            self._showHeightOnPrinterDisplay = True
-        else:
-            self._showHeightOnPrinterDisplay = False
-        if FEEDRATE_KEYWORD_EXPRESSION in printerMessagePattern \
-                or FEEDRATE_G0_KEYWORD_EXPRESSION in printerMessagePattern \
-                or FEEDRATE_G1_KEYWORD_EXPRESSION in printerMessagePattern:
-            self._showFeedrateOnPrinterDisplay = True
-        else:
-            self._showFeedrateOnPrinterDisplay = False
-        if FANSPEED_KEYWORD_EXPRESSION in printerMessagePattern:
-            self._showFanSpeedOnPrinterDisplay = True
-        else:
-            self._showFanSpeedOnPrinterDisplay = False
+        self._showProgressOnPrinterDisplay = False
+        self._showLayerOnPrinterDisplay = False
+        self._showHeightOnPrinterDisplay = False
+        self._showFeedrateOnPrinterDisplay = False
+        self._showFanSpeedOnPrinterDisplay = False
+
+        if (printerMessagePattern != None and len(printerMessagePattern) > 0):
+            if PROGRESS_KEYWORD_EXPRESSION in printerMessagePattern:
+                self._showProgressOnPrinterDisplay = True
+
+            if CURRENT_LAYER_KEYWORD_EXPRESSION in printerMessagePattern \
+                    or TOTAL_LAYER_KEYWORD_EXPRESSION in printerMessagePattern:
+                self._showLayerOnPrinterDisplay = True
+            if CURRENT_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern \
+                    or TOTAL_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern:
+                self._showHeightOnPrinterDisplay = True
+            if FEEDRATE_KEYWORD_EXPRESSION in printerMessagePattern \
+                    or FEEDRATE_G0_KEYWORD_EXPRESSION in printerMessagePattern \
+                    or FEEDRATE_G1_KEYWORD_EXPRESSION in printerMessagePattern:
+                self._showFeedrateOnPrinterDisplay = True
+            if FANSPEED_KEYWORD_EXPRESSION in printerMessagePattern:
+                self._showFanSpeedOnPrinterDisplay = True
 
     def _parseLayerExpressions(self, layerExpressionPatterns):
         result = None
@@ -891,7 +898,7 @@ class DisplaylayerprogressPlugin(
                         if (layerIndicatorFound == True and layerIndicatorAlreadyFound == False):
                             layerIndicatorAlreadyFound = True
                             logMessage = "LayerIndicator found in line '"+str(lineNumber)+"'"
-                            self._logger.info(logMessage)
+                            #self._logger.info(logMessage)
                             self._eventLogging(logMessage)
 
                         if (layerIndicatorFound == True):
