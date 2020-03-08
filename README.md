@@ -15,10 +15,10 @@ If you like it, I would be thankful about a cup of coffee :)
 
 
 It shows:
-* ```progress, estimatedEndTime, printTimeLeft,```
-* ```currentLayer, totalLayerCount, last/average layerDuration,```
-* ```currentHeight, totalHeight, feedrate, fanspeed,```
-* ```changeFilamentTimeLeft, estimatedChangeFilamentTime and changefilamentCount```
+* ```Progress, EstimatedEndTime, PrintTimeLeft,```
+* ```CurrentLayer, TotalLayerCount, last/average LayerDuration,```
+* ```CurrentHeight, TotalHeight, Feedrate, Fanspeed,```
+* ```ChangeFilamentTimeLeft, EstimatedChangeFilamentTime and ChangefilamentCount (based on M600 command location in file)```
 
 Some output examples:
 - Printer Display: ```50% L=60/120 H=23mm/47mm```
