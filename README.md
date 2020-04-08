@@ -29,7 +29,7 @@ Some output examples:
 
 **ATTENTION:**
 - The layer information works only when the slicer adds "layer-indicator" as comments to the G-Code (CURA-Example as comments like ```;LAYER:10```). Then these indicators are parsed via a regular-expression.
-- The G-Code is modified during upload! The "layer-indicators" from the slicer were replaced with a "neutral" M117 G-Code. This is necessary, because during printing OctoPrint removes all comments from g-code.
+- The G-Code is modified during upload (could be disabled since V1.19.0)! The "layer-indicators" from the slicer were replaced with a "neutral" M117 G-Code (```M117 INDICATOR-Layer```). This is necessary, because during printing OctoPrint removes all comments from g-code.
 - Out of the box supported slicers:
   - **CURA, Simplify3D, ideaMaker, KISSlicer, Slic3r**
   - You can add your own layer-expressions in Plugin-Settings
