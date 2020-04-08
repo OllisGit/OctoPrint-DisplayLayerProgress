@@ -14,17 +14,17 @@ plugin_package = "octoprint_DisplayLayerProgress"
 plugin_name = "DisplayLayerProgress"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "1.18.1"
+plugin_version = "1.19.0"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
-plugin_description = """Displays the current processing layer and the percentage in Printer Display and top NavBar"""
+plugin_description = """Displays the current processing layer and the percentage in Printer Display and in Desktop"""
 
 # The plugin's author. Can be overwritten within OctoPrint's internal data via __plugin_author__ in the plugin module
 plugin_author = "Olli"
 
 # The plugin's author's mail address.
-plugin_author_email = "you@example.com"
+plugin_author_email = "ollisgit@gmail.com"
 
 # The plugin's homepage URL. Can be overwritten within OctoPrint's internal data via __plugin_url__ in the plugin module
 plugin_url = "https://github.com/OllisGit/OctoPrint-DisplayLayerProgress"

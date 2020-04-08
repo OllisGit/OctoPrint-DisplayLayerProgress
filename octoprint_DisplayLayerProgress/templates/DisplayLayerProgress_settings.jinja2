@@ -28,17 +28,17 @@
                             <input type="text" class="input-block-level text-left"
                                    data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayWidth"/></label>
                     </div>
-                    <div >
-                        <label class="checkbox">Show current height in Statusbar
-                            <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showHeightInStatusBar">
-                        </label>
-                    </div>
+<!--                    <div >-->
+<!--                        <label class="checkbox">Show current height in Statusbar-->
+<!--                            <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showHeightInStatusBar">-->
+<!--                        </label>-->
+<!--                    </div>-->
 
-                    <div >
-                        <label class="checkbox">Show layer information in Statusbar
-                            <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showLayerInStatusBar">
-                        </label>
-                    </div>
+<!--                    <div >-->
+<!--                        <label class="checkbox">Show layer information in Statusbar-->
+<!--                            <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showLayerInStatusBar">-->
+<!--                        </label>-->
+<!--                    </div>-->
 
                     <div >
                         <label class="checkbox">Update Printer Display only while printing
@@ -65,6 +65,11 @@
                     </div>
 <br>
 <div class="control-group" >
+    <label class="checkbox">State<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnState"/></label>
+    <textarea rows="5" cols="60" style="min-width: 96%" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnState, value: settingsViewModel.settings.plugins.DisplayLayerProgress.stateMessagePattern">'State-Pattern'</textarea>
+</div>
+
+<div class="control-group" >
     <label class="checkbox">{{ _('Navigationbar') }}<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
     <textarea rows="5" cols="60" style="min-width: 96%" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar, value: settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern">'NavBar-Pattern'</textarea>
 </div>
@@ -84,10 +89,6 @@
         <input type="radio" name="browserTitleMode" value="append" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMode"> Append title
     </label>
 </div>
-
-
-
-
 
 
 <div class="control-group">
@@ -139,8 +140,20 @@
 
                 <div class="control-group">
                     <legend>Layer indicator</legend>
+
+                    <label class="checkbox">Add Layer-Indicators during upload
+                        <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.addLayerIndicators" />
+                    </label>
+                    <label style="padding-left:21px">
+                        Every Slicer use a different format to put the layer-information into the G-Code.<br/><br/>
+                        If you activate this checkbox, the plugin looks for below layer-expressions and adds a "neutral" M117-command (e.g. <code>M117 INDICATOR-Layer45</code>) into the uploaded G-Code.<br/>
+                        During print this M117-command will be replaced with the print message you defined.<br/><br/>
+                        If you deactivate this checkbox, your slicer needs to provide the above M117 indicator commands.<br/>
+                        This is helpfull if you use large files (>50MB) or if you use a mounted filesystem (e.g. NAS) instead of uploading files via UI.
+                    </label>
+
+
                     <div>
-                        Every Slicer use a different format to put the layer-information into the G-Code.<br/>
                         Here you can define several regular expressions for different slicers. If you need help with regular expressions, try <a href="https://regex101.com/">https://regex101.com/</a><br/>
                         The pattern of the expression is:<code>groupIndex [layerExpression] comment</code><br/>
                         E.g. <code>1		[;LAYER:([0-9]+).*]		CURA</code><br/>
@@ -148,7 +161,7 @@
                         or you can use <code>count</code>, if the layer-value needs to be calculatetd by the plugin (e.g. KISSlicer).
                     </div>
                     <br/>
-                    <textarea id="layerExpressionTextArea" rows="4" style="width:90%"  data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerExpressions">
+                    <textarea id="layerExpressionTextArea" rows="4" style="width:90%"  data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerExpressions, enable: settingsViewModel.settings.plugins.DisplayLayerProgress.addLayerIndicators">
 1		[;LAYER:([0-9]+).*]		CURA
 1		[; layer ([0-9]+),.*]	Simplify3D
 count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
@@ -177,7 +190,7 @@ count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
             <!-- HEIGHT - TAB -->
             <div class="tab-pane" id="tabHeight">
                 <div class="control-group">
-                    <label class="control-label">Choose total height methode:</label>
+                    <label class="control-label">Choose total height method:</label>
                     <div class="controls">
                         <input type="radio" name="heightMethode" value="zMax"
                                data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.totalHeightMethode"/>&nbsp;&nbsp;Max

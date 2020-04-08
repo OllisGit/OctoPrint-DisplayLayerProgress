@@ -24,19 +24,23 @@ from datetime import timedelta
 import time
 
 from octoprint_DisplayLayerProgress import stringUtils
+from octoprint_DisplayLayerProgress.CommandQueue import CommandQueue
 from octoprint_DisplayLayerProgress.LayerExpression import LayerExpression
 
 ################
 #### DEBUGGING FEATURE
 EVENT_LOGGING_ENABLED = False
 
+SETTINGS_KEY_ADD_LAYER_INDICATORS = "addLayerIndicators"
 SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES = "showAllPrinterMessages"
-SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR = "showHeightInStatusBar"
-SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR = "showLayerInStatusBar"
+# SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR = "showHeightInStatusBar"
+# SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR = "showLayerInStatusBar"
+SETTINGS_KEY_SHOW_ON_STATE = "showOnState"
 SETTINGS_KEY_SHOW_ON_NAVBAR = "showOnNavBar"
 SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY = "showOnPrinterDisplay"
 SETTINGS_KEY_SHOW_ON_BROWSER_TITLE = "showOnBrowserTitle"
 SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING = "updatePrinterDisplayWhilePrinting"
+SETTINGS_KEY_STATE_MESSAGEPATTERN = "stateMessagePattern"
 SETTINGS_KEY_NAVBAR_MESSAGEPATTERN = "navBarMessagePattern"
 SETTINGS_KEY_BROWSER_TITLE_MODE = "browserTitleMode"
 SETTINGS_KEY_BROWSER_TITLE_MESSAGEPATTERN = "browserTitleMessagePattern"
@@ -55,13 +59,14 @@ SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT = "layerAverageDurationCount"
 SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN = "layerAverageFormatPattern"
 SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN = "zMaxExpressionPattern"
 
+
 HEIGHT_METHODE_Z_MAX = "zMax"
 HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
 HEIGHT_METHODE_Z_EXPRESSION = "zExpression"
 
 NOT_PRESENT = "-"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
-LAYER_COUNT_EXPRESSION = ".*\n?" +LAYER_MESSAGE_PREFIX + "([0-9]*)"
+LAYER_COUNT_EXPRESSION = ".*\n?" +LAYER_MESSAGE_PREFIX + "([0-9]+)"
 
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
 # mine: ^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)
@@ -128,7 +133,9 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         if not len(origLine):
             return None
 
-        line = origLine.decode('utf-8')
+        # line = origLine.decode('utf-8')
+        line = stringUtils.to_native_str(origLine)
+
         line = line.lstrip()
 
         if (len(line) != 0 and line[0] == ";"):
@@ -138,7 +145,7 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
                 if line is not inputLine:
                     # pattern matched, skip other expressions
                     break
-            line = line.encode('utf-8')
+            # line = line.encode('utf-8')
         else:
             line = origLine
         return line
@@ -190,6 +197,10 @@ class DisplaylayerprogressPlugin(
     _lastM117Command = None
     _m600LayerList = list()
     _m600LayerProcessingList = list()
+    # async processing queues
+    _updateDisplayCommandQueue = CommandQueue()
+    _sentGCodeHookCommandQueue = CommandQueue()
+    _sendingGCodeHookCommandQueue = CommandQueue()
 
     def __init__(self):
         self._showProgressOnPrinterDisplay = False
@@ -223,8 +234,23 @@ class DisplaylayerprogressPlugin(
         self._filamentChangeTimeLeftFormatted = NOT_PRESENT
         self._filamentChangeETAFormatted = NOT_PRESENT
 
+        self._busyIndicatorActive = False
 
     def initialize(self):
+        self._initializeEventLogger()
+
+        self._updateDisplayCommandQueue.initCommandQueue(self._updateDisplayWorkerMethod)
+        self._sentGCodeHookCommandQueue.initCommandQueue(self.sentGCodeHookWorkerMethod)
+        self._sendingGCodeHookCommandQueue.initCommandQueue(self.sendingGCodeHookWorkerMethod)
+
+        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
+
+        # prepare expression-settings
+        self._evaluatePrinterMessagePattern()
+        self._parseLayerExpressions(self._settings.get([SETTINGS_KEY_LAYER_EXPRESSIONS]))
+
+
+    def _initializeEventLogger(self):
         # setup our custom logger
         logPostfix = "events"
         self._event_file_logger = logging.getLogger("octoprint.plugins." + self._settings.plugin_key + "."+logPostfix)
@@ -235,15 +261,14 @@ class DisplaylayerprogressPlugin(
         event_logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
         event_logging_handler.setLevel(logging.DEBUG)
 
+        # remove all handlers first
+        for handler in self._event_file_logger.handlers:
+            self._event_file_logger.removeHandler(handler)
+
+
         self._event_file_logger.addHandler(event_logging_handler)
         self._event_file_logger.setLevel(logging.DEBUG)
         self._event_file_logger.propagate = False
-
-        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
-
-        # prepare expression-settings
-        self._evaluatePrinterMessagePattern()
-        self._parseLayerExpressions(self._settings.get([SETTINGS_KEY_LAYER_EXPRESSIONS]))
 
 
     ######################################################################################### FILE/GCODE PROCESSOR HOOKS
@@ -255,6 +280,10 @@ class DisplaylayerprogressPlugin(
         fileName = file_object.filename
 
         if not octoprint.filemanager.valid_file_type(fileName, type="gcode"):
+            return file_object
+
+        addLayerIndicators = self._settings.get_boolean([SETTINGS_KEY_ADD_LAYER_INDICATORS])
+        if  addLayerIndicators == False:
             return file_object
 
         # check filesize
@@ -278,7 +307,7 @@ class DisplaylayerprogressPlugin(
                                                         LayerDetectorFileProcessor(fileStream, self._allLayerExpressions, self._logger)
                                                         )
 
-    # eval current layer from modified g-code
+    # eval current layer from modified g-code (comm.sending_tread)
     def sendingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         # needed to handle non utf-8 characters
         # commandAsString = cmd.encode('ascii', 'ignore')
@@ -294,6 +323,85 @@ class DisplaylayerprogressPlugin(
                 return []
             else:
                 self._lastM117Command = commandAsString
+
+        # movement type
+        if "G90" == gcode:
+            self._movementMode = MOVEMENT_ABSOLUTE
+        if "G91" == gcode:
+            self._movementMode = MOVEMENT_RELATIVE
+
+
+        # layer
+        if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
+            self._sendingGCodeHookCommandQueue.addToQueue(commandAsString)
+            # filter M117 indicator-command, not needed any more
+            return []
+
+        # add to queue for async-processing
+        self._sendingGCodeHookCommandQueue.addToQueue(commandAsString)
+
+
+        # # layer
+        # if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
+        #
+        #     layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+        #     self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + layerOffset)
+        #
+        #     ## calculate time of layer printing
+        #     layerDuration = 0
+        #     currentTime =  datetime.now()
+        #     if self._startLayerTime is not None:
+        #         layerDuration = currentTime - self._startLayerTime
+        #
+        #     self._layerDurationDeque.append(layerDuration)
+        #     self._startLayerTime = currentTime
+        #
+        #     self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
+        #     # filter M117 indicator-command, not needed any more
+        #     return []
+        #
+        # # Z-Height
+        # matched = zHeightPattern.match(commandAsString)
+        # if matched:
+        #     zHeight = float(matched.group(3))
+        #     if self._movementMode == MOVEMENT_RELATIVE:
+        #         self._currentHeightFloat = self._currentHeightFloat + zHeight
+        #     else:
+        #         self._currentHeightFloat = zHeight
+        #
+        #     self._currentHeight = "%.2f" % self._currentHeightFloat
+        #     self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
+        # # feedrate
+        # matched = feedratePattern.match(commandAsString)
+        # if matched:
+        #     feedrate = matched.group(1)
+        #     self._feedrate = feedrate
+        #     if commandAsString.startswith('G0'):
+        #         self._feedrateG0 = feedrate
+        #     if commandAsString.startswith('G1'):
+        #         self._feedrateG1 = feedrate
+        #     self._updateDisplay(UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED)
+        # # fanspeed
+        # matched = fanSpeedPattern.match(commandAsString)
+        # if matched:
+        #     fanSpeedText = matched.group(1)
+        #     fanSpeed = float(fanSpeedText)
+        #     if fanSpeed == 0:
+        #         self._fanSpeed = 'Off'
+        #     else:
+        #         speedFloat = float(fanSpeedText)*100.0/255.0
+        #         speed = int(round(speedFloat))
+        #         self._fanSpeed = str(speed) + '%'
+        #     self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
+        # matched = fanOffPattern.match(commandAsString)
+        # if matched:
+        #     self._fanSpeed = 'Off'
+        #     self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
+        #
+        return
+
+    # do the stuff in async-way
+    def sendingGCodeHookWorkerMethod(self, commandAsString):
         # layer
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
 
@@ -310,13 +418,8 @@ class DisplaylayerprogressPlugin(
             self._startLayerTime = currentTime
 
             self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
-            # filter M117 command, not needed any more
-            return []
-
-        if "G90" == gcode:
-            self._movementMode = MOVEMENT_ABSOLUTE
-        if "G91" == gcode:
-            self._movementMode = MOVEMENT_RELATIVE
+            # filter M117 indicator-command, not needed any more
+            return
 
         # Z-Height
         matched = zHeightPattern.match(commandAsString)
@@ -355,10 +458,10 @@ class DisplaylayerprogressPlugin(
         if matched:
             self._fanSpeed = 'Off'
             self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
+        pass
 
-        return
 
-    # eval current layer from modified g-code
+    # eval current layer from modified g-code (comm.sending_thread)
     def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         showDesktopPrinterDisplay = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
         if  showDesktopPrinterDisplay == True:
@@ -369,14 +472,29 @@ class DisplaylayerprogressPlugin(
 
             self._eventLogging("SENT-HOOK: " + commandAsString)
             if commandAsString.startswith("M117 "):
-                printerMessage = commandAsString[len("M117 "):]
-                if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
-                    printerMessage = printerMessage[:-1]
-
-                printerMessage = "&nbsp;" + printerMessage + "&nbsp;"
-                self._plugin_manager.send_plugin_message(self._identifier, dict(showDesktopPrinterDisplay=showDesktopPrinterDisplay,
-                                                                                printerDisplay=printerMessage))
+                # add to queue for async-processing
+                self._sentGCodeHookCommandQueue.addToQueue(commandAsString)
         return
+
+    # do the stuff in async-way
+    def sentGCodeHookWorkerMethod(self, commandAsString):
+        showDesktopPrinterDisplay = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        if (showDesktopPrinterDisplay == True):
+            printerMessage = commandAsString[len("M117 "):]
+            if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
+                printerMessage = printerMessage[:-1]
+
+            printerMessage = "&nbsp;" + printerMessage + "&nbsp;"
+            # self._plugin_manager.send_plugin_message(self._identifier, dict(showDesktopPrinterDisplay=showDesktopPrinterDisplay,
+            #                                                                printerDisplay=printerMessage))
+            self._sendDataToClient(dict(
+                                        busy=self._busyIndicatorActive,
+                                        showDesktopPrinterDisplay=showDesktopPrinterDisplay,
+                                        printerDisplay=printerMessage
+                                        )
+                                    )
+        pass
+
 
     #################################################################################################### PRIVATE METHODS
 
@@ -437,19 +555,29 @@ class DisplaylayerprogressPlugin(
         self._totalHeightFromExpression = NOT_PRESENT
 
     def _activateBusyIndicator(self):
-        self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
+        # self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
+        self._busyIndicatorActive = True
+        self._sendDataToClient(dict(busy=True))
+
+    def _deactivateBusyIndicator(self):
+        # self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
+        self._busyIndicatorActive = False
 
     def _disablePrintButton(self):
-        self._plugin_manager.send_plugin_message(self._identifier, dict(disablePrint=True))
+        # self._plugin_manager.send_plugin_message(self._identifier, dict(disablePrint=True))
+        self._sendDataToClient(dict(disablePrint=True))
 
     def _enablePrintButton(self):
-        self._plugin_manager.send_plugin_message(self._identifier, dict(enablePrint=True))
+        # self._plugin_manager.send_plugin_message(self._identifier, dict(enablePrint=True))
+        self._sendDataToClient(dict(enablePrint=True))
 
     def _checkLayerExpressionValid(self):
         if self._layerExpressionsValid == False:
-            self._plugin_manager.send_plugin_message(self._identifier,
-                                                     dict(notifyType="error",
-                                                          notifyMessage="DisplayProgressPlugin: LayerExpressions not valid! Check Plugin-Settings."))
+            # self._plugin_manager.send_plugin_message(self._identifier,
+            #                                          dict(notifyType="error",
+            #                                               notifyMessage="DisplayLayerProgressPlugin: LayerExpressions not valid! Check Plugin-Settings."))
+            self._sendDataToClient(dict(notifyType="error",
+                                        notifyMessage="DisplayLayerProgressPlugin: LayerExpressions not valid! Check Plugin-Settings."))
         return self._layerExpressionsValid
 
     def _initDesktopPinterDisplay(self):
@@ -478,16 +606,28 @@ class DisplaylayerprogressPlugin(
         import time
         time.sleep(2)
         # end-workaround
-        self._plugin_manager.send_plugin_message(self._identifier,
-                                                 dict(initPrinterDisplay=initDesktopDisplay,
-                                                      printerDisplayScreenLocation=stackDefinition,
-                                                      printerDisplayWidth=self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_WIDTH]),
-                                                      classDefinition=classStyle
-                                                      )
-                                                 )
+
+        # self._plugin_manager.send_plugin_message(self._identifier,
+        #                                          dict(initPrinterDisplay=initDesktopDisplay,
+        #                                               printerDisplayScreenLocation=stackDefinition,
+        #                                               printerDisplayWidth=self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_WIDTH]),
+        #                                               classDefinition=classStyle
+        #                                               )
+        #                                          )
+        self._sendDataToClient(dict(initPrinterDisplay=initDesktopDisplay,
+                                    printerDisplayScreenLocation=stackDefinition,
+                                    printerDisplayWidth=self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_WIDTH]),
+                                    classDefinition=classStyle
+                                    )
+                              )
         pass
 
     def _updateDisplay(self, updateReason):
+        # self._updateDisplayCommandQueue.addToQueue(updateReason)
+        self._updateDisplayWorkerMethod(updateReason)
+
+    def _updateDisplayWorkerMethod(self, updateReason):
+
         self._eventLogging("UPDATE DISPLAY: " + updateReason)
 
         currentData = self._printer.get_current_data()
@@ -524,7 +664,7 @@ class DisplaylayerprogressPlugin(
         self._averageLayerDuration = "-"
         self._averageLayerDurationInSeconds = "-"
 
-        # calculate layer duratins
+        # calculate layer durations
         if len(self._layerDurationDeque) > 0:
             lastLayerDurationTimeDelta = self._layerDurationDeque[-1]
             if isinstance( lastLayerDurationTimeDelta, int):
@@ -597,7 +737,16 @@ class DisplaylayerprogressPlugin(
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
 
+
+        ############ prepare clientMessage
         clientMessageDict = dict()
+
+        clientMessageDict.update({'busy': self._busyIndicatorActive})
+
+        if self._settings.get([SETTINGS_KEY_SHOW_ON_STATE]):
+            stateMessagePattern = self._settings.get([SETTINGS_KEY_STATE_MESSAGEPATTERN])
+            stateMessage = stringUtils.multiple_replace(stateMessagePattern, currentValueDict)
+            clientMessageDict.update( {'stateMessage' : stateMessage } )
 
         if self._settings.get([SETTINGS_KEY_SHOW_ON_NAVBAR]):
             navBarMessagePattern = self._settings.get([SETTINGS_KEY_NAVBAR_MESSAGEPATTERN])
@@ -617,8 +766,8 @@ class DisplaylayerprogressPlugin(
             clientMessageDict.update({'browserTitle': browserTitleDict})
 
         # the stateMessage-format is fixed
-        stateMessage = self._currentLayer + " / " + self._layerTotalCount
-        clientMessageDict.update({'stateMessage': stateMessage})
+        # stateMessage = self._currentLayer + " / " + self._layerTotalCount
+        # clientMessageDict.update({'stateMessage': stateMessage})
 
         # the heightMessage-format is fixed
         # heightMessage = self._currentHeight + " / " + self._totalHeight
@@ -627,7 +776,15 @@ class DisplaylayerprogressPlugin(
             heightMessage += "mm"
         clientMessageDict.update({'heightMessage': heightMessage})
 
-        # Send to PRINTER
+        # showHeightInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR])
+        # clientMessageDict.update({'showHeightInStatusBar': showHeightInStatusBar})
+        # showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
+        # clientMessageDict.update({'showLayerInStatusBar': showLayerInStatusBar})
+
+        showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        clientMessageDict.update({'showDesktopPrinterDisplay': showDesktopPrinterDisplay})
+
+        # prepare Printer
         if self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY]):
             # Optimization, update only if definied in message-pattern
             shouldSendToPrinter = False
@@ -652,20 +809,14 @@ class DisplaylayerprogressPlugin(
                     shouldSendToPrinter = False
 
             if shouldSendToPrinter == True:
+                ######################################################################################## SEND TO PRINTER
                 self._sendCommandToPrinter(printerMessageCommand)
 
-        showHeightInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR])
-        clientMessageDict.update({'showHeightInStatusBar': showHeightInStatusBar})
-        showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
-        clientMessageDict.update({'showLayerInStatusBar': showLayerInStatusBar})
+        ############################################################ SEND TO BROWSER (stateBar, navBar and browserTitle)
+        # self._plugin_manager.send_plugin_message(self._identifier, dict(clientMessageDict))
+        self._sendDataToClient(dict(clientMessageDict))
 
-        showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
-        clientMessageDict.update({'showDesktopPrinterDisplay': showDesktopPrinterDisplay})
-
-        # Send to STATEBAR, NAVBAR and BROWSER-TITLE
-        self._plugin_manager.send_plugin_message(self._identifier, dict(clientMessageDict))
-
-        # Fire Event, so that other Plugins could react on the event
+        ##################################################### FIRE EVENT, so that other Plugins could react on the event
         if updateReason is not UPDATE_DISPLAY_REASON_FRONTEND_CALL:
             eventKey = PLUGIN_KEY_PREFIX + updateReason
             eventPayload = dict(
@@ -734,6 +885,17 @@ class DisplaylayerprogressPlugin(
         # logging for debugging print("Send GCode:" + command)
         self._eventLogging("SEND-COMMAND: "+command)
         self._printer.commands(command)
+
+
+    _lastSendClientData = dict()
+    # sends the data-dictonary to the clien/browser
+    def _sendDataToClient(self, dataDict):
+        if (self._lastSendClientData != dataDict):
+            self._plugin_manager.send_plugin_message(self._identifier, dataDict)
+            self._lastSendClientData = dataDict
+        else:
+            self._eventLogging("SEND-CLIENT: not send, because duplicated dict:" + str(dataDict))
+
 
     def _evaluatePrinterMessagePattern(self):
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
@@ -848,7 +1010,7 @@ class DisplaylayerprogressPlugin(
         preProcessorHooksOrderedDic = self._file_manager._preprocessor_hooks
         preProcessorHooksOrderedDic[self._identifier] = __plugin_implementation__.createFilePreProcessor
 
-    # progress-hook
+    # progress-hook (called in new Thread)
     def on_print_progress(self, storage, path, progress):
         # progress 0 - 100
         self._progress = str(progress)
@@ -861,7 +1023,9 @@ class DisplaylayerprogressPlugin(
         self._eventLogging("EVENT: " + event)
 
         if event == Events.FILE_SELECTED:
-            selectedFile = self._file_manager.path_on_disk(payload.get("origin"), payload.get("path"))
+            self._initializeEventLogger()
+            selectedFilename = payload.get("path")
+            selectedFile = self._file_manager.path_on_disk(payload.get("origin"), selectedFilename)
             self._logger.info("File '" + selectedFile + "' selected. Determining number of layers.")
             self._resetCurrentValues()
             self._resetTotalValues()
@@ -897,7 +1061,7 @@ class DisplaylayerprogressPlugin(
 
                         if (layerIndicatorFound == True and layerIndicatorAlreadyFound == False):
                             layerIndicatorAlreadyFound = True
-                            logMessage = "LayerIndicator found in line '"+str(lineNumber)+"'"
+                            logMessage = "First LayerIndicator found in line '"+str(lineNumber)+"'"
                             #self._logger.info(logMessage)
                             self._eventLogging(logMessage)
 
@@ -916,13 +1080,15 @@ class DisplaylayerprogressPlugin(
                     self._logger.warn(logMessage)
                     self._eventLogging(logMessage)
                     # inform user
-                    self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="warning", notifyMessage="Layer indicator not found in file! Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
+                    # self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="warning", notifyMessage="Layer indicator not found in file! Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
+                    self._sendDataToClient(dict(notifyType="warning", notifyMessage="Layer indicator not found in file: '"+selectedFilename+"'<br>Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
 
             except (ValueError, RuntimeError) as error:
                 errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
                 self._logger.error(errorMessage)
                 self._eventLogging(errorMessage)
 
+            self._deactivateBusyIndicator()
             # Height values are evaluated. Depending on the ZMode, assign value to final totalHeight-Variable
             if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
                 self._totalHeight = str("%.2f" % self._tempCurrentTotalHeight)
@@ -940,12 +1106,14 @@ class DisplaylayerprogressPlugin(
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
             self._logger.info("File select-event processing done!'")
 
-        elif event == Events.FILE_DESELECTED:
+        elif event == Events.FILE_DESELECTED or \
+             event == Events.DISCONNECTING:
             self._resetCurrentValues()
             self._resetTotalValues()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.PRINT_STARTED:
+            self._initializeEventLogger()
             self._isPrinterRunning = True
             self._logger.info("Printing started. Detailed progress started." + str(payload))
             self._resetCurrentValues()
@@ -979,7 +1147,8 @@ class DisplaylayerprogressPlugin(
         if layerExpressions is not None:
             result = self._parseLayerExpressions(layerExpressions)
             if result is not None:
-                self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage = result))
+                # self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage = result))
+                self._sendDataToClient(dict(notifyType="error", notifyMessage = result))
 
         initDesktopPrinterDisplay = False
         printerDisplayScreenLocationDefinition = data.get(SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION)
@@ -988,7 +1157,8 @@ class DisplaylayerprogressPlugin(
                 json.loads("{"+printerDisplayScreenLocationDefinition+"}")
                 initDesktopPrinterDisplay = True
             except:
-                self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage="Printer ScreenLocation could not parsed!"))
+                # self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="error", notifyMessage="Printer ScreenLocation could not parsed!"))
+                self._sendDataToClient(dict(notifyType="error", notifyMessage="Printer ScreenLocation could not parsed!"))
 
         printerDisplayWidthDefinition = data.get(SETTINGS_KEY_PRINTERDISPLAY_WIDTH)
         if printerDisplayWidthDefinition is not None:
@@ -1033,11 +1203,21 @@ class DisplaylayerprogressPlugin(
     def get_settings_defaults(self):
         return dict(
             # put your plugin's default settings here
+            showOnState=True,
             showOnNavBar=True,
             showOnPrinterDisplay=True,
             showOnBrowserTitle=True,
             browserTitleMode="overwrite",
+            addLayerIndicators=True,
             showAllPrinterMessages=True,
+            stateMessagePattern=
+                                "<span title='Might be inaccurate!'>Current Height</span>: <strong id='state_height_message'>[current_height] / [total_height]</strong>\n" +
+                                "<i class='fa fa-spinner fa-spin dlp-state-busyIndicator' style='display:none'></i>\n" +
+                                "<br>\n" +
+                                "<span title='Shows the layer information'>Layer</span>: <strong id='state_layer_message'>[current_layer] / [total_layers]</strong>\n" +
+                                "<i class='fa fa-spinner fa-spin dlp-state-busyIndicator' style='display:none'></i>\n" +
+                                "<br>\n" +
+                                "",
             navBarMessagePattern="Progress: <span style='display: inline-block;width:24px;'>[progress]%</span>\n"
                                  "Layer: <span style='display: inline-block;width:24px;'>[current_layer]</span> of\n"
                                  "<span style='display: inline-block;width:24px;'>[total_layers]</span>\n"
@@ -1054,8 +1234,8 @@ class DisplaylayerprogressPlugin(
                              "1\t\t[;LAYER:([0-9]+).*]\t\tideaMaker\r\n" +
                              "count\t[; BEGIN_LAYER_OBJECT.*]\t\tKISSlicer\r\n" +
                              "count\t[;BEFORE_LAYER_CHANGE]\t\tSlic3r",
-            showLayerInStatusBar=True,
-            showHeightInStatusBar=True,
+            # showLayerInStatusBar=True,
+            # showHeightInStatusBar=True,
             updatePrinterDisplayWhilePrinting=False,
             printerDisplayScreenLocation="\"dir1\": \"up\", \"dir2\": \"right\", \"firstpos1\": 40, \"firstpos2\": 10, \"spacing1\": 0, \"spacing2\": 0",
             printerDisplayWidth="15%",

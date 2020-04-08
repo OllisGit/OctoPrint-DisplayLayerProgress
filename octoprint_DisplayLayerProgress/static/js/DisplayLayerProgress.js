@@ -10,10 +10,13 @@ $(function () {
         // enable support of resetSettings
         new ResetSettingsUtil().assignResetSettingsFeature(PLUGIN_ID, function(data){
                                 // assign new settings-values // TODO find a more generic way
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.addLayerIndicators(data.addLayerIndicators);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnState(data.showOnState);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar(data.showOnNavBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay(data.showOnPrinterDisplay);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnBrowserTitle(data.showOnBrowserTitle);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showAllPrinterMessages(data.showAllPrinterMessages);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.stateMessagePattern(data.stateMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern(data.navBarMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern(data.printerDisplayMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMessagePattern(data.browserTitleMessagePattern);
@@ -40,6 +43,7 @@ $(function () {
         self.loginStateViewModel = parameters[0];
         self.settingsViewModel = parameters[1];
 
+        self.stateMessage = ko.observable();
         self.navBarMessage = ko.observable();
         self.defaultBrowserTitleMessage = "";
 
@@ -48,20 +52,26 @@ $(function () {
             //alert("hallo");
             var element = $("#state").find(".accordion-inner .progress");
             if (element.length) {
-                var busyIndicator = " <i class='fa fa-spinner fa-spin busyIndicator' style='display:none'></i>";
+                element.before("<span id='dlp-stateOutputMessage'></span>");
 
-                // height
-                var label = gettext("Current Height");
-                var tooltip = gettext("Might be inaccurate!");
-                element.before("<span id='heightStateOutput' style='display:none'><span title='" + tooltip + "'>" + label + "</span>" + ": "
-                    + "<strong id='state_height_message'>- / -</strong>"+busyIndicator+"  <br/></span>");
-                // layer
-                label = gettext("Layer");
-                tooltip = gettext("Shows the layer information");
-                element.before("<span id='layerStateOutput' style='display:none'> <span title='" + tooltip + "'>" + label + "</span>" + ": "
-                    + "<strong id='state_layer_message'>- / -</strong>"+busyIndicator+"<br/></span>");
+                self.stateMessage.subscribe(function(newValue){
+                    $("#dlp-stateOutputMessage").html(newValue);
+                });
 
-                // call backend for update navbar and printer-display
+//                var busyIndicator = " <i class='fa fa-spinner fa-spin busyIndicator' style='display:none'></i>";
+//
+//                // height
+//                var label = gettext("Current Height");
+//                var tooltip = gettext("Might be inaccurate!");
+//                element.before("<span id='heightStateOutput' style='display:none'><span title='" + tooltip + "'>" + label + "</span>" + ": "
+//                    + "<strong id='state_height_message'>- / -</strong>"+busyIndicator+"  <br/></span>");
+//                // layer
+//                label = gettext("Layer");
+//                tooltip = gettext("Shows the layer information");
+//                element.before("<span id='layerStateOutput' style='display:none'> <span title='" + tooltip + "'>" + label + "</span>" + ": "
+//                    + "<strong id='state_layer_message'>- / -</strong>"+busyIndicator+"<br/></span>");
+//
+//                // call backend for update navbar and printer-display
                 OctoPrint.get("api/plugin/"+PLUGIN_ID);
             }
 
@@ -76,7 +86,6 @@ $(function () {
                 }
             });
         }
-
 
         var printerDisplay = null;
         // receive data from server
@@ -94,11 +103,21 @@ $(function () {
                 return
             }
 
-            if (data.busy){
-                $(".busyIndicator").show();
+            if ("busy" in data){
+                if (data.busy == true) {
+                    $(".dlp-state-busyIndicator").show();
+                } else {
+                    $(".dlp-state-busyIndicator").hide();
+                    $("#job_print").removeAttr("disabled");
+                }
             } else {
-                $(".busyIndicator").hide();
+                $(".dlp-state-busyIndicator").hide();
                 $("#job_print").removeAttr("disabled");
+            }
+
+            // State
+            if (data.stateMessage){
+                self.stateMessage(data.stateMessage);
             }
 
             // NavBar
@@ -117,34 +136,35 @@ $(function () {
 
             // StatusBar
             // visibility of height/layer in statebar
-            if (data.showHeightInStatusBar != null){
-                if(data.showHeightInStatusBar == true){
-                    $("#heightStateOutput").show();
-                } else {
-                    $("#heightStateOutput").hide();
-                }
-            }
-            if (data.showLayerInStatusBar != null){
-                if (data.showLayerInStatusBar == true){
-                    $("#layerStateOutput").show();
-                } else {
-                    $("#layerStateOutput").hide();
-                }
-            }
-            // State Layer
-            if (data.stateMessage){
-                var layerElement = document.getElementById("state_layer_message");
-                if (layerElement != null && data.stateMessage != null) {
-                    layerElement.innerHTML = data.stateMessage;
-                }
-            }
-            // State Height
-            if (data.heightMessage){
-                var heightElement = document.getElementById("state_height_message");
-                if (heightElement != null && data.heightMessage != null) {
-                    heightElement.innerHTML = data.heightMessage;
-                }
-            }
+//            if (data.showHeightInStatusBar != null){
+//                if(data.showHeightInStatusBar == true){
+//                    $("#heightStateOutput").show();
+//                } else {
+//                    $("#heightStateOutput").hide();
+//                }
+//            }
+//            if (data.showLayerInStatusBar != null){
+//                if (data.showLayerInStatusBar == true){
+//                    $("#layerStateOutput").show();
+//                } else {
+//                    $("#layerStateOutput").hide();
+//                }
+//            }
+//            // State Layer
+//            if (data.stateMessage){
+//                var layerElement = document.getElementById("state_layer_message");
+//                if (layerElement != null && data.stateMessage != null) {
+//                    layerElement.innerHTML = data.stateMessage;
+//                }
+//            }
+//            // State Height
+//            if (data.heightMessage){
+//                var heightElement = document.getElementById("state_height_message");
+//                if (heightElement != null && data.heightMessage != null) {
+//                    heightElement.innerHTML = data.heightMessage;
+//                }
+//            }
+
 			// Printer Display
             if ( (printerDisplay == null && data.initPrinterDisplay) ||
                   data.initPrinterDisplay){
