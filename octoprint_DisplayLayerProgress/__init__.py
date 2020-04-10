@@ -133,9 +133,13 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         if not len(origLine):
             return None
 
-        # line = origLine.decode('utf-8')
-        line = stringUtils.to_native_str(origLine)
-
+        # line = origLine.decode('utf-8') # convert byte -> str
+        # line = stringUtils.to_native_str(origLine)
+        # print (origLine)
+        if (type(origLine) is bytes):
+            # line = origLine.decode('utf8')
+            # line = origLine.decode('ISO-8859-1')
+            line = stringUtils.to_unicode(origLine, errors="replace")
         line = line.lstrip()
 
         if (len(line) != 0 and line[0] == ";"):
@@ -145,9 +149,14 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
                 if line is not inputLine:
                     # pattern matched, skip other expressions
                     break
-            # line = line.encode('utf-8')
+            # line = line.encode('utf-8')   # convert str -> byte
         else:
             line = origLine
+
+        if (type(origLine) is bytes and type(line) is str):
+            # line = line.encode('utf8')
+            # line = line.encode('ISO-8859-1')
+            line = stringUtils.to_bytes(line, errors="replace")
         return line
 
     def _modifyLineIfLayerComment(self, line, layerExpression):
@@ -1054,7 +1063,8 @@ class DisplaylayerprogressPlugin(
             layerIndicatorAlreadyFound = False
             try:
                 currentLayerNumber = 0
-                with open(selectedFile, "r") as f:
+                # added ISO, see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/126
+                with open(selectedFile, "r", encoding="ISO-8859-1") as f:
                     for line in f:
                         lineNumber += 1
                         layerIndicatorFound = self._extractLayerAndHeightInformation(line, layerNumberPattern, zMaxPattern)
@@ -1085,7 +1095,7 @@ class DisplaylayerprogressPlugin(
 
             except (ValueError, RuntimeError) as error:
                 errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
-                self._logger.error(errorMessage)
+                self._logger.exception(errorMessage)
                 self._eventLogging(errorMessage)
 
             self._deactivateBusyIndicator()

@@ -142,3 +142,14 @@ def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelt
 #seconds = day * 24 * 60 * 60 +  hour * 60 * 60 +  minute * 60  + second
 #print(secondsToText(None, seconds) )
 
+import octoprint.util
+# gcode_line_as_str = "M117 Priming Filamentâ{¦"
+gcode_line_as_bytes = b'M117 Priming Filament\xe2{\xa6\n'
+print (gcode_line_as_bytes)
+
+# gcode_encoded = gcode_line_as_bytes.decode('ISO-8859-1')
+# print (gcode_encoded)
+
+unicode_line = octoprint.util.to_unicode(gcode_line_as_bytes, errors="replace")
+# --> BOOOM: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe2 in position 21: invalid continuation byte
+print(unicode_line)
