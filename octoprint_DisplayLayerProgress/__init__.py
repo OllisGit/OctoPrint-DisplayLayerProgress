@@ -136,10 +136,13 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         # line = origLine.decode('utf-8') # convert byte -> str
         # line = stringUtils.to_native_str(origLine)
         # print (origLine)
-        if (type(origLine) is bytes):
+        isBytesLineForPy3 = type(origLine) is bytes and not (type(origLine) is str)
+        # if (isBytesLineForPy3):
             # line = origLine.decode('utf8')
             # line = origLine.decode('ISO-8859-1')
-            line = stringUtils.to_unicode(origLine, errors="replace")
+            # line = stringUtils.to_unicode(origLine, errors="replace")
+
+        line = stringUtils.to_unicode(origLine, errors="replace")
         line = line.lstrip()
 
         if (len(line) != 0 and line[0] == ";"):
@@ -153,10 +156,15 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         else:
             line = origLine
 
-        if (type(origLine) is bytes and type(line) is str):
+        if (isBytesLineForPy3 and type(line) is str):
             # line = line.encode('utf8')
             # line = line.encode('ISO-8859-1')
             line = stringUtils.to_bytes(line, errors="replace")
+        else:
+            if (isBytesLineForPy3 == False):
+                # do nothing, because we don't modify the line
+                if (type(line) is unicode):
+                    line = stringUtils.to_native_str(line)
         return line
 
     def _modifyLineIfLayerComment(self, line, layerExpression):
@@ -1064,7 +1072,10 @@ class DisplaylayerprogressPlugin(
             try:
                 currentLayerNumber = 0
                 # added ISO, see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/126
-                with open(selectedFile, "r", encoding="ISO-8859-1") as f:
+                # import sys
+                # if (sys.version[0] == '2'):
+                import io
+                with io.open(selectedFile, "r", encoding="ISO-8859-1") as f:
                     for line in f:
                         lineNumber += 1
                         layerIndicatorFound = self._extractLayerAndHeightInformation(line, layerNumberPattern, zMaxPattern)
@@ -1093,7 +1104,7 @@ class DisplaylayerprogressPlugin(
                     # self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="warning", notifyMessage="Layer indicator not found in file! Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
                     self._sendDataToClient(dict(notifyType="warning", notifyMessage="Layer indicator not found in file: '"+selectedFilename+"'<br>Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
 
-            except (ValueError, RuntimeError) as error:
+            except Exception as error:
                 errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
                 self._logger.exception(errorMessage)
                 self._eventLogging(errorMessage)
