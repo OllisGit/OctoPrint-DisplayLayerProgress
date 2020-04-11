@@ -58,6 +58,7 @@ SETTINGS_KEY_DEBUGGING_ENABLED = "debuggingEnabled"
 SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT = "layerAverageDurationCount"
 SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN = "layerAverageFormatPattern"
 SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN = "zMaxExpressionPattern"
+SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET = "sendLayerInformationsViaWebSocket"
 
 
 HEIGHT_METHODE_Z_MAX = "zMax"
@@ -670,6 +671,12 @@ class DisplaylayerprogressPlugin(
         self._totalHeightFormatted = self._formatHeightValue(self._totalHeight)
         self._totalHeightWithExtrusionFormatted = self._formatHeightValue(self._totalHeightWithExtrusion)
 
+        if not self._currentHeightFormatted == NOT_PRESENT:
+            self._currentHeightFormatted += "mm"
+        if not self._totalHeightFormatted == NOT_PRESENT:
+            self._totalHeightFormatted += "mm"
+
+
         ## calculate feedrate
         feedrate = self._calculateFeedrate(self._feedrate)
         feedrateG0 = self._calculateFeedrate(self._feedrateG0)
@@ -788,10 +795,10 @@ class DisplaylayerprogressPlugin(
 
         # the heightMessage-format is fixed
         # heightMessage = self._currentHeight + " / " + self._totalHeight
-        heightMessage = self._currentHeightFormatted + " / " + self._totalHeightFormatted
-        if not self._totalHeight == NOT_PRESENT:
-            heightMessage += "mm"
-        clientMessageDict.update({'heightMessage': heightMessage})
+        # heightMessage = self._currentHeightFormatted + " / " + self._totalHeightFormatted
+        # if not self._totalHeight == NOT_PRESENT:
+        #     heightMessage += "mm"
+        # clientMessageDict.update({'heightMessage': heightMessage})
 
         # showHeightInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR])
         # clientMessageDict.update({'showHeightInStatusBar': showHeightInStatusBar})
@@ -834,36 +841,44 @@ class DisplaylayerprogressPlugin(
         self._sendDataToClient(dict(clientMessageDict))
 
         ##################################################### FIRE EVENT, so that other Plugins could react on the event
+        eventPayload = dict(
+            updateReason=updateReason,
+            totalLayer=self._layerTotalCount,
+            currentLayer=self._currentLayer,
+            lastLayerDuration=self._lastLayerDuration,
+            lastLayerDurationInSeconds=self._lastLayerDurationInSeconds,
+            averageLayerDuration=self._averageLayerDuration,
+            averageLayerDurationInSeconds=self._averageLayerDurationInSeconds,
+            currentHeight=self._currentHeight,
+            currentHeightFormatted=self._currentHeightFormatted,
+            totalHeight=self._totalHeight,
+            totalHeightFormatted=self._totalHeightFormatted,
+            totalHeightWithExtrusion=self._totalHeightWithExtrusion,
+            totalHeightWithExtrusionFormatted=self._totalHeightWithExtrusionFormatted,
+            feedrate=self._feedrate,
+            feedrateG0=self._feedrateG0,
+            feedrateG1=self._feedrateG1,
+            fanspeed=self._fanSpeed,
+            progress=self._progress,
+            printTimeLeft=self._printTimeLeft,
+            printTimeLeftInSeconds=self._printTimeLeftInSeconds,
+            estimatedEndTime=self._currentETA,
+            estimatedChangedFilamentTime=self._filamentChangeETAFormatted,
+            changeFilamentTimeLeft=self._filamentChangeTimeLeftFormatted,
+            changeFilamentTimeLeftInSeconds=self._filamentChangeTimeLeftInSeconds,
+            changeFilamentCount=len(self._m600LayerProcessingList)
+        )
+
         if updateReason is not UPDATE_DISPLAY_REASON_FRONTEND_CALL:
             eventKey = PLUGIN_KEY_PREFIX + updateReason
-            eventPayload = dict(
-                totalLayer = self._layerTotalCount,
-                currentLayer = self._currentLayer,
-                lastLayerDuration = self._lastLayerDuration,
-                lastLayerDurationInSeconds = self._lastLayerDurationInSeconds,
-                averageLayerDuration = self._averageLayerDuration,
-                averageLayerDurationInSeconds = self._averageLayerDurationInSeconds,
-                currentHeight = self._currentHeight,
-                currentHeightFormatted = self._currentHeightFormatted,
-                totalHeight = self._totalHeight,
-                totalHeightFormatted = self._totalHeightFormatted,
-                totalHeightWithExtrusion = self._totalHeightWithExtrusion,
-                totalHeightWithExtrusionFormatted = self._totalHeightWithExtrusionFormatted,
-                feedrate = self._feedrate,
-                feedrateG0 = self._feedrateG0,
-                feedrateG1 = self._feedrateG1,
-                fanspeed = self._fanSpeed,
-                progress =self._progress,
-                printTimeLeft = self._printTimeLeft,
-                printTimeLeftInSeconds = self._printTimeLeftInSeconds,
-                estimatedEndTime = self._currentETA,
-                estimatedChangedFilamentTime = self._filamentChangeETAFormatted,
-                changeFilamentTimeLeft = self._filamentChangeTimeLeftFormatted,
-                changeFilamentTimeLeftInSeconds  = self._filamentChangeTimeLeftInSeconds,
-                changeFilamentCount  = len(self._m600LayerProcessingList)
-            )
             eventManager().fire(eventKey, eventPayload)
+
+        ##################################################### WEBSOCKET
+        if self._settings.get([SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET]):
+            self._plugin_manager.send_plugin_message(self._identifier + "-websocket-payload", eventPayload)
             pass
+
+
 
     def _calculateFeedrate(self, feedrate):
         if feedrate == "-":
@@ -912,7 +927,6 @@ class DisplaylayerprogressPlugin(
             self._lastSendClientData = dataDict
         else:
             self._eventLogging("SEND-CLIENT: not send, because duplicated dict:" + str(dataDict))
-
 
     def _evaluatePrinterMessagePattern(self):
         printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
@@ -1266,7 +1280,8 @@ class DisplaylayerprogressPlugin(
             debuggingEnabled=False,
             layerAverageDurationCount=5,
             layerAverageFormatPattern="{H}h:{M:02}m:{S:02}s",
-            zMaxExpressionPattern=";MAXZ:([0-9]+[.]*[0-9]*).*"
+            zMaxExpressionPattern=";MAXZ:([0-9]+[.]*[0-9]*).*",
+            sendLayerInformationsViaWebSocket=False
         )
 
     # ~~ AssetPlugin mixin

@@ -137,6 +137,7 @@ Plugin sends the following custom events to the eventbus like this:
 **Payload**
 ```javascript
  {
+   'updateReason', // values: frontEndCall, heightChanged, progressChanged, layerChanged, feedrateChanged, fanspeedChanged
    'totalLayer':'66',
    'currentLayer':'22',
    'currentHeight':'6.80',
@@ -163,7 +164,7 @@ Plugin sends the following custom events to the eventbus like this:
    'changeFilamentCount': 2
  }
 ```
-Other Plugins could listen to this events like this:
+Other Plugins could listen to this events in there python-code like this:
 
     eventmanager.subscribe("DisplayLayerProgress_layerChanged", self._myEventListener)
 
@@ -172,3 +173,16 @@ or use `octoprint.plugin.EventHandlerPlugin` with something like this:
     def on_event(self, event, payload):
         if event == "DisplayLayerProgress_layerChanged":
             ## do something usefull
+
+## WebSocket
+If enabled in the plugin-settings the above event-payload is also send via websocket to the client.
+
+Other Plugins could listen to this events in there javascript-code like this:
+```javascript
+self.onDataUpdaterPluginMessage = function (plugin, data) {
+
+    if (plugin == "DisplayLayerProgress-websocket-payload") {
+        // .. do somethig useful with the data
+        return;
+    }
+```
