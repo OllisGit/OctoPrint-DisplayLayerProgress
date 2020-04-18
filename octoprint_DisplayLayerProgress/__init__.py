@@ -79,7 +79,7 @@ zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
 EXTRUSION_EXPRESSION = "G[0|1] .*E[+]*([0-9]+[.]*[0-9]*).*"
 extrusionPattern = re.compile(EXTRUSION_EXPRESSION)
 # Match feedrate
-FEEDRATE_EXPRESSION = "^G[0|1] .*F(\d*\.?\d*).*"
+FEEDRATE_EXPRESSION = "^G[0|1] .*F(\d+\.?\d*).*"
 feedratePattern = re.compile(FEEDRATE_EXPRESSION)
 
 # Match Fan speed
@@ -671,10 +671,10 @@ class DisplaylayerprogressPlugin(
         self._totalHeightFormatted = self._formatHeightValue(self._totalHeight)
         self._totalHeightWithExtrusionFormatted = self._formatHeightValue(self._totalHeightWithExtrusion)
 
-        if not self._currentHeightFormatted == NOT_PRESENT:
-            self._currentHeightFormatted += "mm"
-        if not self._totalHeightFormatted == NOT_PRESENT:
-            self._totalHeightFormatted += "mm"
+        # if not self._currentHeightFormatted == NOT_PRESENT:
+        #     self._currentHeightFormatted += "mm"
+        # if not self._totalHeightFormatted == NOT_PRESENT:
+        #     self._totalHeightFormatted += "mm"
 
 
         ## calculate feedrate
@@ -1246,7 +1246,7 @@ class DisplaylayerprogressPlugin(
             addLayerIndicators=True,
             showAllPrinterMessages=True,
             stateMessagePattern=
-                                "<span title='Might be inaccurate!'>Current Height</span>: <strong id='state_height_message'>[current_height] / [total_height]</strong>\n" +
+                                "<span title='Might be inaccurate!'>Current Height</span>: <strong id='state_height_message'>[current_height] / [total_height]mm</strong>\n" +
                                 "<i class='fa fa-spinner fa-spin dlp-state-busyIndicator' style='display:none'></i>\n" +
                                 "<br>\n" +
                                 "<span title='Shows the layer information'>Layer</span>: <strong id='state_layer_message'>[current_layer] / [total_layers]</strong>\n" +
@@ -1281,7 +1281,7 @@ class DisplaylayerprogressPlugin(
             layerAverageDurationCount=5,
             layerAverageFormatPattern="{H}h:{M:02}m:{S:02}s",
             zMaxExpressionPattern=";MAXZ:([0-9]+[.]*[0-9]*).*",
-            sendLayerInformationsViaWebSocket=False
+            sendLayerInformationsViaWebSocket=True
         )
 
     # ~~ AssetPlugin mixin
