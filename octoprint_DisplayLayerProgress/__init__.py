@@ -325,7 +325,7 @@ class DisplaylayerprogressPlugin(
                                                         LayerDetectorFileProcessor(fileStream, self._allLayerExpressions, self._logger)
                                                         )
 
-    # eval current layer from modified g-code (comm.sending_tread)
+    # eval current layer from modified g-code (comm.sending_tread, comm._monitor)
     def sendingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         # needed to handle non utf-8 characters
         # commandAsString = cmd.encode('ascii', 'ignore')
@@ -1333,7 +1333,8 @@ def __plugin_load__():
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
         #"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
-        "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.sendingGCodeHook,
+        "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.sendingGCodeHook,
+        # "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.sendingGCodeHook,
         "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook
         # "octoprint.filemanager.preprocessor": __plugin_implementation__.createFilePreProcessor
     }
