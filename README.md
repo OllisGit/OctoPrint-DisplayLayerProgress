@@ -50,7 +50,9 @@ The implementation is based on four steps:
 1. PreProcessing the selected G-Code during upload (replace layer-comment with M117 indicator G-Code)
 2. Read total layer and height count from G-Code before start (used last layer-comment)
 3. G-Code-hook to collect the current layer information (M117-command from step 1)
-4. Progress-Hook to write all information to the printer/navbar/browserTitle
+4. Progress-Hook to send all information to the printer/navbar/browserTitle
+
+A more detailed technical description could be found in this wiki-page: [How-does-the-plugin-works](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/wiki/How-does-the-plugin-works)
 
 If you receive a popup message: "Layer indicator not found in file!", then check Layer-Indicator comments in the layer-settings section against your g-code.
 If you adjust the layer expression, then you need to reupload your g-code file again.

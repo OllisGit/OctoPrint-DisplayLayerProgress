@@ -169,10 +169,13 @@
                         or you can use <code>count</code>, if the layer-value needs to be calculatetd by the plugin (e.g. KISSlicer).
                     </div>
                     <br/>
-                    <textarea id="layerExpressionTextArea" rows="4" style="width:90%"  data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerExpressions, enable: settingsViewModel.settings.plugins.DisplayLayerProgress.addLayerIndicators">
+                    <textarea id="layerExpressionTextArea" rows="5" style="width:90%"  data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerExpressions, enable: settingsViewModel.settings.plugins.DisplayLayerProgress.addLayerIndicators">
 1		[;LAYER:([0-9]+).*]		CURA
 1		[; layer ([0-9]+),.*]	Simplify3D
-count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer</textarea>
+count	[; BEGIN_LAYER_OBJECT.*]	KISSlicer
+empty
+empty
+                    </textarea>
                     <div class="help-block">
                         <font color="red">After changing the layer-expression you need to upload your model again!</font>
                         <br/>

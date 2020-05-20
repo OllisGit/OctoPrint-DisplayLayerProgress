@@ -326,37 +326,35 @@ class DisplaylayerprogressPlugin(
                                                         )
 
     # eval current layer from modified g-code (comm.sending_tread, comm._monitor)
-    def sendingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
+    def queuingGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         # needed to handle non utf-8 characters
         # commandAsString = cmd.encode('ascii', 'ignore')
         # commandAsString = octoprint.util.to_native_str(cmd)
         commandAsString = stringUtils.to_native_str(cmd)
 
-        self._eventLogging("SENDING-HOOK: " + commandAsString)
+        self._eventLogging("QUEUING-HOOK: " + commandAsString)
         # prevent double messages
         if commandAsString.startswith("M117"):
             if self._lastM117Command == commandAsString:
                 # filter double M117 commands
-                self._eventLogging("SENDING-HOOK DROP COMMAND: " + commandAsString)
+                self._eventLogging("QUEUING-HOOK DROP COMMAND: " + commandAsString)
                 return []
             else:
                 self._lastM117Command = commandAsString
+
+        # add to queue for async-processing
+        self._sendingGCodeHookCommandQueue.addToQueue(commandAsString)
+
+        # layer
+        if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
+            # filter M117 indicator-command, not needed any more
+            return []
 
         # movement type
         if "G90" == gcode:
             self._movementMode = MOVEMENT_ABSOLUTE
         if "G91" == gcode:
             self._movementMode = MOVEMENT_RELATIVE
-
-
-        # layer
-        if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
-            self._sendingGCodeHookCommandQueue.addToQueue(commandAsString)
-            # filter M117 indicator-command, not needed any more
-            return []
-
-        # add to queue for async-processing
-        self._sendingGCodeHookCommandQueue.addToQueue(commandAsString)
 
 
         # # layer
@@ -640,12 +638,12 @@ class DisplaylayerprogressPlugin(
                               )
         pass
 
-    def _updateDisplay(self, updateReason):
-        # self._updateDisplayCommandQueue.addToQueue(updateReason)
-        self._updateDisplayWorkerMethod(updateReason)
-
     def _updateDisplayWorkerMethod(self, updateReason):
+        # self._updateDisplayCommandQueue.addToQueue(updateReason)
+        self._updateDisplay(updateReason)
+        pass
 
+    def _updateDisplay(self, updateReason):
         self._eventLogging("UPDATE DISPLAY: " + updateReason)
 
         currentData = self._printer.get_current_data()
@@ -1047,7 +1045,8 @@ class DisplaylayerprogressPlugin(
         self._progress = str(progress)
 
         # logging for debugging self._logger.info("**** print_progress: '" + self._progress + "'")
-        self._updateDisplay(UPDATE_DISPLAY_REASON_PROGRESS_CHANGED)
+        # self._updateDisplay(UPDATE_DISPLAY_REASON_PROGRESS_CHANGED)
+        self._updateDisplayCommandQueue.addToQueue(UPDATE_DISPLAY_REASON_PROGRESS_CHANGED)
 
     # start/stop event-hook
     def on_event(self, event, payload):
@@ -1170,7 +1169,7 @@ class DisplaylayerprogressPlugin(
 
         elif event == Events.CLIENT_OPENED or event == Events.SETTINGS_UPDATED:
             self._initDesktopPinterDisplay()
-            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+            self._updateDisplayCommandQueue.addToQueue(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         self._eventLogging("EVENT processed::" + event)
 
@@ -1332,8 +1331,9 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = {
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
+        # https://docs.octoprint.org/en/master/plugins/hooks.html#octoprint-comm-protocol-gcode-phase
         #"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
-        "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.sendingGCodeHook,
+        "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
         # "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.sendingGCodeHook,
         "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook
         # "octoprint.filemanager.preprocessor": __plugin_implementation__.createFilePreProcessor
