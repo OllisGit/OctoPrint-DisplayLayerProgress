@@ -29,6 +29,7 @@ $(function () {
 //                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showHeightInStatusBar(data.showHeightInStatusBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.updatePrinterDisplayWhilePrinting(data.updatePrinterDisplayWhilePrinting);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.heightFormat(data.heightFormat);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.etaFormat(data.etaFormat);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFactor(data.feedrateFactor);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.feedrateFormat(data.feedrateFormat);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.debuggingEnabled(data.debuggingEnabled);

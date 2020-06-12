@@ -52,6 +52,7 @@ SETTINGS_KEY_LAYER_OFFSET = "layerOffset"
 SETTINGS_KEY_TOTAL_HEIGHT_METHODE = "totalHeightMethode"
 SETTINGS_KEY_LAYER_EXPRESSIONS = "layerExpressions"
 SETTINGS_KEY_HEIGHT_FORMAT = "heightFormat"
+SETTINGS_KEY_ETA_FORMAT = "etaFormat"
 SETTINGS_KEY_FEEDRATE_FACTOR = "feedrateFactor"
 SETTINGS_KEY_FEEDRATE_FORMAT = "feedrateFormat"
 SETTINGS_KEY_DEBUGGING_ENABLED = "debuggingEnabled"
@@ -331,7 +332,7 @@ class DisplaylayerprogressPlugin(
         # commandAsString = cmd.encode('ascii', 'ignore')
         # commandAsString = octoprint.util.to_native_str(cmd)
         commandAsString = stringUtils.to_native_str(cmd)
-
+        # print("********************** " + commandAsString)
         self._eventLogging("QUEUING-HOOK: " + commandAsString)
         # prevent double messages
         if commandAsString.startswith("M117"):
@@ -657,8 +658,8 @@ class DisplaylayerprogressPlugin(
             # current_time = datetime.today()
             # finish_time = current_time + timedelta(0,self._printTimeLeftInSeconds)
             # self._currentETA = format_time(finish_time, format="short")
-
-            self._currentETA  = time.strftime("%H:%M", time.localtime(time.time() + self._printTimeLeftInSeconds))  #hijacked from displalayer-plugin
+            timeFormat = self._settings.get([SETTINGS_KEY_ETA_FORMAT])
+            self._currentETA  = time.strftime(timeFormat, time.localtime(time.time() + self._printTimeLeftInSeconds))  #hijacked from displalayer-plugin
             pass
         else:
             self._printTimeLeftInSeconds = NOT_PRESENT
@@ -734,7 +735,8 @@ class DisplaylayerprogressPlugin(
 
                 self._filamentChangeTimeLeftInSeconds = layerDuration * layerDiff
                 self._filamentChangeTimeLeftFormatted = stringUtils.secondsToText(self._filamentChangeTimeLeftInSeconds)
-                self._filamentChangeETAFormatted = time.strftime("%H:%M", time.localtime(time.time() + self._filamentChangeTimeLeftInSeconds))
+                timeFormat = self._settings.get([SETTINGS_KEY_ETA_FORMAT])
+                self._filamentChangeETAFormatted = time.strftime(timeFormat, time.localtime(time.time() + self._filamentChangeTimeLeftInSeconds))
 
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
@@ -1150,6 +1152,11 @@ class DisplaylayerprogressPlugin(
             self._initializeEventLogger()
             self._isPrinterRunning = True
             self._logger.info("Printing started. Detailed progress started." + str(payload))
+
+            self._updateDisplayCommandQueue.printJobStarted()
+            self._sentGCodeHookCommandQueue.printJobStarted()
+            self._sendingGCodeHookCommandQueue.printJobStarted()
+
             self._resetCurrentValues()
             # which M600 layers should be processed
             self._m600LayerProcessingList = list(self._m600LayerList)
@@ -1159,6 +1166,10 @@ class DisplaylayerprogressPlugin(
 
         elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
             self._logger.info("Printing stopped. Detailed progress stopped.")
+
+            self._updateDisplayCommandQueue.printJobStopped()
+            self._sentGCodeHookCommandQueue.printJobStopped()
+            self._sendingGCodeHookCommandQueue.printJobStopped()
 
             # send to navbar
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
@@ -1274,6 +1285,7 @@ class DisplaylayerprogressPlugin(
             printerDisplayScreenLocation="\"dir1\": \"up\", \"dir2\": \"right\", \"firstpos1\": 40, \"firstpos2\": 10, \"spacing1\": 0, \"spacing2\": 0",
             printerDisplayWidth="15%",
             heightFormat="{:.1f}",
+            etaFormat="%H:%M",
             feedrateFactor="1.0",
             feedrateFormat="{:.2f}",
             debuggingEnabled=False,

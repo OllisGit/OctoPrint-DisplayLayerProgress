@@ -115,9 +115,16 @@
 </div>
 
 <div class="control-group">
+    <label class="control-label" >Time format (e.g. use %I:%M for 12 Hours)*</label>
+    <div style="float: right;">
+        <input type="text" class="text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.etaFormat"/>
+    </div>
+</div>
+
+<div class="control-group">
     <label class="control-label">&nbsp;</label>
     <div class="controls">
-        <p style="float: right;">*Format pattern: Date-Format look <a target="_newTab" href="https://stackoverflow.com/questions/538666/python-format-timedelta-to-string#42320260">here</a>. Number-Format look <a target="_newTab" href="https://trinket.io/python/1f22413094">here</a></p>
+        <p style="float: right;">*Format pattern: Date-Format look <a target="_newTab" href="https://stackoverflow.com/questions/538666/python-format-timedelta-to-string#42320260">here</a> and <a target="_newTab" href="https://www.programiz.com/python-programming/datetime/strftime#format-code">here</a>. Number-Format look <a target="_newTab" href="https://trinket.io/python/1f22413094">here</a></p>
     </div>
 </div>
 
