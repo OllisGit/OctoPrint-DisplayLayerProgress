@@ -869,15 +869,21 @@ class DisplaylayerprogressPlugin(
             changeFilamentCount=len(self._m600LayerProcessingList)
         )
 
-        if updateReason is not UPDATE_DISPLAY_REASON_FRONTEND_CALL:
-            eventKey = PLUGIN_KEY_PREFIX + updateReason
-            eventManager().fire(eventKey, eventPayload)
+        if (self._lastSendEventBusData != eventPayload):
+            if updateReason is not UPDATE_DISPLAY_REASON_FRONTEND_CALL:
+                eventKey = PLUGIN_KEY_PREFIX + updateReason
+                eventManager().fire(eventKey, eventPayload)
 
-        ##################################################### WEBSOCKET
-        if self._settings.get([SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET]):
-            self._plugin_manager.send_plugin_message(self._identifier + "-websocket-payload", eventPayload)
-            pass
+            ##################################################### WEBSOCKET
+            if self._settings.get([SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET]):
+                self._plugin_manager.send_plugin_message(self._identifier + "-websocket-payload", eventPayload)
+                pass
 
+            self._lastSendEventBusData = eventPayload
+        else:
+            self._eventLogging("SEND-EVENTBUS: not send, because duplicated dict:" + str(eventPayload))
+
+    _lastSendEventBusData = dict()
 
 
     def _calculateFeedrate(self, feedrate):
@@ -908,19 +914,24 @@ class DisplaylayerprogressPlugin(
             self._eventLogging(errorMessage)
         return result
 
+    _lastSendPrinterCommand = None
     # printer specific command-manipulation.
     # e.g. ANET E10 cuts the last char from M117-commands, so this helper adds an additional underscore to the message
     def _sendCommandToPrinter(self, command):
-        if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
-            if command.startswith("M117"):
-                command += "_"
-        # logging for debugging print("Send GCode:" + command)
-        self._eventLogging("SEND-COMMAND: "+command)
-        self._printer.commands(command)
+        if (self._lastSendPrinterCommand != command):
 
+            if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
+                if command.startswith("M117"):
+                    command += "_"
+            # logging for debugging print("Send GCode:" + command)
+            self._eventLogging("SEND-COMMAND: "+command)
+            self._printer.commands(command)
+            self._lastSendPrinterCommand = command
+        else:
+            self._eventLogging("SEND-PRINTER: not send, because duplicated command:" + command)
 
     _lastSendClientData = dict()
-    # sends the data-dictonary to the clien/browser
+    # sends the data-dictonary to the client/browser
     def _sendDataToClient(self, dataDict):
         if (self._lastSendClientData != dataDict):
             self._plugin_manager.send_plugin_message(self._identifier, dataDict)
