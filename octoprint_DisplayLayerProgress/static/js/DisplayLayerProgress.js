@@ -15,12 +15,15 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar(data.showOnNavBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay(data.showOnPrinterDisplay);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnBrowserTitle(data.showOnBrowserTitle);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnFileListView(data.showOnFileListView);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showAllPrinterMessages(data.showAllPrinterMessages);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.stateMessagePattern(data.stateMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern(data.navBarMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern(data.printerDisplayMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMessagePattern(data.browserTitleMessagePattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMode(data.browserTitleMode);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.appendActualBedTempBrowserTitle(data.appendActualBedTempBrowserTitle);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.appendTargetBedTempBrowserTitle(data.appendTargetBedTempBrowserTitle);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayScreenLocation(data.printerDisplayScreenLocation);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayWidth(data.printerDisplayWidth);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.addTrailingChar(data.addTrailingChar);
@@ -35,8 +38,10 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.debuggingEnabled(data.debuggingEnabled);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageDurationCount(data.layerAverageDurationCount);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerAverageFormatPattern(data.layerAverageFormatPattern);
-                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.zMaxExpressionPattern(data.zMaxExpressionPattern);
+//                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.zMaxExpressionPattern(data.zMaxExpressionPattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.sendLayerInformationsViaWebSocket(data.sendLayerInformationsViaWebSocket);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.excludeFolders(data.excludeFolders);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.excludeFolderExpression(data.excludeFolderExpression);
         });
 
         var self = this;
@@ -44,14 +49,72 @@ $(function () {
         // assign the injected parameters, e.g.:
         self.loginStateViewModel = parameters[0];
         self.settingsViewModel = parameters[1];
+        self.temperatureModel = parameters[2];
+        self.filesViewModel = parameters[3];
+        self.printerStateViewModel = parameters[4];
+
+        self.temperatureModel.bedTemp.actual.subscribe(function(newValue){
+            self.updateBedTemperatureInBrowserTitle();
+        });
+
+        self.temperatureModel.bedTemp.target.subscribe(function(newValue){
+            self.updateBedTemperatureInBrowserTitle();
+        });
+        self.updateBedTemperatureInBrowserTitle = function(){
+            var temperatureText = ""
+            var doUpdate = false;
+            if (self.settingsViewModel.settings.plugins.DisplayLayerProgress.appendActualBedTempBrowserTitle() == true){
+                temperatureText = Math.round(self.temperatureModel.bedTemp.actual()) + "°C";
+                doUpdate = true;
+            }
+
+            if (self.settingsViewModel.settings.plugins.DisplayLayerProgress.appendTargetBedTempBrowserTitle() == true){
+                if (self.settingsViewModel.settings.plugins.DisplayLayerProgress.appendActualBedTempBrowserTitle() == true){
+                    temperatureText = temperatureText + "/"+ Math.round(self.temperatureModel.bedTemp.target()) + "°C";
+                } else {
+                    temperatureText = temperatureText + Math.round(self.temperatureModel.bedTemp.target()) + "°C";
+                }
+                doUpdate = true;
+            }
+
+            if (doUpdate == true && self.temperatureModel.hasBed() == true){
+                var currentTitle = document.title;
+                if (currentTitle.endsWith("°C")){
+                    var spaceIndex = currentTitle.lastIndexOf(' ');
+                    if (spaceIndex != -1){
+                        currentTitle = currentTitle.substring(0, spaceIndex);
+                    } else {
+                        currentTitle = "";
+                    }
+                }
+                currentTitle = currentTitle + " " + temperatureText;
+                document.title = currentTitle.trim();
+            }
+        }
 
         self.stateMessage = ko.observable();
         self.navBarMessage = ko.observable();
         self.defaultBrowserTitleMessage = "";
 
+
+        self.filesViewModel.getLayerInformation = function(fileItem){
+            if (fileItem.DisplayLayerProgress != null){
+                return parseInt(fileItem.DisplayLayerProgress.totalLayerCountWithoutOffset) + parseInt(self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerOffset());
+            }
+            return "-"
+        }
+
         // startup
         self.onStartup = function () {
-            //alert("hallo");
+//            console(self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerOffset());
+            // get orig file-item html
+            $("#files_template_machinecode").text(function(){
+                var origFileListHtml = $(this).text();
+                var patchedFileItemHtml = origFileListHtml.replace('formatSize(size)"></span></div>', 'formatSize(size)"></span></div>' +
+                                        '<div class="size" data-bind="visible: ($root.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnFileListView() == true)" >Layers: <span data-bind="text: $root.getLayerInformation($data)"></span></div>');
+                return patchedFileItemHtml;
+            });
+
             var element = $("#state").find(".accordion-inner .progress");
             if (element.length) {
                 element.before("<span id='dlp-stateOutputMessage'></span>");
@@ -60,19 +123,6 @@ $(function () {
                     $("#dlp-stateOutputMessage").html(newValue);
                 });
 
-//                var busyIndicator = " <i class='fa fa-spinner fa-spin busyIndicator' style='display:none'></i>";
-//
-//                // height
-//                var label = gettext("Current Height");
-//                var tooltip = gettext("Might be inaccurate!");
-//                element.before("<span id='heightStateOutput' style='display:none'><span title='" + tooltip + "'>" + label + "</span>" + ": "
-//                    + "<strong id='state_height_message'>- / -</strong>"+busyIndicator+"  <br/></span>");
-//                // layer
-//                label = gettext("Layer");
-//                tooltip = gettext("Shows the layer information");
-//                element.before("<span id='layerStateOutput' style='display:none'> <span title='" + tooltip + "'>" + label + "</span>" + ": "
-//                    + "<strong id='state_layer_message'>- / -</strong>"+busyIndicator+"<br/></span>");
-//
 //                // call backend for update navbar and printer-display
                 OctoPrint.get("api/plugin/"+PLUGIN_ID);
             }
@@ -87,6 +137,13 @@ $(function () {
                     document.title = self.defaultBrowserTitleMessage
                 }
             });
+
+//            self.origGetAdditionDataFunction = self.filesViewModel.getAdditionalData;
+//            self.filesViewModel.getAdditionalData = function(data){
+//                var additionDataAsHtml = "Layers: 123<br>" + self.origGetAdditionDataFunction(data);
+//                console.info("hallo");
+//                return additionDataAsHtml;
+//            }
         }
 
         var printerDisplay = null;
@@ -96,6 +153,12 @@ $(function () {
             if (plugin != PLUGIN_ID) {
                 return;
             }
+
+//            if ("reloadFileView" == data.action){
+//                self.filesViewModel.requestData({force: true});
+//                return;
+//            }
+
             if (data.disablePrint){
                 $("#job_print").attr("disabled", "disabled");
                 return
@@ -130,42 +193,11 @@ $(function () {
             // BrowserTitle
             if (data.browserTitle){
                 if (data.browserTitle.browserTitleMode == "overwrite"){
-                    document.title =   data.browserTitle.message;
+                    document.title = data.browserTitle.message;
                 } else {
                     document.title = self.defaultBrowserTitleMessage + " " + data.browserTitle.message;
                 }
             }
-
-            // StatusBar
-            // visibility of height/layer in statebar
-//            if (data.showHeightInStatusBar != null){
-//                if(data.showHeightInStatusBar == true){
-//                    $("#heightStateOutput").show();
-//                } else {
-//                    $("#heightStateOutput").hide();
-//                }
-//            }
-//            if (data.showLayerInStatusBar != null){
-//                if (data.showLayerInStatusBar == true){
-//                    $("#layerStateOutput").show();
-//                } else {
-//                    $("#layerStateOutput").hide();
-//                }
-//            }
-//            // State Layer
-//            if (data.stateMessage){
-//                var layerElement = document.getElementById("state_layer_message");
-//                if (layerElement != null && data.stateMessage != null) {
-//                    layerElement.innerHTML = data.stateMessage;
-//                }
-//            }
-//            // State Height
-//            if (data.heightMessage){
-//                var heightElement = document.getElementById("state_height_message");
-//                if (heightElement != null && data.heightMessage != null) {
-//                    heightElement.innerHTML = data.heightMessage;
-//                }
-//            }
 
 			// Printer Display
             if ( (printerDisplay == null && data.initPrinterDisplay) ||
@@ -209,6 +241,35 @@ $(function () {
         self.onBeforeBinding = function () {
             self.settings = self.settingsViewModel.settings.plugins.DisplayLayerProgress;
             // From server-settings to client-settings
+
+
+
+			self.printerStateViewModel.filepath.subscribe(function(data){
+				if(data){
+					OctoPrint.files.get('local',data)
+						.done(function(file_data){
+//							if(file_data){
+//								if(self.settingsViewModel.settings.plugins.prusaslicerthumbnails.state_panel_thumbnail() && file_data.thumbnail && file_data.thumbnail_src == 'prusaslicerthumbnails'){
+//									if($('#prusalicer_state_thumbnail').length) {
+//										$('#prusalicer_state_thumbnail > img').attr('src', file_data.thumbnail);
+//									} else {
+//										$('#state > div > hr:nth-child(4)').after('<div id="prusalicer_state_thumbnail" class="row-fluid"><img src="'+file_data.thumbnail+'" width="100%"/>\n<hr/></div>');
+//									}
+//								} else {
+//									$('#prusalicer_state_thumbnail').remove();
+//								}
+//							}
+						})
+						.fail(function(file_data){
+//							if($('#prusalicer_state_thumbnail').length) {
+//								$('#prusalicer_state_thumbnail').remove();
+//							}
+						});
+				}
+			});
+
+
+
         };
 
         self.onSettingsBeforeSave = function () {
@@ -222,7 +283,7 @@ $(function () {
     OCTOPRINT_VIEWMODELS.push({
         construct: DisplaylayerprogressViewModel,
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
-        dependencies: ["loginStateViewModel", "settingsViewModel"],
+        dependencies: ["loginStateViewModel", "settingsViewModel", "temperatureViewModel", "filesViewModel", "printerStateViewModel"],
         // Elements to bind to, e.g. #settings_plugin_DisplayLayerProgress, #tab_plugin_DisplayLayerProgress, ...
         //elements: [document.getElementById("progressinfo_plugin_navbar")]
         elements: [

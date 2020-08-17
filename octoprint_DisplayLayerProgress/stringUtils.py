@@ -153,3 +153,12 @@ def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelt
 # unicode_line = octoprint.util.to_unicode(gcode_line_as_bytes, errors="replace")
 # # --> BOOOM: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe2 in position 21: invalid continuation byte
 # print(unicode_line)
+
+# line = ";LAYER:1234"
+# gcode_to_add = "M117 INDICATOR-Layer[layer_num]\n"
+#
+# layerNumber = line[7:]
+# newGcode_to_add = gcode_to_add.replace("[layer_num]", layerNumber, 1)
+#
+# print( layerNumber)
+# print( newGcode_to_add)

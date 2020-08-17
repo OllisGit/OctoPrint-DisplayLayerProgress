@@ -39,6 +39,9 @@ SETTINGS_KEY_SHOW_ON_STATE = "showOnState"
 SETTINGS_KEY_SHOW_ON_NAVBAR = "showOnNavBar"
 SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY = "showOnPrinterDisplay"
 SETTINGS_KEY_SHOW_ON_BROWSER_TITLE = "showOnBrowserTitle"
+SETTINGS_KEY_SHOW_ON_FILELIST_VIEW = "showOnFileListView"
+SETTINGS_KEY_APPEND_ACTUAL_BEDTEMP_TITLE = "appendActualBedTempBrowserTitle"
+SETTINGS_KEY_APPEND_TARGET_BEDTEMP_TITLE = "appendTargetBedTempBrowserTitle"
 SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING = "updatePrinterDisplayWhilePrinting"
 SETTINGS_KEY_STATE_MESSAGEPATTERN = "stateMessagePattern"
 SETTINGS_KEY_NAVBAR_MESSAGEPATTERN = "navBarMessagePattern"
@@ -49,22 +52,31 @@ SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION = "printerDisplayScreenLocation"
 SETTINGS_KEY_PRINTERDISPLAY_WIDTH = "printerDisplayWidth"
 SETTINGS_KEY_ADD_TRAILINGCHAR = "addTrailingChar"
 SETTINGS_KEY_LAYER_OFFSET = "layerOffset"
-SETTINGS_KEY_TOTAL_HEIGHT_METHODE = "totalHeightMethode"
+
+# SETTINGS_KEY_TOTAL_HEIGHT_METHODE = "totalHeightMethode"
+# SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN = "zMaxExpressionPattern"
+
 SETTINGS_KEY_LAYER_EXPRESSIONS = "layerExpressions"
 SETTINGS_KEY_HEIGHT_FORMAT = "heightFormat"
 SETTINGS_KEY_ETA_FORMAT = "etaFormat"
 SETTINGS_KEY_FEEDRATE_FACTOR = "feedrateFactor"
 SETTINGS_KEY_FEEDRATE_FORMAT = "feedrateFormat"
+
 SETTINGS_KEY_DEBUGGING_ENABLED = "debuggingEnabled"
+
 SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT = "layerAverageDurationCount"
 SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN = "layerAverageFormatPattern"
-SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN = "zMaxExpressionPattern"
+
 SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET = "sendLayerInformationsViaWebSocket"
 
+SETTINGS_KEY_EXCLUDE_FOLDERS = "excludeFolders"
+SETTINGS_KEY_EXCLUDE_FOLDERS_EXPRESSION = "excludeFoldersExpression"
 
-HEIGHT_METHODE_Z_MAX = "zMax"
-HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
-HEIGHT_METHODE_Z_EXPRESSION = "zExpression"
+
+
+# HEIGHT_METHODE_Z_MAX = "zMax"
+# HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
+# HEIGHT_METHODE_Z_EXPRESSION = "zExpression"
 
 NOT_PRESENT = "-"
 LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
@@ -77,8 +89,8 @@ Z_HEIGHT_EXPRESSION = "^[^;]*G[0|1](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
 zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
 
 # Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
-EXTRUSION_EXPRESSION = "G[0|1] .*E[+]*([0-9]+[.]*[0-9]*).*"
-extrusionPattern = re.compile(EXTRUSION_EXPRESSION)
+# EXTRUSION_EXPRESSION = "G[0|1] .*E[+]*([0-9]+[.]*[0-9]*).*"
+# extrusionPattern = re.compile(EXTRUSION_EXPRESSION)
 # Match feedrate
 FEEDRATE_EXPRESSION = "^G[0|1] .*F(\d+\.?\d*).*"
 feedratePattern = re.compile(FEEDRATE_EXPRESSION)
@@ -128,8 +140,8 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
     def __init__(self, fileBufferedReader, allLayerExpressions, logger):
         super(LayerDetectorFileProcessor, self).__init__(fileBufferedReader)
         self._allLayerExpressions = allLayerExpressions
-        self._currentLayerCount = 0
         self._logger = logger
+        self.currentLayerCount = 0
 
     def process_line(self, origLine):
         if not len(origLine):
@@ -174,12 +186,15 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         matched = pattern.match(line)
         if matched:
             groupIndex = layerExpression.groupIndex
+            self.currentLayerCount = self.currentLayerCount + 1
             if layerExpression.type_countable:
-                self._currentLayerCount = self._currentLayerCount + 1
-                currentLayer = str(self._currentLayerCount)
+                # just use the layerCounter
+                currentLayer = str(self.currentLayerCount)
             else:
+                # read layer number from line
                 currentLayer = str(matched.group(groupIndex))
             line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
+
         return line
 
 
@@ -195,16 +210,16 @@ class DisplaylayerprogressPlugin(
     octoprint.plugin.BlueprintPlugin
 ):
     # VAR
-    _tempCurrentHeightFromFile = 0.0
-    _tempCurrentTotalHeight = 0.0
+    # _tempCurrentHeightFromFile = 0.0
+    # _tempCurrentTotalHeight = 0.0
     _currentLayerCount = 0
-    _layerTotalCount = NOT_PRESENT
+    _layerTotalCountWithoutOffset = NOT_PRESENT
     _currentLayer = NOT_PRESENT
     _progress = str(0)
     _currentHeight = NOT_PRESENT
     _totalHeight = NOT_PRESENT
-    _totalHeightWithExtrusion = NOT_PRESENT # DEPRECATED will be skiped in next release
-    _totalHeightFromExpression = NOT_PRESENT
+    # _totalHeightWithExtrusion = NOT_PRESENT # DEPRECATED will be skiped in next release
+    # _totalHeightFromExpression = NOT_PRESENT
     _feedrate = NOT_PRESENT
     _feedrateG0 = NOT_PRESENT
     _feedrateG1 = NOT_PRESENT
@@ -247,7 +262,7 @@ class DisplaylayerprogressPlugin(
         self._currentHeightFloat = 0.0
         self._currentHeightFormatted = NOT_PRESENT
         self._totalHeightFormatted = NOT_PRESENT
-        self._totalHeightWithExtrusionFormatted = NOT_PRESENT
+        # self._totalHeightWithExtrusionFormatted = NOT_PRESENT
 
         self._filamentChangeTimeLeftInSeconds = 0
         self._filamentChangeTimeLeftFormatted = NOT_PRESENT
@@ -267,7 +282,7 @@ class DisplaylayerprogressPlugin(
         # prepare expression-settings
         self._evaluatePrinterMessagePattern()
         self._parseLayerExpressions(self._settings.get([SETTINGS_KEY_LAYER_EXPRESSIONS]))
-
+        self._layerDetectorFileProcessor = None
 
     def _initializeEventLogger(self):
         # setup our custom logger
@@ -322,8 +337,9 @@ class DisplaylayerprogressPlugin(
         self._logger.info("FilePreProcessor. LayerExpression valid. Start processing...")
         fileStream = file_object.stream()
 
+        self._layerDetectorFileProcessor = LayerDetectorFileProcessor(fileStream, self._allLayerExpressions, self._logger)
         return octoprint.filemanager.util.StreamWrapper(fileName,
-                                                        LayerDetectorFileProcessor(fileStream, self._allLayerExpressions, self._logger)
+                                                        self._layerDetectorFileProcessor
                                                         )
 
     # eval current layer from modified g-code (comm.sending_tread, comm._monitor)
@@ -356,65 +372,6 @@ class DisplaylayerprogressPlugin(
             self._movementMode = MOVEMENT_ABSOLUTE
         if "G91" == gcode:
             self._movementMode = MOVEMENT_RELATIVE
-
-
-        # # layer
-        # if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
-        #
-        #     layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
-        #     self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + layerOffset)
-        #
-        #     ## calculate time of layer printing
-        #     layerDuration = 0
-        #     currentTime =  datetime.now()
-        #     if self._startLayerTime is not None:
-        #         layerDuration = currentTime - self._startLayerTime
-        #
-        #     self._layerDurationDeque.append(layerDuration)
-        #     self._startLayerTime = currentTime
-        #
-        #     self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
-        #     # filter M117 indicator-command, not needed any more
-        #     return []
-        #
-        # # Z-Height
-        # matched = zHeightPattern.match(commandAsString)
-        # if matched:
-        #     zHeight = float(matched.group(3))
-        #     if self._movementMode == MOVEMENT_RELATIVE:
-        #         self._currentHeightFloat = self._currentHeightFloat + zHeight
-        #     else:
-        #         self._currentHeightFloat = zHeight
-        #
-        #     self._currentHeight = "%.2f" % self._currentHeightFloat
-        #     self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
-        # # feedrate
-        # matched = feedratePattern.match(commandAsString)
-        # if matched:
-        #     feedrate = matched.group(1)
-        #     self._feedrate = feedrate
-        #     if commandAsString.startswith('G0'):
-        #         self._feedrateG0 = feedrate
-        #     if commandAsString.startswith('G1'):
-        #         self._feedrateG1 = feedrate
-        #     self._updateDisplay(UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED)
-        # # fanspeed
-        # matched = fanSpeedPattern.match(commandAsString)
-        # if matched:
-        #     fanSpeedText = matched.group(1)
-        #     fanSpeed = float(fanSpeedText)
-        #     if fanSpeed == 0:
-        #         self._fanSpeed = 'Off'
-        #     else:
-        #         speedFloat = float(fanSpeedText)*100.0/255.0
-        #         speed = int(round(speedFloat))
-        #         self._fanSpeed = str(speed) + '%'
-        #     self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
-        # matched = fanOffPattern.match(commandAsString)
-        # if matched:
-        #     self._fanSpeed = 'Off'
-        #     self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
-        #
         return
 
     # do the stuff in async-way
@@ -516,37 +473,61 @@ class DisplaylayerprogressPlugin(
     #################################################################################################### PRIVATE METHODS
 
     # method reads layer/height informations from selected file
-    def _extractLayerAndHeightInformation(self, line, layerNumberPattern, zMaxPattern):
+    # def _extractLayerAndHeightInformation(self, line, layerNumberPattern, zMaxPattern):
+    def _extractLayerInformation(self, line, layerNumberPattern):
         result = False
         ## Layer evaluation
         matched = layerNumberPattern.match(line)  # identify layer count
         if matched:
             # self._logger.info("Layer indicator found")
             result = True
-            layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
-            self._layerTotalCount = str(int(matched.group(1)) + layerOffset)
+            # layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+            # self._layerTotalCountWithoutOffset = str(int(matched.group(1)) + layerOffset)
+            self._layerTotalCountWithoutOffset = int(matched.group(1))
             # self._logger.info("Count '"+self._layerTotalCount+"'")
 
+        # movement type
+        # if (line.startswith("G90")):
+        #     self._movementMode = MOVEMENT_ABSOLUTE
+        #     self._currentRelativeHeight = self._tempCurrentHeightFromFile
+        # if (line.startswith("G91")):
+        #     self._movementMode = MOVEMENT_RELATIVE
+
+
         ## Height evaluation
-        matched = zHeightPattern.match(line)
-        if matched:
-            # don't count on negativ extrusion, see issue #76
-            if ("E-" in line) == False:
-                self._tempCurrentHeightFromFile = float(matched.group(3))
-                if self._tempCurrentHeightFromFile  > self._tempCurrentTotalHeight:
-                    self._tempCurrentTotalHeight = self._tempCurrentHeightFromFile
-
-        matched = extrusionPattern.match(line)
-        if matched:
-            self._totalHeightWithExtrusion = str(self._tempCurrentHeightFromFile )
-
-        matched = zMaxPattern.match(line)
-        if matched:
-            self._totalHeightFromExpression = str(matched.group(1))
+        # Z_HEIGHT_EXPRESSION = "^[^;]*G[0|1](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
+        # G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
+        # matched = zHeightPattern.match(line)
+        # if matched:
+        #     # don't count on negativ extrusion, see issue #76
+        #     # if ("E-" in line) == False:
+        #     heightFromFile = float(matched.group(3))
+        #     # if (self._movementMode == MOVEMENT_RELATIVE):
+        #     #     self._tempCurrentHeightFromFile = self._tempCurrentHeightFromFile + heightFromFile
+        #     # else:
+        #     self._tempCurrentHeightFromFile = heightFromFile
+        #     if self._tempCurrentHeightFromFile  > self._tempCurrentTotalHeight:
+        #         self._tempCurrentTotalHeight = self._tempCurrentHeightFromFile
+        #
+        # matched = extrusionPattern.match(line)
+        # if matched:
+        #     self._totalHeightWithExtrusion = str(self._tempCurrentHeightFromFile )
+        #
+        # matched = zMaxPattern.match(line)
+        # if matched:
+        #     self._totalHeightFromExpression = str(matched.group(1))
 
         return result
 
+    def _getTotalLayerCountAsString(self):
+        if (self._layerTotalCountWithoutOffset == NOT_PRESENT):
+            return self._layerTotalCountWithoutOffset
+
+        layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+        return str(self._layerTotalCountWithoutOffset + layerOffset)
+
     def _resetCurrentValues(self):
+
         self._currentLayer = NOT_PRESENT
         self._progress = str(0)
         self._currentETA = NOT_PRESENT
@@ -564,12 +545,14 @@ class DisplaylayerprogressPlugin(
         self._filamentChangeTimeLeftFormatted = NOT_PRESENT
         self._filamentChangeETAFormatted = NOT_PRESENT
 
+        self._movementMode = MOVEMENT_ABSOLUTE
+
 
     def _resetTotalValues(self):
-        self._layerTotalCount = NOT_PRESENT
+        self._layerTotalCountWithoutOffset = NOT_PRESENT
         self._totalHeight = NOT_PRESENT
-        self._totalHeightWithExtrusion = NOT_PRESENT
-        self._totalHeightFromExpression = NOT_PRESENT
+        # self._totalHeightWithExtrusion = NOT_PRESENT
+        # self._totalHeightFromExpression = NOT_PRESENT
 
     def _activateBusyIndicator(self):
         # self._plugin_manager.send_plugin_message(self._identifier, dict(busy=True))
@@ -668,7 +651,7 @@ class DisplaylayerprogressPlugin(
         ## formate height values
         self._currentHeightFormatted = self._formatHeightValue(self._currentHeight)
         self._totalHeightFormatted = self._formatHeightValue(self._totalHeight)
-        self._totalHeightWithExtrusionFormatted = self._formatHeightValue(self._totalHeightWithExtrusion)
+        # self._totalHeightWithExtrusionFormatted = self._formatHeightValue(self._totalHeightWithExtrusion)
 
         # if not self._currentHeightFormatted == NOT_PRESENT:
         #     self._currentHeightFormatted += "mm"
@@ -741,7 +724,7 @@ class DisplaylayerprogressPlugin(
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
-            TOTAL_LAYER_KEYWORD_EXPRESSION: self._layerTotalCount,
+            TOTAL_LAYER_KEYWORD_EXPRESSION: self._getTotalLayerCountAsString(),
             # CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeight,
             CURRENT_HEIGHT_KEYWORD_EXPRESSION: self._currentHeightFormatted,
             # TOTAL_HEIGHT_KEYWORD_EXPRESSION: self._totalHeight,
@@ -843,7 +826,7 @@ class DisplaylayerprogressPlugin(
         ##################################################### FIRE EVENT, so that other Plugins could react on the event
         eventPayload = dict(
             updateReason=updateReason,
-            totalLayer=self._layerTotalCount,
+            totalLayer=self._getTotalLayerCountAsString(),
             currentLayer=self._currentLayer,
             lastLayerDuration=self._lastLayerDuration,
             lastLayerDurationInSeconds=self._lastLayerDurationInSeconds,
@@ -853,8 +836,8 @@ class DisplaylayerprogressPlugin(
             currentHeightFormatted=self._currentHeightFormatted,
             totalHeight=self._totalHeight,
             totalHeightFormatted=self._totalHeightFormatted,
-            totalHeightWithExtrusion=self._totalHeightWithExtrusion,
-            totalHeightWithExtrusionFormatted=self._totalHeightWithExtrusionFormatted,
+            # totalHeightWithExtrusion=self._totalHeightWithExtrusion,
+            # totalHeightWithExtrusionFormatted=self._totalHeightWithExtrusionFormatted,
             feedrate=self._feedrate,
             feedrateG0=self._feedrateG0,
             feedrateG1=self._feedrateG1,
@@ -1009,9 +992,10 @@ class DisplaylayerprogressPlugin(
     def get_displayLayerProgressValues(self):
 
         # return data via the default API endpoint
+        layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
         return flask.jsonify({
             "layer": {
-                "total": self._layerTotalCount,
+                "total": self._getTotalLayerCountAsString(),
                 "current": self._currentLayer,
                 "averageLayerDuration": self._averageLayerDuration,
                 "averageLayerDurationInSeconds": self._averageLayerDurationInSeconds,
@@ -1020,10 +1004,8 @@ class DisplaylayerprogressPlugin(
             },
             "height": {
                 "total": self._totalHeight,
-                "totalWithExtrusion": self._totalHeightWithExtrusion,  # DEPRECATED
                 "current": self._currentHeight,
                 "totalFormatted": self._totalHeightFormatted,
-                "totalWithExtrusionFormatted": self._totalHeightWithExtrusionFormatted, # DEPRECATED
                 "currentFormatted": self._currentHeightFormatted
             },
             "fanSpeed": self._fanSpeed,
@@ -1047,7 +1029,6 @@ class DisplaylayerprogressPlugin(
     # start up the system
     def on_after_startup(self):
         # check if needed plugins were available
-
         # make sure that my layer preprocessor is always the last processor
         preProcessorHooksOrderedDic = self._file_manager._preprocessor_hooks
         preProcessorHooksOrderedDic[self._identifier] = __plugin_implementation__.createFilePreProcessor
@@ -1056,7 +1037,7 @@ class DisplaylayerprogressPlugin(
     def on_print_progress(self, storage, path, progress):
         # progress 0 - 100
         self._progress = str(progress)
-
+        self._eventLogging("ON_PRINT_PROGRESS: " + self._progress)
         # logging for debugging self._logger.info("**** print_progress: '" + self._progress + "'")
         # self._updateDisplay(UPDATE_DISPLAY_REASON_PROGRESS_CHANGED)
         self._updateDisplayCommandQueue.addToQueue(UPDATE_DISPLAY_REASON_PROGRESS_CHANGED)
@@ -1065,92 +1046,120 @@ class DisplaylayerprogressPlugin(
     def on_event(self, event, payload):
         self._eventLogging("EVENT: " + event)
 
+        if event == Events.METADATA_ANALYSIS_FINISHED:
+            # after the fileProcessor is done a METADATA_ANALYSIS_FINISHED event is fired
+            fileLocation = payload.get("origin")
+            selectedFilename = payload.get("path")
+
+            self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerDetectorFileProcessor.currentLayerCount)
+
         if event == Events.FILE_SELECTED:
             self._initializeEventLogger()
+            fileLocation = payload.get("origin")
             selectedFilename = payload.get("path")
-            selectedFile = self._file_manager.path_on_disk(payload.get("origin"), selectedFilename)
+            selectedFile = self._file_manager.path_on_disk(fileLocation, selectedFilename)
             self._logger.info("File '" + selectedFile + "' selected. Determining number of layers.")
             self._resetCurrentValues()
             self._resetTotalValues()
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
-            markerLayerCount = LAYER_COUNT_EXPRESSION
-            layerNumberPattern = re.compile(markerLayerCount)
+            skipLayerDetection = False
 
-            zMaxPattern = re.compile(self._settings.get([SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN]))
+            # is it an excluded file that shoul not be analysed?
+            if (self._settings.get_boolean([SETTINGS_KEY_EXCLUDE_FOLDERS]) == True):
+                excludeFolderExpression = self._settings.get([SETTINGS_KEY_EXCLUDE_FOLDERS_EXPRESSION])
+                excludedFilenamePattern = re.compile(excludeFolderExpression)
+                matched = excludedFilenamePattern.match(selectedFilename)
+                if (matched):
+                    self._logger.info("File '" + selectedFile + "' is excluded from layer analyse.")
+                    skipLayerDetection = True
 
-            self._currentLayerCount = 0
-            self._tempCurrentHeightFromFile = 0.0
-            self._tempCurrentTotalHeight = 0.0
-            self._nextM600Layer = 0
-            self._m600LayerList = list()
-            self._m600LayerProcessingList = list()
+            if (skipLayerDetection == False):
+                markerLayerCount = LAYER_COUNT_EXPRESSION
+                layerNumberPattern = re.compile(markerLayerCount)
 
-            self._filamentChangeTimeLeftInSeconds = 0
-            self._filamentChangeTimeLeftFormatted = NOT_PRESENT
-            self._filamentChangeETAFormatted = NOT_PRESENT
+                # zMaxPattern = re.compile(self._settings.get([SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN]))
 
-            lineNumber = 0
+                self._currentLayerCount = 0
+                # self._tempCurrentHeightFromFile = 0.0
+                # self._tempCurrentTotalHeight = 0.0
+                self._nextM600Layer = 0
+                self._m600LayerList = list()
+                self._m600LayerProcessingList = list()
 
-            self._activateBusyIndicator()
+                self._filamentChangeTimeLeftInSeconds = 0
+                self._filamentChangeTimeLeftFormatted = NOT_PRESENT
+                self._filamentChangeETAFormatted = NOT_PRESENT
 
-            layerIndicatorAlreadyFound = False
-            try:
-                currentLayerNumber = 0
-                # added ISO, see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/126
-                # import sys
-                # if (sys.version[0] == '2'):
-                import io
-                with io.open(selectedFile, "r", encoding="ISO-8859-1") as f:
-                    for line in f:
-                        lineNumber += 1
-                        layerIndicatorFound = self._extractLayerAndHeightInformation(line, layerNumberPattern, zMaxPattern)
+                lineNumber = 0
+                self._activateBusyIndicator()
 
-                        if (layerIndicatorFound == True and layerIndicatorAlreadyFound == False):
-                            layerIndicatorAlreadyFound = True
-                            logMessage = "First LayerIndicator found in line '"+str(lineNumber)+"'"
-                            #self._logger.info(logMessage)
-                            self._eventLogging(logMessage)
+                # check FileMeta for totalHeight
+                self._readHeightFromFileMeta(fileLocation, selectedFilename)
 
-                        if (layerIndicatorFound == True):
-                            currentLayerNumber = self._layerTotalCount
-                        else:
-                            # check for M600 filament change
-                            matched = m600Pattern.match(line)  # identify layer count
-                            if matched:
-                                # filemant change detected
-                                self._m600LayerList.append(int(currentLayerNumber))
+                layerIndicatorAlreadyFound = False
 
+                try:
+                    currentLayerNumber = 0
+                    # added ISO, see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/126
+                    # import sys
+                    # if (sys.version[0] == '2'):
+                    import io
+                    with io.open(selectedFile, "r", encoding="ISO-8859-1") as f:
+                        for line in f:
+                            lineNumber += 1
+                            # layerIndicatorFound = self._extractLayerAndHeightInformation(line, layerNumberPattern, zMaxPattern)
+                            layerIndicatorFound = self._extractLayerInformation(line, layerNumberPattern)
 
-                if (layerIndicatorAlreadyFound == False):
-                    logMessage = "No LayerIndicator found!!!"
-                    self._logger.warn(logMessage)
-                    self._eventLogging(logMessage)
-                    # inform user
-                    # self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="warning", notifyMessage="Layer indicator not found in file! Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
-                    self._sendDataToClient(dict(notifyType="warning", notifyMessage="Layer indicator not found in file: '"+selectedFilename+"'<br>Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
+                            if (layerIndicatorFound == True and layerIndicatorAlreadyFound == False):
+                                layerIndicatorAlreadyFound = True
+                                logMessage = "First LayerIndicator found in line '"+str(lineNumber)+"'"
+                                #self._logger.info(logMessage)
+                                self._eventLogging(logMessage)
 
-            except Exception as error:
-                errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
-                self._logger.exception(errorMessage)
-                self._eventLogging(errorMessage)
+                            if (layerIndicatorFound == True):
+                                currentLayerNumber = self._layerTotalCountWithoutOffset
+                            else:
+                                # check for M600 filament change
+                                matched = m600Pattern.match(line)  # identify layer count
+                                if matched:
+                                    # filemant change detected
+                                    layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+                                    self._m600LayerList.append(currentLayerNumber + layerOffset)
 
-            self._deactivateBusyIndicator()
-            # Height values are evaluated. Depending on the ZMode, assign value to final totalHeight-Variable
-            if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
-                self._totalHeight = str("%.2f" % self._tempCurrentTotalHeight)
-            elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXTRUSION:
-                if not self._totalHeightWithExtrusion == NOT_PRESENT:
-                    self._totalHeight = str("%.2f" % float(self._totalHeightWithExtrusion))
-                else:
-                    self._totalHeight = NOT_PRESENT
-            elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXPRESSION:
-                if not self._totalHeightFromExpression == NOT_PRESENT:
-                    self._totalHeight = str("%.2f" % float(self._totalHeightFromExpression))
-                else:
-                    self._totalHeight = NOT_PRESENT
+                    if (layerIndicatorAlreadyFound == False):
+                        logMessage = "No LayerIndicator found!!!"
+                        self._logger.warn(logMessage)
+                        self._eventLogging(logMessage)
+                        # inform user
+                        # self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="warning", notifyMessage="Layer indicator not found in file! Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
+                        self._sendDataToClient(dict(notifyType="warning", notifyMessage="Layer indicator not found in file: '"+selectedFilename+"'<br>Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
+                    else:
+                        # store totalLayerCount
+                        self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerTotalCountWithoutOffset)
 
-            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+                except Exception as error:
+                    errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
+                    self._logger.exception(errorMessage)
+                    self._eventLogging(errorMessage)
+
+                self._deactivateBusyIndicator()
+                # Height values are evaluated. Depending on the ZMode, assign value to final totalHeight-Variable
+                # if self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_MAX:
+                #     self._totalHeight = str("%.2f" % self._tempCurrentTotalHeight)
+                # elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXTRUSION:
+                #     if not self._totalHeightWithExtrusion == NOT_PRESENT:
+                #         self._totalHeight = str("%.2f" % float(self._totalHeightWithExtrusion))
+                #     else:
+                #         self._totalHeight = NOT_PRESENT
+                # elif self._settings.get([SETTINGS_KEY_TOTAL_HEIGHT_METHODE]) == HEIGHT_METHODE_Z_EXPRESSION:
+                #     if not self._totalHeightFromExpression == NOT_PRESENT:
+                #         self._totalHeight = str("%.2f" % float(self._totalHeightFromExpression))
+                #     else:
+                #         self._totalHeight = NOT_PRESENT
+
+                self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+
             self._logger.info("File select-event processing done!'")
 
         elif event == Events.FILE_DESELECTED or \
@@ -1194,6 +1203,38 @@ class DisplaylayerprogressPlugin(
             self._updateDisplayCommandQueue.addToQueue(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         self._eventLogging("EVENT processed::" + event)
+
+    def _storeLayerCountInMeta(self, fileLocation, selectedFilename, layerTotalCountWithoutOffset):
+        myMetaData = {
+            "totalLayerCountWithoutOffset": str(layerTotalCountWithoutOffset)
+        }
+        self._file_manager.set_additional_metadata(fileLocation, selectedFilename, self._plugin_info.key,
+                                                   myMetaData,
+                                                   overwrite=True)
+
+    def _readHeightFromFileMeta(self, fileLocation, selectedFilename):
+        # layerFound = False
+
+        metaDataDict = self._file_manager.get_metadata(fileLocation, selectedFilename)
+
+        # - read height from meta
+        if ("analysis" in metaDataDict):
+            analysisDict = metaDataDict["analysis"]
+            if ("dimensions" in analysisDict):
+                dimensionsDict = analysisDict["dimensions"]
+                self._totalHeight = str(dimensionsDict["height"])
+        if (self._totalHeight == None or self._totalHeight == NOT_PRESENT):
+            self._logger.info("Total height not found in MetaFile")
+        else:
+            self._logger.debug("Total height read from MetaFile " + str(self._totalHeight))
+
+        # # - read total layer from meta
+        # if (self._plugin_info.key in metaDataDict):
+        #     pluginMetaDict = metaDataDict[self._plugin_info.key]
+        #     if ("totalLayerCountWithoutOffset" in pluginMetaDict):
+        #         self._layerTotalCountWithoutOffset = int(pluginMetaDict["totalLayerCountWithoutOffset"])
+        #         layerFound = True
+        # return layerFound
 
     # save current settings do some input validation
     def on_settings_save(self, data):
@@ -1263,7 +1304,10 @@ class DisplaylayerprogressPlugin(
             showOnNavBar=True,
             showOnPrinterDisplay=True,
             showOnBrowserTitle=True,
+            showOnFileListView=True,
             browserTitleMode="overwrite",
+            appendActualBedTempBrowserTitle=False,
+            appendTargetBedTempBrowserTitle=False,
             addLayerIndicators=True,
             showAllPrinterMessages=True,
             stateMessagePattern=
@@ -1284,7 +1328,7 @@ class DisplaylayerprogressPlugin(
             browserTitleMessagePattern="[progress]% [estimated_end_time]",
             layerOffset=0,
             addTrailingChar=False,
-            totalHeightMethode=HEIGHT_METHODE_Z_MAX,
+            # totalHeightMethode=HEIGHT_METHODE_Z_MAX,
             layerExpressions="1\t\t[;\s*LAYER:\s*([0-9]+).*]\t\tCURA\r\n" +
                              "1\t\t[; layer ([0-9]+),.*]\t\tSimplify3D\r\n" +
                              "1\t\t[;LAYER:([0-9]+).*]\t\tideaMaker\r\n" +
@@ -1302,8 +1346,10 @@ class DisplaylayerprogressPlugin(
             debuggingEnabled=False,
             layerAverageDurationCount=5,
             layerAverageFormatPattern="{H}h:{M:02}m:{S:02}s",
-            zMaxExpressionPattern=";MAXZ:([0-9]+[.]*[0-9]*).*",
-            sendLayerInformationsViaWebSocket=True
+            # zMaxExpressionPattern=";MAXZ:([0-9]+[.]*[0-9]*).*",
+            sendLayerInformationsViaWebSocket=True,
+            excludeFolders = False,
+            excludeFoldersExpression = ""
         )
 
     # ~~ AssetPlugin mixin

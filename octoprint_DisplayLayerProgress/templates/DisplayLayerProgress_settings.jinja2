@@ -4,7 +4,7 @@
         <ul class="nav nav-tabs">
             <li class="active"><a href="#tabDisplay" data-toggle="tab">Display</a></li>
             <li><a href="#tabLayer" data-toggle="tab">Layer</a></li>
-            <li><a href="#tabHeight" data-toggle="tab">Height</a></li>
+<!--            <li><a href="#tabHeight" data-toggle="tab">Height</a></li>-->
             <li><a href="#tabANETE10" data-toggle="tab">ANET E10</a></li>
             <li><a href="#tabDebugging" data-toggle="tab">Debugging</a></li>
         </ul>
@@ -40,7 +40,10 @@
 <!--                        </label>-->
 <!--                    </div>-->
 
-                    <div >
+                    <div class="control-group" >
+                        <label class="checkbox">Show total layers in files view<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnFileListView"/></label>
+                    </div>
+                    <div class="control-group" >
                         <label class="checkbox">Update Printer Display only while printing
                             <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.updatePrinterDisplayWhilePrinting">
                         </label>
@@ -88,6 +91,10 @@
     <label class="radio">
         <input type="radio" name="browserTitleMode" value="append" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.browserTitleMode"> Append title
     </label>
+
+    <label class="checkbox">Append actual Bed Temperature<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.appendActualBedTempBrowserTitle"/></label>
+    <label class="checkbox">Append target Bed Temperature<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.appendTargetBedTempBrowserTitle"/></label>
+
 </div>
 
 
@@ -167,6 +174,17 @@
                         This is helpfull if you use large files (>50MB) or if you use a mounted filesystem (e.g. NAS) instead of uploading files via UI.
                     </label>
 
+                    <label class="checkbox">Exclude files from layer detection after file selection
+                        <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.excludeFolders" />
+                    </label>
+                    <label  style="padding-left:20px">
+                        <input type="text"  class="input-xxlarge text-left" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.excludeFoldersExpression, disable: (settingsViewModel.settings.plugins.DisplayLayerProgress.excludeFolders() == false)">
+                    </label>
+
+                    <label style="padding-left:21px">
+                        You can define a regular expression to exclude files or folders. E.g. <code>.*\/cncfolder\/.*</code> excludes a folder named "cncfolder".
+                    </label>
+                    <br/>
 
                     <div>
                         Here you can define several regular expressions for different slicers. If you need help with regular expressions, try <a href="https://regex101.com/">https://regex101.com/</a><br/>
@@ -205,7 +223,7 @@ empty
                     </div>
                 </div>
             </div>
-            <!-- HEIGHT - TAB -->
+            <!-- HEIGHT - TAB
             <div class="tab-pane" id="tabHeight">
                 <div class="control-group">
                     <label class="control-label">Choose total height method:</label>
@@ -224,9 +242,9 @@ empty
                     </div>
                 </div>
                 <p>
-    <!-- TODO Description -->
                 </p>
             </div>
+            -->
 
             <!-- ANET E-10 - TAB -->
             <div class="tab-pane" id="tabANETE10">
