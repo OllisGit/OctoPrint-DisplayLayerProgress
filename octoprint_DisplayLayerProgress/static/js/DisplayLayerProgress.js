@@ -107,7 +107,7 @@ $(function () {
         // startup
         self.onStartup = function () {
 //            console(self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerOffset());
-            // get orig file-item html
+            // get orig file-item html and add "Layers:"
             $("#files_template_machinecode").text(function(){
                 var origFileListHtml = $(this).text();
                 var patchedFileItemHtml = origFileListHtml.replace('formatSize(size)"></span></div>', 'formatSize(size)"></span></div>' +
@@ -154,10 +154,10 @@ $(function () {
                 return;
             }
 
-//            if ("reloadFileView" == data.action){
-//                self.filesViewModel.requestData({force: true});
-//                return;
-//            }
+            if ("reloadFileView" == data.action){
+                self.filesViewModel.requestData({force: true});
+                return;
+            }
 
             if (data.disablePrint){
                 $("#job_print").attr("disabled", "disabled");
@@ -241,35 +241,6 @@ $(function () {
         self.onBeforeBinding = function () {
             self.settings = self.settingsViewModel.settings.plugins.DisplayLayerProgress;
             // From server-settings to client-settings
-
-
-
-			self.printerStateViewModel.filepath.subscribe(function(data){
-				if(data){
-					OctoPrint.files.get('local',data)
-						.done(function(file_data){
-//							if(file_data){
-//								if(self.settingsViewModel.settings.plugins.prusaslicerthumbnails.state_panel_thumbnail() && file_data.thumbnail && file_data.thumbnail_src == 'prusaslicerthumbnails'){
-//									if($('#prusalicer_state_thumbnail').length) {
-//										$('#prusalicer_state_thumbnail > img').attr('src', file_data.thumbnail);
-//									} else {
-//										$('#state > div > hr:nth-child(4)').after('<div id="prusalicer_state_thumbnail" class="row-fluid"><img src="'+file_data.thumbnail+'" width="100%"/>\n<hr/></div>');
-//									}
-//								} else {
-//									$('#prusalicer_state_thumbnail').remove();
-//								}
-//							}
-						})
-						.fail(function(file_data){
-//							if($('#prusalicer_state_thumbnail').length) {
-//								$('#prusalicer_state_thumbnail').remove();
-//							}
-						});
-				}
-			});
-
-
-
         };
 
         self.onSettingsBeforeSave = function () {

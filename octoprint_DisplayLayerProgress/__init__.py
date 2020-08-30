@@ -141,7 +141,8 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         super(LayerDetectorFileProcessor, self).__init__(fileBufferedReader)
         self._allLayerExpressions = allLayerExpressions
         self._logger = logger
-        self.currentLayerCount = 0
+        self._currentLayerCount = 0
+        self.totalLayerNumbers = 0
 
     def process_line(self, origLine):
         if not len(origLine):
@@ -186,13 +187,15 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         matched = pattern.match(line)
         if matched:
             groupIndex = layerExpression.groupIndex
-            self.currentLayerCount = self.currentLayerCount + 1
+
             if layerExpression.type_countable:
                 # just use the layerCounter
+                self._currentLayerCount = self._currentLayerCount + 1
                 currentLayer = str(self.currentLayerCount)
             else:
                 # read layer number from line
                 currentLayer = str(matched.group(groupIndex))
+            self.totalLayerNumbers = currentLayer
             line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
 
         return line
@@ -824,6 +827,7 @@ class DisplaylayerprogressPlugin(
         self._sendDataToClient(dict(clientMessageDict))
 
         ##################################################### FIRE EVENT, so that other Plugins could react on the event
+
         eventPayload = dict(
             updateReason=updateReason,
             totalLayer=self._getTotalLayerCountAsString(),
@@ -1051,7 +1055,10 @@ class DisplaylayerprogressPlugin(
             fileLocation = payload.get("origin")
             selectedFilename = payload.get("path")
 
-            self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerDetectorFileProcessor.currentLayerCount)
+            self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerDetectorFileProcessor.totalLayerNumbers)
+            self._readHeightFromFileMeta(fileLocation, selectedFilename)
+
+            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         if event == Events.FILE_SELECTED:
             self._initializeEventLogger()
@@ -1205,6 +1212,7 @@ class DisplaylayerprogressPlugin(
         self._eventLogging("EVENT processed::" + event)
 
     def _storeLayerCountInMeta(self, fileLocation, selectedFilename, layerTotalCountWithoutOffset):
+        self._logger.info("Store layer count in MetaFile")
         myMetaData = {
             "totalLayerCountWithoutOffset": str(layerTotalCountWithoutOffset)
         }
@@ -1212,9 +1220,12 @@ class DisplaylayerprogressPlugin(
                                                    myMetaData,
                                                    overwrite=True)
 
+        # self._sendDataToClient(dict(action="reloadFileView"))
+
+
     def _readHeightFromFileMeta(self, fileLocation, selectedFilename):
         # layerFound = False
-
+        self._logger.info("Read total height from MetaFile")
         metaDataDict = self._file_manager.get_metadata(fileLocation, selectedFilename)
 
         # - read height from meta
