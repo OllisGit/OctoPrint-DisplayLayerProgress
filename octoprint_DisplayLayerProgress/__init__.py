@@ -191,7 +191,7 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
             if layerExpression.type_countable:
                 # just use the layerCounter
                 self._currentLayerCount = self._currentLayerCount + 1
-                currentLayer = str(self.currentLayerCount)
+                currentLayer = str(self._currentLayerCount)
             else:
                 # read layer number from line
                 currentLayer = str(matched.group(groupIndex))
@@ -215,7 +215,6 @@ class DisplaylayerprogressPlugin(
     # VAR
     # _tempCurrentHeightFromFile = 0.0
     # _tempCurrentTotalHeight = 0.0
-    _currentLayerCount = 0
     _layerTotalCountWithoutOffset = NOT_PRESENT
     _currentLayer = NOT_PRESENT
     _progress = str(0)
@@ -1087,7 +1086,6 @@ class DisplaylayerprogressPlugin(
 
                 # zMaxPattern = re.compile(self._settings.get([SETTINGS_KEY_ZMAX_EXPRESSION_PATTERN]))
 
-                self._currentLayerCount = 0
                 # self._tempCurrentHeightFromFile = 0.0
                 # self._tempCurrentTotalHeight = 0.0
                 self._nextM600Layer = 0
