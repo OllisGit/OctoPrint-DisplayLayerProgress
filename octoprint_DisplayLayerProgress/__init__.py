@@ -135,6 +135,7 @@ PLUGIN_KEY_PREFIX = "DisplayLayerProgress_"
 MOVEMENT_ABSOLUTE = "g90_abs"
 MOVEMENT_RELATIVE = "g91_real"
 
+
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 
     def __init__(self, fileBufferedReader, allLayerExpressions, logger):
@@ -269,6 +270,9 @@ class DisplaylayerprogressPlugin(
         self._filamentChangeTimeLeftInSeconds = 0
         self._filamentChangeTimeLeftFormatted = NOT_PRESENT
         self._filamentChangeETAFormatted = NOT_PRESENT
+
+        self._printTimeGeniusPluginImplementationState = None
+        self._printTimeGeniusPluginImplementation = None
 
         self._busyIndicatorActive = False
 
@@ -989,6 +993,36 @@ class DisplaylayerprogressPlugin(
             threadPattern = "["+threadId + "::" + threadName + "]"
             self._event_file_logger.debug(logMessage + " " + threadPattern)
 
+    # get the plugin with status information
+    # [0] == status-string
+    # [1] == implementaiton of the plugin
+    def _getPluginInformation(self, pluginKey):
+
+        status = None
+        implementation = None
+
+        if pluginKey in self._plugin_manager.plugins:
+            plugin = self._plugin_manager.plugins[pluginKey]
+            if plugin != None:
+                if (plugin.enabled == True):
+                    status = "enabled"
+                    # for OP 1.4.x we need to check agains "icompatible"-attribute
+                    if (hasattr(plugin, 'incompatible')):
+                        if (plugin.incompatible == False):
+                            implementation = plugin.implementation
+                        else:
+                            status = "incompatible"
+                    else:
+                        # OP 1.3.x
+                        implementation = plugin.implementation
+                    pass
+                else:
+                    status = "disabled"
+        else:
+            status = "missing"
+
+        return [status, implementation]
+
     ######################################################################################################### PUBLIC API
 
     @octoprint.plugin.BlueprintPlugin.route("/values", methods=["GET"])
@@ -1036,10 +1070,37 @@ class DisplaylayerprogressPlugin(
         preProcessorHooksOrderedDic = self._file_manager._preprocessor_hooks
         preProcessorHooksOrderedDic[self._identifier] = __plugin_implementation__.createFilePreProcessor
 
+        pluginInfo = self._getPluginInformation("PrintTimeGenius")
+        self._printTimeGeniusPluginImplementationState = pluginInfo[0]
+        self._printTimeGeniusPluginImplementation = pluginInfo[1]
+
     # progress-hook (called in new Thread)
     def on_print_progress(self, storage, path, progress):
+        currentData = self._printer.get_current_data()
+        useSystemProgress = True
+        newProgress = 0
+        if ("progress" in currentData):
+            progressDict =  currentData["progress"]
+
+            if (self._printTimeGeniusPluginImplementationState == "enabled"):
+                useSystemProgress = False
+            else:
+                useSystemProgress = True
+
+            if (useSystemProgress == False):
+                printTime =  float(progressDict["printTime"] if progressDict["printTime"] != None else 0.0)
+                printTimeLeft =  float(progressDict["printTimeLeft"] if progressDict["printTimeLeft"] != None else 0.0)
+                endTime = (printTime + printTimeLeft)
+                if (endTime > 0):
+                    newProgress = round(printTime / endTime * 100.0)
+
         # progress 0 - 100
-        self._progress = str(progress)
+        if (useSystemProgress == True):
+            self._progress = str(progress)
+        else:
+            # take calculted progress of PrintTimeGenius
+            self._progress = str(int(newProgress))
+
         self._eventLogging("ON_PRINT_PROGRESS: " + self._progress)
         # logging for debugging self._logger.info("**** print_progress: '" + self._progress + "'")
         # self._updateDisplay(UPDATE_DISPLAY_REASON_PROGRESS_CHANGED)
@@ -1051,13 +1112,15 @@ class DisplaylayerprogressPlugin(
 
         if event == Events.METADATA_ANALYSIS_FINISHED:
             # after the fileProcessor is done a METADATA_ANALYSIS_FINISHED event is fired
-            fileLocation = payload.get("origin")
-            selectedFilename = payload.get("path")
 
-            self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerDetectorFileProcessor.totalLayerNumbers)
-            self._readHeightFromFileMeta(fileLocation, selectedFilename)
+            if (self._layerDetectorFileProcessor != None):
+                fileLocation = payload.get("origin")
+                selectedFilename = payload.get("path")
 
-            self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
+                self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerDetectorFileProcessor.totalLayerNumbers)
+                self._readHeightFromFileMeta(fileLocation, selectedFilename)
+
+                self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         if event == Events.FILE_SELECTED:
             self._initializeEventLogger()
@@ -1302,7 +1365,7 @@ class DisplaylayerprogressPlugin(
     # ~~ TemplatePlugin mixin
     def get_template_configs(self):
         return [
-            dict(type="settings", custom_bindings=True)
+            dict(type="settings", custom_bindings=True, name="DisplayLayerProgress")
         ]
 
     # ~~ SettingsPlugin mixin
@@ -1395,6 +1458,8 @@ class DisplaylayerprogressPlugin(
                 pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/latest/download/master.zip"
             )
         )
+
+
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
