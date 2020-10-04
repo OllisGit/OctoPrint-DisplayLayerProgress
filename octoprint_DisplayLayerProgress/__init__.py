@@ -291,10 +291,12 @@ class DisplaylayerprogressPlugin(
         self._settings_show_on_browser_title = True
         self._settings_browser_title_mode = 'overwrite'
         self._settings_browser_title_messagepattern = '[progress]% [estimated_end_time]'
-        self._settings_show_all_printermessages = True
         self._settings_show_on_printerdisplay = True
         self._settings_update_only_while_printing = False
         self._settings_send_layerinformation_via_websocket = True
+        self._settings_feedrate_factor = '1.0'
+        self._settings_feedrate_format = '{:.2f}'
+        self._settings_height_format = '{:.1f}'
 
     def initialize(self):
         self._initializeEventLogger()
@@ -323,7 +325,6 @@ class DisplaylayerprogressPlugin(
         self._settings_browser_title_mode = self._settings.get([SETTINGS_KEY_BROWSER_TITLE_MODE])
         self._settings_browser_title_messagepattern = self._settings.get(
             [SETTINGS_KEY_BROWSER_TITLE_MESSAGEPATTERN])
-        self._settings_show_all_printermessages = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
         self._settings_show_on_printerdisplay = self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY])
         self._settings_update_only_while_printing = self._settings.get([SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING])
         self._settings_layer_avarage_format_pattern = self._settings.get(
@@ -336,6 +337,9 @@ class DisplaylayerprogressPlugin(
         self._settings_debugging_enabled = self._settings.get_boolean([SETTINGS_KEY_DEBUGGING_ENABLED])
         self._settings_show_all_printer_messages = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
         self._layerDurationDeque = deque(maxlen=self._settings_layer_avarage_duration_count)
+        self._settings_feedrate_factor = self._settings.get([SETTINGS_KEY_FEEDRATE_FACTOR])
+        self._settings_feedrate_format = self._settings.get([SETTINGS_KEY_FEEDRATE_FORMAT])
+        self._settings_height_format = self._settings.get([SETTINGS_KEY_HEIGHT_FORMAT])
 
     def _initializeEventLogger(self):
         # setup our custom logger
@@ -576,7 +580,7 @@ class DisplaylayerprogressPlugin(
         if (self._layerTotalCountWithoutOffset == NOT_PRESENT):
             return self._layerTotalCountWithoutOffset
 
-        layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+        layerOffset = self._settings_layer_offset
         return str(self._layerTotalCountWithoutOffset + layerOffset)
 
     def _resetCurrentValues(self):
@@ -841,7 +845,7 @@ class DisplaylayerprogressPlugin(
         # showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
         # clientMessageDict.update({'showLayerInStatusBar': showLayerInStatusBar})
 
-        showDesktopPrinterDisplay = self._settings_show_all_printermessages
+        showDesktopPrinterDisplay = self._settings_show_all_printer_messages
         clientMessageDict.update({'showDesktopPrinterDisplay': showDesktopPrinterDisplay})
 
         # prepare Printer
@@ -926,8 +930,8 @@ class DisplaylayerprogressPlugin(
     def _calculateFeedrate(self, feedrate):
         if feedrate == "-":
             return feedrate
-        feedrateFactor = self._settings.get([SETTINGS_KEY_FEEDRATE_FACTOR])
-        feedrateFormat = self._settings.get([SETTINGS_KEY_FEEDRATE_FORMAT])
+        feedrateFactor = self._settings_feedrate_factor
+        feedrateFormat = self._settings_feedrate_format
 
         newFeedrate = float(feedrateFactor) * float(feedrate)
         result = feedrateFormat.format(newFeedrate)
@@ -943,7 +947,7 @@ class DisplaylayerprogressPlugin(
             return result
 
         try:
-            heightFormat = self._settings.get([SETTINGS_KEY_HEIGHT_FORMAT])
+            heightFormat = self._settings_height_format
             result = heightFormat.format(heightValueAsFloat)
         except (Exception) as error:
             errorMessage = "ERROR during format '" + heightFormat + "' height value '" + str(heightValueAsFloat) + "'. Message: '" + str(error) + "'"
