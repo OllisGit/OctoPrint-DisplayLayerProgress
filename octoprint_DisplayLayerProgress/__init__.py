@@ -276,6 +276,26 @@ class DisplaylayerprogressPlugin(
 
         self._busyIndicatorActive = False
 
+        self._settings_debugging_enabled = False
+        self._settings_show_all_printer_messages = True
+        self._settings_eta_format = '%H:%M'
+        self._settings_add_trailingchar = False
+        self._settings_layer_offset = 0
+        self._settings_layer_avarage_duration_count = 5
+        self._settings_layer_avarage_format_pattern = '{H}h:{M:02}m:{S:02}s'
+        self._settings_printerdisplay_messagepattern = ''
+        self._settings_show_on_state = True
+        self._settings_state_messagepattern = ''
+        self._settings_show_on_navbar = True
+        self._settings_navbar_messagepattern = ''
+        self._settings_show_on_browser_title = True
+        self._settings_browser_title_mode = 'overwrite'
+        self._settings_browser_title_messagepattern = '[progress]% [estimated_end_time]'
+        self._settings_show_all_printermessages = True
+        self._settings_show_on_printerdisplay = True
+        self._settings_update_only_while_printing = False
+        self._settings_send_layerinformation_via_websocket = True
+
     def initialize(self):
         self._initializeEventLogger()
 
@@ -283,12 +303,39 @@ class DisplaylayerprogressPlugin(
         self._sentGCodeHookCommandQueue.initCommandQueue(self.sentGCodeHookWorkerMethod)
         self._sendingGCodeHookCommandQueue.initCommandQueue(self.sendingGCodeHookWorkerMethod)
 
-        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
-
         # prepare expression-settings
         self._evaluatePrinterMessagePattern()
         self._parseLayerExpressions(self._settings.get([SETTINGS_KEY_LAYER_EXPRESSIONS]))
         self._layerDetectorFileProcessor = None
+
+        self.__cache_settings()
+
+    def __cache_settings(self):
+        self._settings_send_layerinformation_via_websocket = self._settings.get(
+            [SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET])
+        self._settings_printerdisplay_messagepattern = self._settings.get(
+            [SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
+        self._settings_show_on_state = self._settings.get([SETTINGS_KEY_SHOW_ON_STATE])
+        self._settings_state_messagepattern = self._settings.get([SETTINGS_KEY_STATE_MESSAGEPATTERN])
+        self._settings_show_on_navbar = self._settings.get([SETTINGS_KEY_SHOW_ON_NAVBAR])
+        self._settings_navbar_messagepattern = self._settings.get([SETTINGS_KEY_NAVBAR_MESSAGEPATTERN])
+        self._settings_show_on_browser_title = self._settings.get([SETTINGS_KEY_SHOW_ON_BROWSER_TITLE])
+        self._settings_browser_title_mode = self._settings.get([SETTINGS_KEY_BROWSER_TITLE_MODE])
+        self._settings_browser_title_messagepattern = self._settings.get(
+            [SETTINGS_KEY_BROWSER_TITLE_MESSAGEPATTERN])
+        self._settings_show_all_printermessages = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        self._settings_show_on_printerdisplay = self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY])
+        self._settings_update_only_while_printing = self._settings.get([SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING])
+        self._settings_layer_avarage_format_pattern = self._settings.get(
+            [SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN])
+        self._settings_layer_avarage_duration_count = self._settings.get_int(
+            [SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT])
+        self._settings_add_trailingchar = self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR])
+        self._settings_layer_offset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+        self._settings_eta_format = self._settings.get([SETTINGS_KEY_ETA_FORMAT])
+        self._settings_debugging_enabled = self._settings.get_boolean([SETTINGS_KEY_DEBUGGING_ENABLED])
+        self._settings_show_all_printer_messages = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        self._layerDurationDeque = deque(maxlen=self._settings_layer_avarage_duration_count)
 
     def _initializeEventLogger(self):
         # setup our custom logger
@@ -385,7 +432,7 @@ class DisplaylayerprogressPlugin(
         # layer
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
 
-            layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+            layerOffset = self._settings_layer_offset
             self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + layerOffset)
 
             ## calculate time of layer printing
@@ -443,7 +490,7 @@ class DisplaylayerprogressPlugin(
 
     # eval current layer from modified g-code (comm.sending_thread)
     def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        showDesktopPrinterDisplay = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        showDesktopPrinterDisplay = self._settings_show_all_printer_messages
         if  showDesktopPrinterDisplay == True:
             # needed to handle non utf-8 characters
             # commandAsString = cmd.encode('ascii', 'ignore')
@@ -458,10 +505,10 @@ class DisplaylayerprogressPlugin(
 
     # do the stuff in async-way
     def sentGCodeHookWorkerMethod(self, commandAsString):
-        showDesktopPrinterDisplay = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        showDesktopPrinterDisplay = self._settings_show_all_printer_messages
         if (showDesktopPrinterDisplay == True):
             printerMessage = commandAsString[len("M117 "):]
-            if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
+            if self._settings_add_trailingchar:
                 printerMessage = printerMessage[:-1]
 
             printerMessage = "&nbsp;" + printerMessage + "&nbsp;"
@@ -544,7 +591,7 @@ class DisplaylayerprogressPlugin(
         self._fanSpeed = NOT_PRESENT
 
         self._startLayerTime = None
-        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
+        self._layerDurationDeque = deque(maxlen=self._settings_layer_avarage_duration_count)
         self._currentHeightFloat = 0.0
 
         self._filamentChangeTimeLeftInSeconds = 0
@@ -647,7 +694,7 @@ class DisplaylayerprogressPlugin(
             # current_time = datetime.today()
             # finish_time = current_time + timedelta(0,self._printTimeLeftInSeconds)
             # self._currentETA = format_time(finish_time, format="short")
-            timeFormat = self._settings.get([SETTINGS_KEY_ETA_FORMAT])
+            timeFormat = self._settings_eta_format
             self._currentETA  = time.strftime(timeFormat, time.localtime(time.time() + self._printTimeLeftInSeconds))  #hijacked from displalayer-plugin
             pass
         else:
@@ -683,11 +730,11 @@ class DisplaylayerprogressPlugin(
                 self._lastLayerDurationInSeconds = lastLayerDurationTimeDelta
             else:
                 self._lastLayerDurationInSeconds = lastLayerDurationTimeDelta.seconds
-            self._lastLayerDuration = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+            self._lastLayerDuration = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._settings_layer_avarage_format_pattern)
 
             # avarag calc only if we have engough layer measurments
             allLayerDurationCount = len(self._layerDurationDeque)
-            if allLayerDurationCount == self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]):
+            if allLayerDurationCount == self._settings_layer_avarage_duration_count:
                 calcAverageDuration = 0
                 allLayerDurations = list(self._layerDurationDeque)
 
@@ -697,7 +744,7 @@ class DisplaylayerprogressPlugin(
 
                 calcAverageDuration = calcAverageDuration / allLayerDurationCount
                 calcAverageDurationTimeDelta = timedelta(seconds = calcAverageDuration)
-                self._averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN]))
+                self._averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings_layer_avarage_format_pattern)
                 self._averageLayerDurationInSeconds = calcAverageDurationTimeDelta.seconds
 
 
@@ -724,7 +771,7 @@ class DisplaylayerprogressPlugin(
 
                 self._filamentChangeTimeLeftInSeconds = layerDuration * layerDiff
                 self._filamentChangeTimeLeftFormatted = stringUtils.secondsToText(self._filamentChangeTimeLeftInSeconds)
-                timeFormat = self._settings.get([SETTINGS_KEY_ETA_FORMAT])
+                timeFormat = self._settings_eta_format
                 self._filamentChangeETAFormatted = time.strftime(timeFormat, time.localtime(time.time() + self._filamentChangeTimeLeftInSeconds))
 
         currentValueDict = {
@@ -747,7 +794,7 @@ class DisplaylayerprogressPlugin(
             CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION: self._filamentChangeTimeLeftFormatted,
             CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION: str(len(self._m600LayerProcessingList))
         }
-        printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
+        printerMessagePattern = self._settings_printerdisplay_messagepattern
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
 
 
@@ -756,20 +803,20 @@ class DisplaylayerprogressPlugin(
 
         clientMessageDict.update({'busy': self._busyIndicatorActive})
 
-        if self._settings.get([SETTINGS_KEY_SHOW_ON_STATE]):
-            stateMessagePattern = self._settings.get([SETTINGS_KEY_STATE_MESSAGEPATTERN])
+        if self._settings_show_on_state:
+            stateMessagePattern = self._settings_state_messagepattern
             stateMessage = stringUtils.multiple_replace(stateMessagePattern, currentValueDict)
             clientMessageDict.update( {'stateMessage' : stateMessage } )
 
-        if self._settings.get([SETTINGS_KEY_SHOW_ON_NAVBAR]):
-            navBarMessagePattern = self._settings.get([SETTINGS_KEY_NAVBAR_MESSAGEPATTERN])
+        if self._settings_show_on_navbar:
+            navBarMessagePattern = self._settings_navbar_messagepattern
             navBarMessage = stringUtils.multiple_replace(navBarMessagePattern, currentValueDict)
             clientMessageDict.update( {'navBarMessage' : navBarMessage } )
 
-        if self._settings.get([SETTINGS_KEY_SHOW_ON_BROWSER_TITLE]):
-            browserTitleMode = self._settings.get([SETTINGS_KEY_BROWSER_TITLE_MODE])
+        if self._settings_show_on_browser_title:
+            browserTitleMode = self._settings_browser_title_mode
 
-            browserTitleMessagePattern = self._settings.get([SETTINGS_KEY_BROWSER_TITLE_MESSAGEPATTERN])
+            browserTitleMessagePattern = self._settings_browser_title_messagepattern
             browserTitleMessage = stringUtils.multiple_replace(browserTitleMessagePattern, currentValueDict)
 
             browserTitleDict = dict(
@@ -794,11 +841,11 @@ class DisplaylayerprogressPlugin(
         # showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
         # clientMessageDict.update({'showLayerInStatusBar': showLayerInStatusBar})
 
-        showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        showDesktopPrinterDisplay = self._settings_show_all_printermessages
         clientMessageDict.update({'showDesktopPrinterDisplay': showDesktopPrinterDisplay})
 
         # prepare Printer
-        if self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY]):
+        if self._settings_show_on_printerdisplay:
             # Optimization, update only if definied in message-pattern
             shouldSendToPrinter = False
             if updateReason == UPDATE_DISPLAY_REASON_PROGRESS_CHANGED and self._showProgressOnPrinterDisplay == True:
@@ -814,7 +861,7 @@ class DisplaylayerprogressPlugin(
             elif updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL:
                 shouldSendToPrinter = True
 
-            if self._settings.get([SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING]):
+            if self._settings_update_only_while_printing:
                 if self._isPrinterRunning:
                     #if self._printer.is_printing():
                     shouldSendToPrinter = True
@@ -865,7 +912,7 @@ class DisplaylayerprogressPlugin(
                 eventManager().fire(eventKey, eventPayload)
 
             ##################################################### WEBSOCKET
-            if self._settings.get([SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET]):
+            if self._settings_send_layerinformation_via_websocket:
                 self._plugin_manager.send_plugin_message(self._identifier + "-websocket-payload", eventPayload)
                 pass
 
@@ -987,7 +1034,7 @@ class DisplaylayerprogressPlugin(
         return result
 
     def _eventLogging(self, logMessage):
-        if EVENT_LOGGING_ENABLED or self._settings.get([SETTINGS_KEY_DEBUGGING_ENABLED]):
+        if EVENT_LOGGING_ENABLED or self._settings_debugging_enabled:
             threadName = threading.current_thread().name
             threadId = str(threading.current_thread().ident)
             threadPattern = "["+threadId + "::" + threadName + "]"
@@ -1312,6 +1359,9 @@ class DisplaylayerprogressPlugin(
     def on_settings_save(self, data):
         # !!! data includes only the delta settings between the last save-action !!!
 
+        # Refresh cached settings
+        self.__cache_settings()
+
         layerExpressions = data.get(SETTINGS_KEY_LAYER_EXPRESSIONS)
         if layerExpressions is not None:
             result = self._parseLayerExpressions(layerExpressions)
@@ -1337,7 +1387,7 @@ class DisplaylayerprogressPlugin(
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self._evaluatePrinterMessagePattern()
 
-        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
+        self._layerDurationDeque = deque(maxlen=self._settings_layer_avarage_duration_count)
 
         if initDesktopPrinterDisplay:
             self._initDesktopPinterDisplay()
