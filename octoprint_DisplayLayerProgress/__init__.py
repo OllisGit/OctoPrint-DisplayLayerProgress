@@ -1363,9 +1363,6 @@ class DisplaylayerprogressPlugin(
     def on_settings_save(self, data):
         # !!! data includes only the delta settings between the last save-action !!!
 
-        # Refresh cached settings
-        self.__cache_settings()
-
         layerExpressions = data.get(SETTINGS_KEY_LAYER_EXPRESSIONS)
         if layerExpressions is not None:
             result = self._parseLayerExpressions(layerExpressions)
@@ -1389,6 +1386,9 @@ class DisplaylayerprogressPlugin(
 
         # default save function
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+        # Refresh cached settings
+        self.__cache_settings()
+
         self._evaluatePrinterMessagePattern()
 
         self._layerDurationDeque = deque(maxlen=self._settings_layer_avarage_duration_count)
