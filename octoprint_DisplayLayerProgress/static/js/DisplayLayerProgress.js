@@ -164,7 +164,9 @@ $(function () {
                 return
             }
             if (data.enablePrint){
-                $("#job_print").removeAttr("disabled");
+                if (self.printerStateViewModel.enablePrint() == true){
+                    $("#job_print").removeAttr("disabled");
+                }
                 return
             }
 
@@ -173,11 +175,15 @@ $(function () {
                     $(".dlp-state-busyIndicator").show();
                 } else {
                     $(".dlp-state-busyIndicator").hide();
-                    $("#job_print").removeAttr("disabled");
+                    if (self.printerStateViewModel.enablePrint() == true){
+                        $("#job_print").removeAttr("disabled");
+                    }
                 }
             } else {
                 $(".dlp-state-busyIndicator").hide();
-                $("#job_print").removeAttr("disabled");
+                if (self.printerStateViewModel.enablePrint() == true){
+                    $("#job_print").removeAttr("disabled");
+                }
             }
 
             // State

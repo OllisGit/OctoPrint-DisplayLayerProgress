@@ -149,6 +149,25 @@
                 </div>
 
                 <div class="control-group">
+                    <legend>Output intervall</legend>
+                    <div>
+                        You can define an interval how often the printer-display will be updated. If you choose a value greater zero, you can probably reduce the amount of DLP-M117 messages that will be send to the printer.
+                    </div>
+                    <br/>
+                    <div class="controls">
+                        <span class="input-append">
+                            <input type="number" step="1" min="0" class="input-mini text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayOutputInterval">
+                            <span class="add-on">seconds</span>
+                        </span>
+                    </div>
+                    <div class="help-block">
+                        <font color="orange">If enabled, the output of the printer display could be behind the values you can see in the UI.
+                        </font>
+                    </div>
+                </div>
+
+
+                <div class="control-group">
                     <legend>Communication</legend>
                     <label class="checkbox">Enable WebSocket-Communication<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.sendLayerInformationsViaWebSocket"/></label>
                     <label style="padding-left:21px">Enabling this flag allows other Clients (like OctoPod) or Plugins to read the above mentions values via WebSocket. If not needed, disable it to reduce network traffic.</label>
