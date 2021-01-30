@@ -41,7 +41,11 @@ $(function () {
 //                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.zMaxExpressionPattern(data.zMaxExpressionPattern);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.sendLayerInformationsViaWebSocket(data.sendLayerInformationsViaWebSocket);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.excludeFolders(data.excludeFolders);
-                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.excludeFolderExpression(data.excludeFolderExpression);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.excludeFoldersExpression(data.excludeFoldersExpression);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showTimeInNavBar(data.showTimeInNavBar);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayScreenLocationClass(data.printerDisplayScreenLocationClass);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.timeInNavBarPosition(data.timeInNavBarPosition);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.printTimeLeftWithoutSeconds(data.printTimeLeftWithoutSeconds);
         });
 
         var self = this;
@@ -138,6 +142,50 @@ $(function () {
                 }
             });
 
+            self.settingsViewModel.settings.plugins.DisplayLayerProgress.showAllPrinterMessages.subscribe(function(newValue){
+                if (printerDisplay != null){
+                    if (newValue == true){
+                        printerDisplay.open();
+                    } else {
+                        printerDisplay.remove();
+                    }
+
+                }
+            });
+
+            self.updateClock = function() {
+                var clockVisible = self.settingsViewModel.settings.plugins.DisplayLayerProgress.showTimeInNavBar();
+                if (clockVisible) {
+                    // start and show Clock
+                    var position = self.settingsViewModel.settings.plugins.DisplayLayerProgress.timeInNavBarPosition();
+
+                    var clockElement = null;
+                    if ("left" == position)
+                        clockElement = $("#dlpNavBarTime-left");
+                    else {
+                        clockElement = $("#dlpNavBarTime-right");
+                    }
+                    // start clock
+                    clockElement.show();
+                    var dt = new Date();
+                    clockElement.html( dt.toLocaleTimeString() );
+                    window.setTimeout(self.updateClock, 1000);
+                } else {
+                    // hide clock and stop clock
+                    $("#dlpNavBarTime-left").hide();
+                    $("#dlpNavBarTime-right").hide();
+                }
+            };
+
+            self.settingsViewModel.settings.plugins.DisplayLayerProgress.showTimeInNavBar.subscribe(function(newValue){
+                    self.updateClock();
+            });
+            self.settingsViewModel.settings.plugins.DisplayLayerProgress.timeInNavBarPosition.subscribe(function(newValue){
+                    $("#dlpNavBarTime-left").hide();
+                    $("#dlpNavBarTime-right").hide();
+                    self.updateClock();
+            });
+
 //            self.origGetAdditionDataFunction = self.filesViewModel.getAdditionalData;
 //            self.filesViewModel.getAdditionalData = function(data){
 //                var additionDataAsHtml = "Layers: 123<br>" + self.origGetAdditionDataFunction(data);
@@ -146,7 +194,11 @@ $(function () {
 //            }
         }
 
+
         var printerDisplay = null;
+
+
+
         // receive data from server
         self.onDataUpdaterPluginMessage = function (plugin, data) {
 

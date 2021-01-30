@@ -15,10 +15,11 @@ If you like it, I would be thankful about a cup of coffee :)
 
 
 It shows:
-* ```Progress, EstimatedEndTime, PrintTimeLeft,```
+* ```Progress, M73Progress, EstimatedEndTime, PrintTimeLeft,```
 * ```CurrentLayer, TotalLayerCount, last/average LayerDuration,```
 * ```CurrentHeight, TotalHeight, Feedrate, Fanspeed,```
 * ```ChangeFilamentTimeLeft, EstimatedChangeFilamentTime and ChangefilamentCount (based on M600 command location in file)```
+* ```Printer State```
 
 Some output examples:
 - Printer Display: ```50% L=60/120 H=23mm/47mm```
@@ -111,7 +112,9 @@ You can receive the layer/height and other values via a GET-Call.
         "total": "49"
       },
       "print": {
+        "printerState": "printing",
         "progress": "73",
+        "m73progress": "86",
         "timeLeft": "40s",
         "timeLeftInSeconds": 40,
         "estimatedEndTime": "20:24",
@@ -139,7 +142,7 @@ Plugin sends the following custom events to the eventbus like this:
 **Payload**
 ```javascript
  {
-   'updateReason', // values: frontEndCall, heightChanged, progressChanged, layerChanged, feedrateChanged, fanspeedChanged
+   'updateReason', // values: frontEndCall, heightChanged, progressChanged, m73ProgressChanged, layerChanged, feedrateChanged, fanspeedChanged, printerStateChanged
    'totalLayer':'66',
    'currentLayer':'22',
    'currentHeight':'6.80',
@@ -153,6 +156,8 @@ Plugin sends the following custom events to the eventbus like this:
    'feedrateG1':'2700',
    'fanspeed':'100%',
    'progress':'28',
+   'm73progress':'33',
+   'printerState':'printing',
    'lastLayerDuration':'0h:00m:03s',
    'lastLayerDurationInSeconds':3,
    'averageLayerDuration':'0h:00m:02s',

@@ -24,6 +24,7 @@ from datetime import timedelta
 import time
 
 from octoprint_DisplayLayerProgress import stringUtils
+from octoprint_DisplayLayerProgress.CachedSettings import CachedSettings
 from octoprint_DisplayLayerProgress.CommandQueue import CommandQueue
 from octoprint_DisplayLayerProgress.LayerExpression import LayerExpression
 
@@ -49,6 +50,7 @@ SETTINGS_KEY_BROWSER_TITLE_MODE = "browserTitleMode"
 SETTINGS_KEY_BROWSER_TITLE_MESSAGEPATTERN = "browserTitleMessagePattern"
 SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN = "printerDisplayMessagePattern"
 SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION = "printerDisplayScreenLocation"
+SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION_CLASS = "printerDisplayScreenLocationClass"
 SETTINGS_KEY_PRINTERDISPLAY_WIDTH = "printerDisplayWidth"
 SETTINGS_KEY_ADD_TRAILINGCHAR = "addTrailingChar"
 SETTINGS_KEY_LAYER_OFFSET = "layerOffset"
@@ -73,6 +75,11 @@ SETTINGS_KEY_EXCLUDE_FOLDERS = "excludeFolders"
 SETTINGS_KEY_EXCLUDE_FOLDERS_EXPRESSION = "excludeFoldersExpression"
 
 SETTINGS_KEY_PRINTER_DISPLAY_OUTPUT_INTERVAL = "printerDisplayOutputInterval"
+
+SETTINGS_KEY_SHOW_TIME_IN_NAVBAR = "showTimeInNavBar"
+SETTINGS_KEY_TIME_IN_NAVBAR_POSITION = "timeInNavBarPosition"
+
+SETTINGS_KEY_PRINTTIMELEFT_WITHOUT_SECONDS = "printTimeLeftWithoutSeconds"
 
 
 # HEIGHT_METHODE_Z_MAX = "zMax"
@@ -121,7 +128,8 @@ ETA_KEYWORD_EXPRESSION = "[estimated_end_time]"
 ETA_CHANGEFILAMENT_KEYWORD_EXPRESSION = "[estimated_changefilament_time]"
 CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION = "[changefilamenttime_left]"
 CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION = "[changefilament_count]"
-
+PRINTER_STATE_KEYWORD_EXPRESSION = "[printer_state]"
+M73PROGRESS_KEYWORD_EXPRESSION = "[M73progress]"    # see https://github.com/tpmullan/OctoPrint-DetailedProgress
 
 UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
@@ -129,13 +137,14 @@ UPDATE_DISPLAY_REASON_PROGRESS_CHANGED = "progressChanged"
 UPDATE_DISPLAY_REASON_LAYER_CHANGED = "layerChanged"
 UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED = "feedrateChanged"
 UPDATE_DISPLAY_REASON_FANSPEED_CHANGED = "fanspeedChanged"
+UPDATE_DISPLAY_REASON_PRINTERSTATE_CHANGED = "printerStateChanged"
+UPDATE_DISPLAY_REASON_M73PROGRESS_CHANGED = "m73ProgressChanged"
 
 # Same as setup.py 'plugin_identifier'
 PLUGIN_KEY_PREFIX = "DisplayLayerProgress_"
 
 MOVEMENT_ABSOLUTE = "g90_abs"
 MOVEMENT_RELATIVE = "g91_real"
-
 
 class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream):
 
@@ -272,6 +281,10 @@ class DisplaylayerprogressPlugin(
         self._filamentChangeTimeLeftFormatted = NOT_PRESENT
         self._filamentChangeETAFormatted = NOT_PRESENT
 
+        self._printerState = ""
+        self._lastPrinterState = ""
+        self._m73Progress = ""
+
         self._printTimeGeniusPluginImplementationState = None
         self._printTimeGeniusPluginImplementation = None
 
@@ -280,28 +293,28 @@ class DisplaylayerprogressPlugin(
         self.stopWatchOn = False
         self.stopWatchValue = 0
 
-        self._settings_debugging_enabled = False
-        self._settings_show_all_printer_messages = True
-        self._settings_eta_format = '%H:%M'
-        self._settings_add_trailingchar = False
-        self._settings_layer_offset = 0
-        self._settings_layer_avarage_duration_count = 5
-        self._settings_layer_avarage_format_pattern = '{H}h:{M:02}m:{S:02}s'
-        self._settings_printerdisplay_messagepattern = ''
-        self._settings_show_on_state = True
-        self._settings_state_messagepattern = ''
-        self._settings_show_on_navbar = True
-        self._settings_navbar_messagepattern = ''
-        self._settings_show_on_browser_title = True
-        self._settings_browser_title_mode = 'overwrite'
-        self._settings_browser_title_messagepattern = '[progress]% [estimated_end_time]'
-        self._settings_show_on_printerdisplay = True
-        self._settings_update_only_while_printing = False
-        self._settings_send_layerinformation_via_websocket = True
-        self._settings_feedrate_factor = '1.0'
-        self._settings_feedrate_format = '{:.2f}'
-        self._settings_height_format = '{:.1f}'
-        self._settings_printerDisplayOutputInterval = 0
+        # self._settings_debugging_enabled = False
+        # self._settings_show_all_printer_messages = True
+        # self._settings_eta_format = '%H:%M'
+        # self._settings_add_trailingchar = False
+        # self._settings_layer_offset = 0
+        # self._settings_layer_avarage_duration_count = 5
+        # self._settings_layer_avarage_format_pattern = '{H}h:{M:02}m:{S:02}s'
+        # self._settings_printerdisplay_messagepattern = ''
+        # self._settings_show_on_state = True
+        # self._settings_state_messagepattern = ''
+        # self._settings_show_on_navbar = True
+        # self._settings_navbar_messagepattern = ''
+        # self._settings_show_on_browser_title = True
+        # self._settings_browser_title_mode = 'overwrite'
+        # self._settings_browser_title_messagepattern = '[progress]% [estimated_end_time]'
+        # self._settings_show_on_printerdisplay = True
+        # self._settings_update_only_while_printing = False
+        # self._settings_send_layerinformation_via_websocket = True
+        # self._settings_feedrate_factor = '1.0'
+        # self._settings_feedrate_format = '{:.2f}'
+        # self._settings_height_format = '{:.1f}'
+        # self._settings_printerDisplayOutputInterval = 0
 
 
     def initialize(self):
@@ -311,39 +324,14 @@ class DisplaylayerprogressPlugin(
         self._sentGCodeHookCommandQueue.initCommandQueue(self.sentGCodeHookWorkerMethod)
         self._sendingGCodeHookCommandQueue.initCommandQueue(self.sendingGCodeHookWorkerMethod)
 
-        self._layerDurationDeque = deque(maxlen=self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT]))
+        self._cachedSettings = CachedSettings(self._settings)
+        self._layerDurationDeque = deque(maxlen=self._cachedSettings.getIntValue(SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT))
 
         # prepare expression-settings
         self._evaluatePrinterMessagePattern()
-        self._parseLayerExpressions(self._settings.get([SETTINGS_KEY_LAYER_EXPRESSIONS]))
+        self._parseLayerExpressions(self._cachedSettings.getStringValue(SETTINGS_KEY_LAYER_EXPRESSIONS))
         self._layerDetectorFileProcessor = None
 
-        self.__cache_settings()
-
-    def __cache_settings(self):
-        self._settings_send_layerinformation_via_websocket = self._settings.get([SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET])
-        self._settings_printerdisplay_messagepattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
-        self._settings_show_on_state = self._settings.get([SETTINGS_KEY_SHOW_ON_STATE])
-        self._settings_state_messagepattern = self._settings.get([SETTINGS_KEY_STATE_MESSAGEPATTERN])
-        self._settings_show_on_navbar = self._settings.get([SETTINGS_KEY_SHOW_ON_NAVBAR])
-        self._settings_navbar_messagepattern = self._settings.get([SETTINGS_KEY_NAVBAR_MESSAGEPATTERN])
-        self._settings_show_on_browser_title = self._settings.get([SETTINGS_KEY_SHOW_ON_BROWSER_TITLE])
-        self._settings_browser_title_mode = self._settings.get([SETTINGS_KEY_BROWSER_TITLE_MODE])
-        self._settings_browser_title_messagepattern = self._settings.get([SETTINGS_KEY_BROWSER_TITLE_MESSAGEPATTERN])
-        self._settings_show_on_printerdisplay = self._settings.get([SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY])
-        self._settings_update_only_while_printing = self._settings.get([SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING])
-        self._settings_layer_avarage_format_pattern = self._settings.get([SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN])
-        self._settings_layer_avarage_duration_count = self._settings.get_int([SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT])
-        self._settings_add_trailingchar = self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR])
-        self._settings_layer_offset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
-        self._settings_eta_format = self._settings.get([SETTINGS_KEY_ETA_FORMAT])
-        self._settings_debugging_enabled = self._settings.get_boolean([SETTINGS_KEY_DEBUGGING_ENABLED])
-        self._settings_show_all_printer_messages = self._settings.get_boolean([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
-        self._layerDurationDeque = deque(maxlen=self._settings_layer_avarage_duration_count)
-        self._settings_feedrate_factor = self._settings.get([SETTINGS_KEY_FEEDRATE_FACTOR])
-        self._settings_feedrate_format = self._settings.get([SETTINGS_KEY_FEEDRATE_FORMAT])
-        self._settings_height_format = self._settings.get([SETTINGS_KEY_HEIGHT_FORMAT])
-        self._settings_printerDisplayOutputInterval = self._settings.get_int([SETTINGS_KEY_PRINTER_DISPLAY_OUTPUT_INTERVAL])
 
     def _initializeEventLogger(self):
         # setup our custom logger
@@ -360,7 +348,6 @@ class DisplaylayerprogressPlugin(
         for handler in self._event_file_logger.handlers:
             self._event_file_logger.removeHandler(handler)
 
-
         self._event_file_logger.addHandler(event_logging_handler)
         self._event_file_logger.setLevel(logging.DEBUG)
         self._event_file_logger.propagate = False
@@ -372,13 +359,18 @@ class DisplaylayerprogressPlugin(
     def createFilePreProcessor(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args,
                            **kwargs):
 
+        self._layerDetectorFileProcessorLastProcessedFilename = None
         fileName = file_object.filename
 
         if not octoprint.filemanager.valid_file_type(fileName, type="gcode"):
             return file_object
 
-        addLayerIndicators = self._settings.get_boolean([SETTINGS_KEY_ADD_LAYER_INDICATORS])
+        addLayerIndicators = self._cachedSettings.getBooleanValue(SETTINGS_KEY_ADD_LAYER_INDICATORS)
         if  addLayerIndicators == False:
+            return file_object
+
+        alreadyAddedLayerIndicators = self._alreadyAddedLayerIndicators(file_object["path"], file_object["filename"])
+        if (alreadyAddedLayerIndicators == "property found" or alreadyAddedLayerIndicators == "marker found"):
             return file_object
 
         # check filesize
@@ -399,6 +391,8 @@ class DisplaylayerprogressPlugin(
         fileStream = file_object.stream()
 
         self._layerDetectorFileProcessor = LayerDetectorFileProcessor(fileStream, self._allLayerExpressions, self._logger)
+        self._layerDetectorFileProcessorLastProcessedFilename = file_object
+
         return octoprint.filemanager.util.StreamWrapper(fileName,
                                                         self._layerDetectorFileProcessor
                                                         )
@@ -440,7 +434,7 @@ class DisplaylayerprogressPlugin(
         # layer
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
 
-            layerOffset = self._settings_layer_offset
+            layerOffset = self._cachedSettings.getIntValue(SETTINGS_KEY_LAYER_OFFSET)
             self._currentLayer = str(int(commandAsString[len(LAYER_MESSAGE_PREFIX):]) + layerOffset)
 
             ## calculate time of layer printing
@@ -493,12 +487,17 @@ class DisplaylayerprogressPlugin(
         if matched:
             self._fanSpeed = 'Off'
             self._updateDisplay(UPDATE_DISPLAY_REASON_FANSPEED_CHANGED)
+
+        if (commandAsString.startswith("M73 P")):
+            self._m73Progress = commandAsString.split(" ")[1][1:]
+            self._updateDisplay(UPDATE_DISPLAY_REASON_M73PROGRESS_CHANGED)
+
         pass
 
 
     # eval current layer from modified g-code (comm.sending_thread)
     def sentGCodeHook(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
-        showDesktopPrinterDisplay = self._settings_show_all_printer_messages
+        showDesktopPrinterDisplay = self._cachedSettings.getBooleanValue(SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES)
         if  showDesktopPrinterDisplay == True:
             # needed to handle non utf-8 characters
             # commandAsString = cmd.encode('ascii', 'ignore')
@@ -513,10 +512,10 @@ class DisplaylayerprogressPlugin(
 
     # do the stuff in async-way
     def sentGCodeHookWorkerMethod(self, commandAsString):
-        showDesktopPrinterDisplay = self._settings_show_all_printer_messages
+        showDesktopPrinterDisplay = self._cachedSettings.getBooleanValue(SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES)
         if (showDesktopPrinterDisplay == True):
             printerMessage = commandAsString[len("M117 "):]
-            if self._settings_add_trailingchar:
+            if self._cachedSettings.getBooleanValue(SETTINGS_KEY_ADD_TRAILINGCHAR):
                 printerMessage = printerMessage[:-1]
 
             printerMessage = "&nbsp;" + printerMessage + "&nbsp;"
@@ -584,7 +583,7 @@ class DisplaylayerprogressPlugin(
         if (self._layerTotalCountWithoutOffset == NOT_PRESENT):
             return self._layerTotalCountWithoutOffset
 
-        layerOffset = self._settings_layer_offset
+        layerOffset = self._cachedSettings.getIntValue(SETTINGS_KEY_LAYER_OFFSET)
         return str(self._layerTotalCountWithoutOffset + layerOffset)
 
     def _resetCurrentValues(self):
@@ -599,7 +598,7 @@ class DisplaylayerprogressPlugin(
         self._fanSpeed = NOT_PRESENT
 
         self._startLayerTime = None
-        self._layerDurationDeque = deque(maxlen=self._settings_layer_avarage_duration_count)
+        self._layerDurationDeque = deque(maxlen=self._cachedSettings.getIntValue(SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT))
         self._currentHeightFloat = 0.0
 
         self._filamentChangeTimeLeftInSeconds = 0
@@ -642,42 +641,23 @@ class DisplaylayerprogressPlugin(
         return self._layerExpressionsValid
 
     def _initDesktopPinterDisplay(self):
-        classStyle = ""
-        stackDefinition = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION])
-        isTop = False
-        isRight = False
-        if "down" in stackDefinition:
-            isTop = True
-        if "right" in stackDefinition:
-            isRight = True
+        # classStyle = "stack-topleft"
+        # classStyle = "stack-topright"
+        # classStyle = "stack-bottomleft"
+        # classStyle = "stack-bottomright"
+        classStyle = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION_CLASS)
+        stackDefinition = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION)
 
-        if isTop and isRight:
-            classStyle = "stack-topleft"
-        if isTop and isRight == False:
-            classStyle = "stack-topright"
-
-        if isTop == False and isRight:
-            classStyle = "stack-bottomleft"
-        if isTop == False and isRight == False:
-            classStyle = "stack-bottomright"
-
-        showDesktopPrinterDisplay = self._settings.get([SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES])
+        showDesktopPrinterDisplay = self._cachedSettings.getStringValue(SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES)
         initDesktopDisplay =  showDesktopPrinterDisplay
         # start-workaround https://github.com/foosel/OctoPrint/issues/3400
         import time
         time.sleep(2)
         # end-workaround
 
-        # self._plugin_manager.send_plugin_message(self._identifier,
-        #                                          dict(initPrinterDisplay=initDesktopDisplay,
-        #                                               printerDisplayScreenLocation=stackDefinition,
-        #                                               printerDisplayWidth=self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_WIDTH]),
-        #                                               classDefinition=classStyle
-        #                                               )
-        #                                          )
         self._sendDataToClient(dict(initPrinterDisplay=initDesktopDisplay,
                                     printerDisplayScreenLocation=stackDefinition,
-                                    printerDisplayWidth=self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_WIDTH]),
+                                    printerDisplayWidth=self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_WIDTH),
                                     classDefinition=classStyle
                                     )
                               )
@@ -700,12 +680,12 @@ class DisplaylayerprogressPlugin(
         self._printTimeLeft = NOT_PRESENT
         self._printTimeLeftInSeconds = currentData["progress"]["printTimeLeft"]
         if self._printTimeLeftInSeconds is not None:
-            self._printTimeLeft = stringUtils.secondsToText(self._printTimeLeftInSeconds)
+            self._printTimeLeft = stringUtils.secondsToText(self._printTimeLeftInSeconds, hideSeconds=self._cachedSettings.getBooleanValue(SETTINGS_KEY_PRINTTIMELEFT_WITHOUT_SECONDS))
 
             # current_time = datetime.today()
             # finish_time = current_time + timedelta(0,self._printTimeLeftInSeconds)
             # self._currentETA = format_time(finish_time, format="short")
-            timeFormat = self._settings_eta_format
+            timeFormat = self._cachedSettings.getStringValue(SETTINGS_KEY_ETA_FORMAT)
             self._currentETA  = time.strftime(timeFormat, time.localtime(time.time() + self._printTimeLeftInSeconds))  #hijacked from displalayer-plugin
             pass
         else:
@@ -741,11 +721,11 @@ class DisplaylayerprogressPlugin(
                 self._lastLayerDurationInSeconds = lastLayerDurationTimeDelta
             else:
                 self._lastLayerDurationInSeconds = lastLayerDurationTimeDelta.seconds
-            self._lastLayerDuration = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._settings_layer_avarage_format_pattern)
+            self._lastLayerDuration = stringUtils.strfdelta(lastLayerDurationTimeDelta, self._cachedSettings.getStringValue(SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN))
 
             # avarag calc only if we have engough layer measurments
             allLayerDurationCount = len(self._layerDurationDeque)
-            if allLayerDurationCount == self._settings_layer_avarage_duration_count:
+            if allLayerDurationCount == self._cachedSettings.getIntValue(SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT):
                 calcAverageDuration = 0
                 allLayerDurations = list(self._layerDurationDeque)
 
@@ -755,9 +735,8 @@ class DisplaylayerprogressPlugin(
 
                 calcAverageDuration = calcAverageDuration / allLayerDurationCount
                 calcAverageDurationTimeDelta = timedelta(seconds = calcAverageDuration)
-                self._averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._settings_layer_avarage_format_pattern)
+                self._averageLayerDuration = stringUtils.strfdelta(calcAverageDurationTimeDelta, self._cachedSettings.getStringValue(SETTINGS_KEY_LAYER_AVARAGE_FORMAT_PATTERN))
                 self._averageLayerDurationInSeconds = calcAverageDurationTimeDelta.seconds
-
 
         # layerChanged event, then calculate the predicted filamentChange time
         if (updateReason == UPDATE_DISPLAY_REASON_LAYER_CHANGED):   #TODO only if it is included into message output pattern in settings-ui
@@ -782,7 +761,7 @@ class DisplaylayerprogressPlugin(
 
                 self._filamentChangeTimeLeftInSeconds = layerDuration * layerDiff
                 self._filamentChangeTimeLeftFormatted = stringUtils.secondsToText(self._filamentChangeTimeLeftInSeconds)
-                timeFormat = self._settings_eta_format
+                timeFormat = self._cachedSettings.getStringValue(SETTINGS_KEY_ETA_FORMAT)
                 self._filamentChangeETAFormatted = time.strftime(timeFormat, time.localtime(time.time() + self._filamentChangeTimeLeftInSeconds))
 
         currentValueDict = {
@@ -803,9 +782,11 @@ class DisplaylayerprogressPlugin(
             ETA_KEYWORD_EXPRESSION: self._currentETA,
             ETA_CHANGEFILAMENT_KEYWORD_EXPRESSION: self._filamentChangeETAFormatted,
             CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION: self._filamentChangeTimeLeftFormatted,
-            CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION: str(len(self._m600LayerProcessingList))
+            CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION: str(len(self._m600LayerProcessingList)),
+            PRINTER_STATE_KEYWORD_EXPRESSION: self._printerState,
+            M73PROGRESS_KEYWORD_EXPRESSION: self._m73Progress
         }
-        printerMessagePattern = self._settings_printerdisplay_messagepattern
+        printerMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
 
 
@@ -814,20 +795,20 @@ class DisplaylayerprogressPlugin(
 
         clientMessageDict.update({'busy': self._busyIndicatorActive})
 
-        if self._settings_show_on_state:
-            stateMessagePattern = self._settings_state_messagepattern
+        if self._cachedSettings.getBooleanValue(SETTINGS_KEY_SHOW_ON_STATE):
+            stateMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_STATE_MESSAGEPATTERN)
             stateMessage = stringUtils.multiple_replace(stateMessagePattern, currentValueDict)
             clientMessageDict.update( {'stateMessage' : stateMessage } )
 
-        if self._settings_show_on_navbar:
-            navBarMessagePattern = self._settings_navbar_messagepattern
+        if self._cachedSettings.getBooleanValue(SETTINGS_KEY_SHOW_ON_NAVBAR):
+            navBarMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_NAVBAR_MESSAGEPATTERN)
             navBarMessage = stringUtils.multiple_replace(navBarMessagePattern, currentValueDict)
             clientMessageDict.update( {'navBarMessage' : navBarMessage } )
 
-        if self._settings_show_on_browser_title:
-            browserTitleMode = self._settings_browser_title_mode
+        if self._cachedSettings.getStringValue(SETTINGS_KEY_SHOW_ON_BROWSER_TITLE):
+            browserTitleMode = self._cachedSettings.getStringValue(SETTINGS_KEY_BROWSER_TITLE_MODE)
 
-            browserTitleMessagePattern = self._settings_browser_title_messagepattern
+            browserTitleMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_BROWSER_TITLE_MESSAGEPATTERN)
             browserTitleMessage = stringUtils.multiple_replace(browserTitleMessagePattern, currentValueDict)
 
             browserTitleDict = dict(
@@ -852,11 +833,11 @@ class DisplaylayerprogressPlugin(
         # showLayerInStatusBar = self._settings.get_boolean([SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR])
         # clientMessageDict.update({'showLayerInStatusBar': showLayerInStatusBar})
 
-        showDesktopPrinterDisplay = self._settings_show_all_printer_messages
+        showDesktopPrinterDisplay = self._cachedSettings.getBooleanValue(SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES)
         clientMessageDict.update({'showDesktopPrinterDisplay': showDesktopPrinterDisplay})
 
         # prepare Printer
-        if self._settings_show_on_printerdisplay:
+        if self._cachedSettings.getBooleanValue(SETTINGS_KEY_SHOW_ON_PRINTERDISPLAY):
             # Optimization, update only if definied in message-pattern
             shouldSendToPrinter = False
             if updateReason == UPDATE_DISPLAY_REASON_PROGRESS_CHANGED and self._showProgressOnPrinterDisplay == True:
@@ -872,7 +853,7 @@ class DisplaylayerprogressPlugin(
             elif updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL:
                 shouldSendToPrinter = True
 
-            if self._settings_update_only_while_printing:
+            if self._cachedSettings.getBooleanValue(SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING):
                 if self._isPrinterRunning:
                     #if self._printer.is_printing():
                     shouldSendToPrinter = True
@@ -908,8 +889,10 @@ class DisplaylayerprogressPlugin(
             feedrateG1=self._feedrateG1,
             fanspeed=self._fanSpeed,
             progress=self._progress,
+            m73progress=self._m73Progress,
             printTimeLeft=self._printTimeLeft,
             printTimeLeftInSeconds=self._printTimeLeftInSeconds,
+            printerState=self._printerState,
             estimatedEndTime=self._currentETA,
             estimatedChangedFilamentTime=self._filamentChangeETAFormatted,
             changeFilamentTimeLeft=self._filamentChangeTimeLeftFormatted,
@@ -923,7 +906,7 @@ class DisplaylayerprogressPlugin(
                 eventManager().fire(eventKey, eventPayload)
 
             ##################################################### WEBSOCKET
-            if self._settings_send_layerinformation_via_websocket:
+            if self._cachedSettings.getBooleanValue(SETTINGS_KEY_SEND_LAYERINFORMATION_VIA_WEBSOCKET):
                 self._plugin_manager.send_plugin_message(self._identifier + "-websocket-payload", eventPayload)
                 pass
 
@@ -944,8 +927,8 @@ class DisplaylayerprogressPlugin(
     def _calculateFeedrate(self, feedrate):
         if feedrate == "-":
             return feedrate
-        feedrateFactor = self._settings_feedrate_factor
-        feedrateFormat = self._settings_feedrate_format
+        feedrateFactor = self._cachedSettings.getStringValue(SETTINGS_KEY_FEEDRATE_FACTOR)
+        feedrateFormat = self._cachedSettings.getStringValue(SETTINGS_KEY_FEEDRATE_FORMAT)
 
         newFeedrate = float(feedrateFactor) * float(feedrate)
         result = feedrateFormat.format(newFeedrate)
@@ -961,7 +944,7 @@ class DisplaylayerprogressPlugin(
             return result
 
         try:
-            heightFormat = self._settings_height_format
+            heightFormat = self._cachedSettings.getStringValue(SETTINGS_KEY_HEIGHT_FORMAT)
             result = heightFormat.format(heightValueAsFloat)
         except (Exception) as error:
             errorMessage = "ERROR during format '" + heightFormat + "' height value '" + str(heightValueAsFloat) + "'. Message: '" + str(error) + "'"
@@ -977,7 +960,7 @@ class DisplaylayerprogressPlugin(
         if (self._lastSendPrinterCommand != command):
 
             # is intervall output enabled
-            intervalCount = self._settings_printerDisplayOutputInterval
+            intervalCount = self._cachedSettings.getIntValue(SETTINGS_KEY_PRINTER_DISPLAY_OUTPUT_INTERVAL)
             if (intervalCount > 0):
                 if (self._lastSendTime != None):
                     currentTime = octoprint.util.monotonic_time()
@@ -985,7 +968,7 @@ class DisplaylayerprogressPlugin(
                     if (currentInterval < intervalCount):
                         return
 
-            if self._settings.get([SETTINGS_KEY_ADD_TRAILINGCHAR]):
+            if self._cachedSettings.getStringValue(SETTINGS_KEY_ADD_TRAILINGCHAR):
                 if command.startswith("M117"):
                     command += "_"
             # logging for debugging print("Send GCode:" + command)
@@ -1006,7 +989,7 @@ class DisplaylayerprogressPlugin(
             self._eventLogging("SEND-CLIENT: not send, because duplicated dict:" + str(dataDict))
 
     def _evaluatePrinterMessagePattern(self):
-        printerMessagePattern = self._settings.get([SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN])
+        printerMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
 
         self._showProgressOnPrinterDisplay = False
         self._showLayerOnPrinterDisplay = False
@@ -1062,8 +1045,61 @@ class DisplaylayerprogressPlugin(
 
         return result
 
+    layerIndicatorProcessedFileMarker = "; DisplayLayerProgress_layerIndicatorProcessed = true"
+
+    # Looks for a property at the end of the file that this file was already processed with LayerIndicators
+    # If not present loop thru the first lines looking for M117 LayerIndicator messages
+    # returning
+    # - no marker
+    # - property found
+    # - marker found
+    def _alreadyAddedLayerIndicators(self, path, filename):
+        resultType = "no marker"
+        try:
+            lastLines = stringUtils.getLastLinesFromFile(path, 10)
+            for line in lastLines:
+                if (line.startswith(self.layerIndicatorProcessedFileMarker)):
+                    resultType = "property found"
+                    break
+
+            if resultType == "no marker":
+                # lets look in the first 500 lines, maybe there is already an M117 Indicator
+                lineCounter = 0
+                with open(path) as fileHandle:
+                    for line in fileHandle:
+                        lineCounter = lineCounter + 1
+                        # reached the limit
+                        if (lineCounter > 500):
+                            self._logger.info("Limit of 500 reached and no " + LAYER_MESSAGE_PREFIX + " found")
+                            break
+                        # found an indicator
+                        if (line.startswith(LAYER_MESSAGE_PREFIX)):
+                            resultType = "marker found"
+                            break
+
+        except Exception as error:
+            errorMessage = "ERROR! File: '" + path + "' could not read check-marking'"
+            self._logger.exception(errorMessage)
+            self._eventLogging(errorMessage)
+        return resultType
+
+    # Add at the end of the file a property to indicate the this file was alread processed
+    def _markFileLayerIndicatorProcessed(self, storage, path, name):
+        try:
+            fileHandle = open(path, "a+")
+            fileHandle.write("; BEGIN DISPLAYLAYERPROGRESS SETTINGS\n")
+            fileHandle.write(self.layerIndicatorProcessedFileMarker+"\n")
+            fileHandle.write("; END   DISPLAYLAYERPROGRESS SETTINGS\n")
+            fileHandle.close()
+        except Exception as error:
+            errorMessage = "ERROR! File: '" + path + "' could not be open for check-marking'"
+            self._logger.exception(errorMessage)
+            self._eventLogging(errorMessage)
+
+        pass
+
     def _eventLogging(self, logMessage):
-        if EVENT_LOGGING_ENABLED or self._settings_debugging_enabled:
+        if EVENT_LOGGING_ENABLED or self._cachedSettings.getBooleanValue(SETTINGS_KEY_DEBUGGING_ENABLED):
             threadName = threading.current_thread().name
             threadId = str(threading.current_thread().ident)
             threadPattern = "["+threadId + "::" + threadName + "]"
@@ -1105,7 +1141,7 @@ class DisplaylayerprogressPlugin(
     def get_displayLayerProgressValues(self):
 
         # return data via the default API endpoint
-        layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+        layerOffset = self._cachedSettings.getIntVaue(SETTINGS_KEY_LAYER_OFFSET)
         return flask.jsonify({
             "layer": {
                 "total": self._getTotalLayerCountAsString(),
@@ -1126,7 +1162,9 @@ class DisplaylayerprogressPlugin(
             "feedrateG0": self._feedrateG0,
             "feedrateG1": self._feedrateG1,
             "print": {
+                "printerState": self._printerState,
                 "progress": self._progress,
+                "m73progress": self._m73Progress,
                 "timeLeft": self._printTimeLeft,
                 "timeLeftInSeconds": self._printTimeLeftInSeconds,
                 "estimatedEndTime": self._currentETA,
@@ -1198,7 +1236,12 @@ class DisplaylayerprogressPlugin(
 
                 self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
-        if event == Events.FILE_SELECTED:
+        elif event == Events.FILE_ADDED:
+            if (self._layerDetectorFileProcessorLastProcessedFilename != None):
+                # mark this file that LayerIndicators were added
+                self._markFileLayerIndicatorProcessed(payload["storage"], payload["path"], payload["name"])
+
+        elif event == Events.FILE_SELECTED:
             self._initializeEventLogger()
             fileLocation = payload.get("origin")
             selectedFilename = payload.get("path")
@@ -1221,9 +1264,9 @@ class DisplaylayerprogressPlugin(
             skipLayerDetection = False
 
             # is it an excluded file that should not be analysed?
-            if (self._settings.get_boolean([SETTINGS_KEY_EXCLUDE_FOLDERS]) == True):
-                excludeFolderExpression = self._settings.get([SETTINGS_KEY_EXCLUDE_FOLDERS_EXPRESSION])
-                excludedFilenamePattern = re.compile(excludeFolderExpression)
+            if (self._cachedSettings.getBooleanValue(SETTINGS_KEY_EXCLUDE_FOLDERS) == True):
+                excludedFoldersExpression = self._cachedSettings.getStringValue(SETTINGS_KEY_EXCLUDE_FOLDERS_EXPRESSION)
+                excludedFilenamePattern = re.compile(excludedFoldersExpression)
                 matched = excludedFilenamePattern.match(selectedFilename)
                 if (matched):
                     self._logger.info("File '" + selectedFile + "' is excluded from layer analyse.")
@@ -1278,7 +1321,7 @@ class DisplaylayerprogressPlugin(
                                 matched = m600Pattern.match(line)  # identify layer count
                                 if matched:
                                     # filemant change detected
-                                    layerOffset = self._settings.get_int([SETTINGS_KEY_LAYER_OFFSET])
+                                    layerOffset = self._cachedSettings.getIntValue(SETTINGS_KEY_LAYER_OFFSET)
                                     self._m600LayerList.append(currentLayerNumber + layerOffset)
 
                     if (layerIndicatorAlreadyFound == False):
@@ -1291,6 +1334,12 @@ class DisplaylayerprogressPlugin(
                     else:
                         # store totalLayerCount
                         self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerTotalCountWithoutOffset)
+
+                        # New check if file is already marked with property
+                        resultType = self._alreadyAddedLayerIndicators(selectedFile, selectedFile)
+                        if (resultType == "marker found"):
+                            # add property to confirm that the file already marked
+                            self._markFileLayerIndicatorProcessed("", selectedFile ,"")
 
                 except Exception as error:
                     errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
@@ -1354,6 +1403,7 @@ class DisplaylayerprogressPlugin(
             self._sentGCodeHookCommandQueue.printJobStopped()
             self._sendingGCodeHookCommandQueue.printJobStopped()
 
+            self._progress = str(0)
             # send to navbar
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
@@ -1365,8 +1415,31 @@ class DisplaylayerprogressPlugin(
             self._initDesktopPinterDisplay()
             self._updateDisplayCommandQueue.addToQueue(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
+        elif event == Events.PRINTER_STATE_CHANGED:
+            currentPrinterStateId = payload['state_id']
+            # eavluate printer_state
+            if (currentPrinterStateId != None):
+                if (currentPrinterStateId == "PRINTING"):
+                    printerState = "printing"
+                elif (currentPrinterStateId == "OPERATIONAL"):
+                    printerState = "operational"
+                elif (currentPrinterStateId == "OFFLINE"):
+                    printerState = "offline"
+                elif (currentPrinterStateId == "PAUSED"):
+                    printerState = "paused"
+                elif (currentPrinterStateId == "ERROR" or currentPrinterStateId == "CLOSED_WITH_ERROR"):
+                    printerState = "error"
+                else:
+                    printerState = "idle"
+
+                if (self._lastPrinterState != printerState):
+                    self._lastPrinterState = printerState
+                    self._printerState = printerState
+                    self._updateDisplay(UPDATE_DISPLAY_REASON_PRINTERSTATE_CHANGED)
+
         self._eventLogging("EVENT processed::" + event)
 
+    # these values could be loaded via JavaScript
     def _storeLayerCountInMeta(self, fileLocation, selectedFilename, layerTotalCountWithoutOffset):
         self._logger.info("Store layer count in MetaFile")
         myMetaData = {
@@ -1390,6 +1463,9 @@ class DisplaylayerprogressPlugin(
             if ("dimensions" in analysisDict):
                 dimensionsDict = analysisDict["dimensions"]
                 self._totalHeight = str(dimensionsDict["height"])
+            # if ("printingArea" in analysisDict):
+            #     printingAreaDict = analysisDict["printingArea"]
+            #     self._totalHeight = str(printingAreaDict["maxZ"])
         if (self._totalHeight == None or self._totalHeight == NOT_PRESENT):
             self._logger.info("Total height not found in MetaFile")
         else:
@@ -1430,11 +1506,12 @@ class DisplaylayerprogressPlugin(
 
         # default save function
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-        # Refresh cached settings
-        self.__cache_settings()
-        self._evaluatePrinterMessagePattern()
 
-        self._layerDurationDeque = deque(maxlen=self._settings_layer_avarage_duration_count)
+        # Refresh cached settings
+        self._cachedSettings.updateSettings(self._settings)
+
+        self._evaluatePrinterMessagePattern()
+        self._layerDurationDeque = deque(maxlen=self._cachedSettings.getIntValue(SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT))
 
         if initDesktopPrinterDisplay:
             self._initDesktopPinterDisplay()
@@ -1453,6 +1530,7 @@ class DisplaylayerprogressPlugin(
                 self._layerExpressionsValid = True
                 self._settings.set([], self.get_settings_defaults())
                 self._settings.save()
+                self._cachedSettings.updateSettings(self._settings)
 
                 return flask.jsonify(self.get_settings_defaults())
 
@@ -1494,7 +1572,7 @@ class DisplaylayerprogressPlugin(
                                  "<span style='display: inline-block;width:42px;'>[total_height]</span>mm",
 #                                 "Feedrate: [feedrate] G0: [feedrate_g0] G1: [feedrate_g1]",
             printerDisplayMessagePattern="[progress]% L=[current_layer]/[total_layers]",
-            browserTitleMessagePattern="[progress]% [estimated_end_time]",
+            browserTitleMessagePattern="[progress]% [estimated_end_time] ([printer_state])",
             layerOffset=0,
             addTrailingChar=False,
             # totalHeightMethode=HEIGHT_METHODE_Z_MAX,
@@ -1507,6 +1585,7 @@ class DisplaylayerprogressPlugin(
             # showHeightInStatusBar=True,
             updatePrinterDisplayWhilePrinting=False,
             printerDisplayScreenLocation="\"dir1\": \"up\", \"dir2\": \"right\", \"firstpos1\": 40, \"firstpos2\": 10, \"spacing1\": 0, \"spacing2\": 0",
+            printerDisplayScreenLocationClass="stack-bottomleft",
             printerDisplayWidth="15%",
             heightFormat="{:.1f}",
             etaFormat="%H:%M",
@@ -1519,7 +1598,10 @@ class DisplaylayerprogressPlugin(
             sendLayerInformationsViaWebSocket=True,
             excludeFolders = False,
             excludeFoldersExpression = "",
-            printerDisplayOutputInterval = 0
+            printerDisplayOutputInterval = 0,
+            timeInNavBarPosition = "right",
+            showTimeInNavBar = False,
+            printTimeLeftWithoutSeconds = True
         )
 
     # ~~ AssetPlugin mixin
@@ -1580,3 +1662,23 @@ def __plugin_load__():
         # "octoprint.filemanager.preprocessor": __plugin_implementation__.createFilePreProcessor
     }
 
+
+#
+path = "/Users/o0632/Library/Application Support/OctoPrint/uploads/3DBenchy.gcode"
+# path = "/Users/o0632/Library/Application Support/OctoPrint/uploads/LeftAnchorBlock_0.2mm_ABS_MK3SMMU2S_12h19m.gcode"
+filename = "3DBenchy.gcode"
+#
+# plugin = DisplaylayerprogressPlugin()
+# result = plugin._alreadyAddedLayerIndicators(path, filename)
+# print(result)
+# print(plugin._markFileLayerIndicatorProcessed("",path, filename))
+
+
+# printTimeLeftInSeconds = 4000
+# #
+# # from time import strftime
+# # from time import gmtime
+# #
+# # print(strftime("%Hh:%Mm:%Ss", gmtime(printTimeLeftInSeconds)))
+#
+# print(stringUtils.secondsToText(printTimeLeftInSeconds, hideSeconds=True))
