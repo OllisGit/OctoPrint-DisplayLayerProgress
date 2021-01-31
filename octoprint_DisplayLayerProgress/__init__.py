@@ -1141,7 +1141,6 @@ class DisplaylayerprogressPlugin(
     def get_displayLayerProgressValues(self):
 
         # return data via the default API endpoint
-        layerOffset = self._cachedSettings.getIntVaue(SETTINGS_KEY_LAYER_OFFSET)
         return flask.jsonify({
             "layer": {
                 "total": self._getTotalLayerCountAsString(),
