@@ -369,9 +369,11 @@ class DisplaylayerprogressPlugin(
         if  addLayerIndicators == False:
             return file_object
 
-        alreadyAddedLayerIndicators = self._alreadyAddedLayerIndicators(file_object["path"], file_object["filename"])
-        if (alreadyAddedLayerIndicators == "property found" or alreadyAddedLayerIndicators == "marker found"):
-            return file_object
+        if (hasattr(file_object, "path")):
+            path = file_object.path
+            alreadyAddedLayerIndicators = self._alreadyAddedLayerIndicators(path)
+            if (alreadyAddedLayerIndicators == "property found" or alreadyAddedLayerIndicators == "marker found"):
+                return file_object
 
         # check filesize
         # filePath = file_object.path
@@ -1053,7 +1055,7 @@ class DisplaylayerprogressPlugin(
     # - no marker
     # - property found
     # - marker found
-    def _alreadyAddedLayerIndicators(self, path, filename):
+    def _alreadyAddedLayerIndicators(self, path):
         resultType = "no marker"
         try:
             lastLines = stringUtils.getLastLinesFromFile(path, 10)
@@ -1084,7 +1086,7 @@ class DisplaylayerprogressPlugin(
         return resultType
 
     # Add at the end of the file a property to indicate the this file was alread processed
-    def _markFileLayerIndicatorProcessed(self, storage, path, name):
+    def _markFileLayerIndicatorProcessed(self, path):
         try:
             fileHandle = open(path, "a+")
             fileHandle.write("; BEGIN DISPLAYLAYERPROGRESS SETTINGS\n")
@@ -1236,9 +1238,16 @@ class DisplaylayerprogressPlugin(
                 self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
         elif event == Events.FILE_ADDED:
+            fileLocation = payload.get("storage")
+            addedFilename = payload.get("name")
+
             if (self._layerDetectorFileProcessorLastProcessedFilename != None):
-                # mark this file that LayerIndicators were added
-                self._markFileLayerIndicatorProcessed(payload["storage"], payload["path"], payload["name"])
+                if (fileLocation == octoprint.filemanager.FileDestinations.LOCAL):
+                    addedFile = self._file_manager.path_on_disk(fileLocation, addedFilename)
+                    # mark this file that LayerIndicators were added
+                    self._markFileLayerIndicatorProcessed(addedFile)
+                else:
+                    pass #skipping sd-card files
 
         elif event == Events.FILE_SELECTED:
             self._initializeEventLogger()
@@ -1335,10 +1344,10 @@ class DisplaylayerprogressPlugin(
                         self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerTotalCountWithoutOffset)
 
                         # New check if file is already marked with property
-                        resultType = self._alreadyAddedLayerIndicators(selectedFile, selectedFile)
+                        resultType = self._alreadyAddedLayerIndicators(selectedFile)
                         if (resultType == "marker found"):
                             # add property to confirm that the file already marked
-                            self._markFileLayerIndicatorProcessed("", selectedFile ,"")
+                            self._markFileLayerIndicatorProcessed(selectedFile)
 
                 except Exception as error:
                     errorMessage = "ERROR! File: '" + selectedFile + "' Line: " + str(lineNumber) + " Message: '" + str(error) + "'"
