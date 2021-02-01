@@ -207,7 +207,7 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
                 # read layer number from line
                 currentLayer = str(matched.group(groupIndex))
             self.totalLayerNumbers = currentLayer
-            line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
+            line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\n"
 
         return line
 
