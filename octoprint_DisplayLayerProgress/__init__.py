@@ -207,7 +207,8 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
                 # read layer number from line
                 currentLayer = str(matched.group(groupIndex))
             self.totalLayerNumbers = currentLayer
-            line = line + LAYER_MESSAGE_PREFIX + currentLayer + "\r\n"
+            endline = '\r\n' if line.endswith('\r\n') else '\n'
+            line = line + LAYER_MESSAGE_PREFIX + currentLayer + endline
 
         return line
 
@@ -331,6 +332,7 @@ class DisplaylayerprogressPlugin(
         self._evaluatePrinterMessagePattern()
         self._parseLayerExpressions(self._cachedSettings.getStringValue(SETTINGS_KEY_LAYER_EXPRESSIONS))
         self._layerDetectorFileProcessor = None
+        self._layerDetectorFileProcessorLastProcessedFilename = None
 
 
     def _initializeEventLogger(self):
@@ -1239,9 +1241,10 @@ class DisplaylayerprogressPlugin(
 
         elif event == Events.FILE_ADDED:
             fileLocation = payload.get("storage")
-            addedFilename = payload.get("name")
-
+            # addedFilename = payload.get("name")
+            addedFilename = payload.get("path")
             if (self._layerDetectorFileProcessorLastProcessedFilename != None):
+                self._layerDetectorFileProcessorLastProcessedFilename = None
                 if (fileLocation == octoprint.filemanager.FileDestinations.LOCAL):
                     addedFile = self._file_manager.path_on_disk(fileLocation, addedFilename)
                     # mark this file that LayerIndicators were added
