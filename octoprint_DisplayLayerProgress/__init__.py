@@ -130,6 +130,7 @@ CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION = "[changefilamenttime_left]"
 CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION = "[changefilament_count]"
 PRINTER_STATE_KEYWORD_EXPRESSION = "[printer_state]"
 M73PROGRESS_KEYWORD_EXPRESSION = "[M73progress]"    # see https://github.com/tpmullan/OctoPrint-DetailedProgress
+CURRENT_FILENAME_KEYWORD_EXPRESSION = "[current_print_filename]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/214
 
 UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
@@ -285,6 +286,8 @@ class DisplaylayerprogressPlugin(
         self._printerState = ""
         self._lastPrinterState = ""
         self._m73Progress = ""
+
+        self._currentFilename = ""
 
         self._printTimeGeniusPluginImplementationState = None
         self._printTimeGeniusPluginImplementation = None
@@ -611,6 +614,8 @@ class DisplaylayerprogressPlugin(
 
         self._movementMode = MOVEMENT_ABSOLUTE
 
+        self._currentFilename = NOT_PRESENT
+
 
     def _resetTotalValues(self):
         self._layerTotalCountWithoutOffset = NOT_PRESENT
@@ -788,7 +793,8 @@ class DisplaylayerprogressPlugin(
             CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION: self._filamentChangeTimeLeftFormatted,
             CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION: str(len(self._m600LayerProcessingList)),
             PRINTER_STATE_KEYWORD_EXPRESSION: self._printerState,
-            M73PROGRESS_KEYWORD_EXPRESSION: self._m73Progress
+            M73PROGRESS_KEYWORD_EXPRESSION: self._m73Progress,
+            CURRENT_FILENAME_KEYWORD_EXPRESSION: self._currentFilename
         }
         printerMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
@@ -901,7 +907,8 @@ class DisplaylayerprogressPlugin(
             estimatedChangedFilamentTime=self._filamentChangeETAFormatted,
             changeFilamentTimeLeft=self._filamentChangeTimeLeftFormatted,
             changeFilamentTimeLeftInSeconds=self._filamentChangeTimeLeftInSeconds,
-            changeFilamentCount=len(self._m600LayerProcessingList)
+            changeFilamentCount=len(self._m600LayerProcessingList),
+            currentFilename=self._currentFilename
         )
 
         if (self._lastSendEventBusData != eventPayload):
@@ -1175,7 +1182,8 @@ class DisplaylayerprogressPlugin(
                 "changeFilamentTimeLeft": self._filamentChangeTimeLeftFormatted,
                 "changeFilamentTimeLeftInSeconds": self._filamentChangeTimeLeftInSeconds,
                 "changeFilamentCount": len(self._m600LayerProcessingList)
-            }
+            },
+            "currentFilename": self._currentFilename
         })
 
     ################################################################################################ COMMON PLUGIN HOOKS
@@ -1264,6 +1272,9 @@ class DisplaylayerprogressPlugin(
             self._logger.info("File '" + selectedFile + "' selected. Determining number of layers.")
             self._resetCurrentValues()
             self._resetTotalValues()
+
+            self._currentFilename = selectedFilename
+
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
             if (fileLocation == octoprint.filemanager.FileDestinations.SDCARD):
@@ -1399,6 +1410,8 @@ class DisplaylayerprogressPlugin(
             # which M600 layers should be processed
             self._m600LayerProcessingList = list(self._m600LayerList)
 
+            self._currentFilename = payload.get("path")
+
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
             self._checkLayerExpressionValid()
 
@@ -1464,9 +1477,14 @@ class DisplaylayerprogressPlugin(
 
 
     def _readHeightFromFileMeta(self, fileLocation, selectedFilename):
-        # layerFound = False
-        self._logger.info("Read total height from MetaFile")
-        metaDataDict = self._file_manager.get_metadata(fileLocation, selectedFilename)
+
+        # read only for currently selected filename and not for future files (upload during running print)
+        if (self._currentFilename == selectedFilename):
+            self._logger.info("Read total height from MetaFile")
+            metaDataDict = self._file_manager.get_metadata(fileLocation, selectedFilename)
+        else:
+            self._logger.info("Did NOT reading total height from MetaFile, because analyse was done for not selected file. Current: '"+self._currentFilename+"' Analyse for: '"+selectedFilename+"'")
+            return
 
         # - read height from meta
         if ("analysis" in metaDataDict):

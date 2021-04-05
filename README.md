@@ -20,6 +20,7 @@ It shows:
 * ```CurrentHeight, TotalHeight, Feedrate, Fanspeed,```
 * ```ChangeFilamentTimeLeft, EstimatedChangeFilamentTime and ChangefilamentCount (based on M600 command location in file)```
 * ```Printer State```
+* ```Currently printed filename```
 
 Some output examples:
 - Printer Display: ```50% L=60/120 H=23mm/47mm```
@@ -91,6 +92,7 @@ You can receive the layer/height and other values via a GET-Call.
     curl -H "X-Api-Key:57FECA453FE94D46851EFC94BC9B5265" http://localhost:5000/plugin/DisplayLayerProgress/values
 
     {
+      "currentFilename": "AE10_xyzCalibration_cube.gcode",
       "fanSpeed": "69%",
       "feedrate": "3000",
       "feedrateG0": "3000",
@@ -167,8 +169,9 @@ Plugin sends the following custom events to the eventbus like this:
    'estimatedEndTime':'20:24',
    'estimatedChangedFilamentTime': '20:22',
    'changeFilamentTimeLeft': '1m12s,
-   'changeFilamentTimeLeftInSeconds': 72
-   'changeFilamentCount': 2
+   'changeFilamentTimeLeftInSeconds': 72,
+   'changeFilamentCount': 2,
+   'currentFilename': 'AE10_xyzCalibration_cube.gcode'
  }
 ```
 Other Plugins could listen to this events in there python-code like this:

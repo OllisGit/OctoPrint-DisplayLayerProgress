@@ -186,6 +186,9 @@ $(function () {
                     self.updateClock();
             });
 
+            // Start/Show (if needed) clock after inital load
+            self.updateClock();
+
 //            self.origGetAdditionDataFunction = self.filesViewModel.getAdditionalData;
 //            self.filesViewModel.getAdditionalData = function(data){
 //                var additionDataAsHtml = "Layers: 123<br>" + self.origGetAdditionDataFunction(data);
