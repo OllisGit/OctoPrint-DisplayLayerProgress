@@ -86,7 +86,9 @@
 <div class="control-group" >
     <label class="checkbox">{{ _('Navigationbar') }}<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar"/></label>
     <textarea rows="5" cols="60" style="min-width: 96%" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar, value: settingsViewModel.settings.plugins.DisplayLayerProgress.navBarMessagePattern">'NavBar-Pattern'</textarea>
-    <label class="checkbox">Show current time<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showTimeInNavBar"></input>
+    <label class="checkbox">
+        Show current time<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showTimeInNavBar"></input>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Format <input type="text" name="currentTimeFormat" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.currentTimeFormat" ></input>&nbsp;&nbsp;see <a target="_newTab" href="https://momentjs.com/">moment.js</a>
     </label>
     <div >
         <input type="radio" name="timePosition" value="left" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showTimeInNavBar, checked: settingsViewModel.settings.plugins.DisplayLayerProgress.timeInNavBarPosition"></input> &nbsp;&nbsp;left side
@@ -203,6 +205,10 @@
                 <div class="control-group">
                     <legend>Layer indicator</legend>
 
+                    <label class="checkbox">Show missing Layer-Indicator Warning after file selection
+                        <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showMissingLayerIndicatorWarning" />
+                    </label>
+
                     <label class="checkbox">Add Layer-Indicators during upload
                         <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.addLayerIndicators" />
                     </label>
@@ -227,6 +233,17 @@
                     <br/>
 
                     <div>
+                        <label class="checkbox"><b>Look ahead limit</b><br>For performance reason there is a parsing line limit for detecting layer-indicator messages.<br>
+                            If you upload a gcode with base64 encoded image data in the header, you maybe need to increase this limit:
+                            <div class="input-append">
+                                <input type="text" class="input-small text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.layerIndicatorLookAheadLimit">
+                                <span class="add-on">lines</span>
+                            </div>
+                        </label>
+                    </div>
+
+
+                    <div>
                         Here you can define several regular expressions for different slicers. If you need help with regular expressions, try <a href="https://regex101.com/">https://regex101.com/</a><br/>
                         The pattern of the expression is:<code>groupIndex [layerExpression] comment</code><br/>
                         E.g. <code>1		[;LAYER:([0-9]+).*]		CURA</code><br/>
@@ -244,9 +261,17 @@ empty
                     <div class="help-block">
                         <font color="red">After changing the layer-expression you need to upload your model again!</font>
                         <br/>
+                        <font color="red">Make sure that you uploaded file doesn't include the following part at the end. If present, remove it!<br/>
+                        <code>
+; BEGIN DISPLAYLAYERPROGRESS SETTINGS<br/>
+; DisplayLayerProgress_layerIndicatorProcessed = true<br/>
+; END   DISPLAYLAYERPROGRESS SETTINGS<br/>
+                        </code>
+                        </font>
+                        <br/>
                         <font color="red">For performance reason, the comment with the layer value must start at the beginning of the line.<br/>
-                        NOT ALLOWED: <s><code>G1 Z0.400 F10800.000 ; LAYER: 3</code></s><br/>
-                        VALID: <br/><code>; LAYER: 3<br/>G1 Z0.400 F10800.000 </code><br/>
+                        NOT ALLOWED:<br/><s><code>G1 Z0.400 F10800.000 ; LAYER: 3</code></s><br/>
+                        VALID:<br/><code>; LAYER: 3<br/>&nbsp;G1 Z0.400 F10800.000 </code><br/>
                         </font>
                     </div>
                 </div>

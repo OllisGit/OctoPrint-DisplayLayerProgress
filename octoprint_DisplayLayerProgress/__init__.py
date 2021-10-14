@@ -33,6 +33,7 @@ from octoprint_DisplayLayerProgress.LayerExpression import LayerExpression
 EVENT_LOGGING_ENABLED = False
 
 SETTINGS_KEY_ADD_LAYER_INDICATORS = "addLayerIndicators"
+SETTINGS_KEY_SHOW_MISSING_LAYER_INDICATOR_WARNING = "showMissingLayerIndicatorWarning"
 SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES = "showAllPrinterMessages"
 # SETTINGS_KEY_SHOW_HEIGHT_IN_STATSUBAR = "showHeightInStatusBar"
 # SETTINGS_KEY_SHOW_LAYER_IN_STATSUBAR = "showLayerInStatusBar"
@@ -80,6 +81,8 @@ SETTINGS_KEY_SHOW_TIME_IN_NAVBAR = "showTimeInNavBar"
 SETTINGS_KEY_TIME_IN_NAVBAR_POSITION = "timeInNavBarPosition"
 
 SETTINGS_KEY_PRINTTIMELEFT_WITHOUT_SECONDS = "printTimeLeftWithoutSeconds"
+
+SETTINGS_KEY_LAYERINDICATOR_LOOKAHEAD_LIMIT = "layerIndicatorLookAheadLimit"
 
 
 # HEIGHT_METHODE_Z_MAX = "zMax"
@@ -140,6 +143,7 @@ UPDATE_DISPLAY_REASON_FEEDRATE_CHANGED = "feedrateChanged"
 UPDATE_DISPLAY_REASON_FANSPEED_CHANGED = "fanspeedChanged"
 UPDATE_DISPLAY_REASON_PRINTERSTATE_CHANGED = "printerStateChanged"
 UPDATE_DISPLAY_REASON_M73PROGRESS_CHANGED = "m73ProgressChanged"
+UPDATE_DISPLAY_REASON_M600_OCCURRED = "m600Occurred"
 
 # Same as setup.py 'plugin_identifier'
 PLUGIN_KEY_PREFIX = "DisplayLayerProgress_"
@@ -455,6 +459,11 @@ class DisplaylayerprogressPlugin(
 
             self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
             # filter M117 indicator-command, not needed any more
+            return
+
+        # M600
+        if (commandAsString.startswith("M600")):
+            self._updateDisplay(UPDATE_DISPLAY_REASON_M600_OCCURRED)
             return
 
         # Z-Height
@@ -1031,10 +1040,12 @@ class DisplaylayerprogressPlugin(
         if layerExpressionPatterns  is not None and len(layerExpressionPatterns ) != 0:
             self._allLayerExpressions = []
             #patterns = "1		[;LAYER:([0-9]+).*]		CURA\r\n" + "1		[; layer ([0-9]+),.*]	Simplify3D\r\n" + "count	[BEGIN_LAYER_OBJECT]	KISSlicer"
-            lines = layerExpressionPatterns .split("\n")
+            lines = layerExpressionPatterns.split("\n")
             lineIndex = 0
             try:
                 for line in lines:
+                    if (len(line.strip()) == 0):
+                        continue
                     layerExpression = LayerExpression()
 
                     lineIndex = lineIndex + 1
@@ -1074,14 +1085,16 @@ class DisplaylayerprogressPlugin(
                     break
 
             if resultType == "no marker":
-                # lets look in the first 500 lines, maybe there is already an M117 Indicator
+                # lets look in the first 500 (adjustable) lines, maybe there is already an M117 Indicator
                 lineCounter = 0
+                # layerIndicatorLookAheadLimit = 500
+                layerIndicatorLookAheadLimit = self._cachedSettings.getStringValue(SETTINGS_KEY_LAYERINDICATOR_LOOKAHEAD_LIMIT)
                 with open(path) as fileHandle:
                     for line in fileHandle:
                         lineCounter = lineCounter + 1
                         # reached the limit
-                        if (lineCounter > 500):
-                            self._logger.info("Limit of 500 reached and no " + LAYER_MESSAGE_PREFIX + " found")
+                        if (lineCounter > layerIndicatorLookAheadLimit):
+                            self._logger.info("Limit of "+layerIndicatorLookAheadLimit+" reached and no " + LAYER_MESSAGE_PREFIX + " found")
                             break
                         # found an indicator
                         if (line.startswith(LAYER_MESSAGE_PREFIX)):
@@ -1350,9 +1363,10 @@ class DisplaylayerprogressPlugin(
                         logMessage = "No LayerIndicator found!!!"
                         self._logger.warn(logMessage)
                         self._eventLogging(logMessage)
-                        # inform user
-                        # self._plugin_manager.send_plugin_message(self._identifier, dict(notifyType="warning", notifyMessage="Layer indicator not found in file! Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
-                        self._sendDataToClient(dict(notifyType="warning", notifyMessage="Layer indicator not found in file: '"+selectedFilename+"'<br>Check layer pattern in DisplayLayerProgress-Settings and reupload the file!"))
+                        # inform user (if enabled)
+                        showMissingLayerIndicatorWarning = self._cachedSettings.getBooleanValue(SETTINGS_KEY_SHOW_MISSING_LAYER_INDICATOR_WARNING)
+                        if (showMissingLayerIndicatorWarning == True):
+                            self._sendDataToClient(dict(notifyType="warning", notifyMessage="Layer indicator not found in file: '"+selectedFilename+"'<br>Check 'layer pattern', 'Look ahead limit' in DisplayLayerProgress-Settings and reUpload the file!"))
                     else:
                         # store totalLayerCount
                         self._storeLayerCountInMeta(fileLocation, selectedFilename, self._layerTotalCountWithoutOffset)
@@ -1585,6 +1599,7 @@ class DisplaylayerprogressPlugin(
             appendActualBedTempBrowserTitle=False,
             appendTargetBedTempBrowserTitle=False,
             addLayerIndicators=True,
+            showMissingLayerIndicatorWarning=True,
             showAllPrinterMessages=True,
             stateMessagePattern=
                                 "<span title='Might be inaccurate!'>Current Height</span>: <strong id='state_height_message'>[current_height] / [total_height]mm</strong>\n" +
@@ -1631,7 +1646,9 @@ class DisplaylayerprogressPlugin(
             printerDisplayOutputInterval = 0,
             timeInNavBarPosition = "right",
             showTimeInNavBar = False,
-            printTimeLeftWithoutSeconds = True
+            currentTimeFormat = "HH:MM",
+            printTimeLeftWithoutSeconds = True,
+            layerIndicatorLookAheadLimit = 750
         )
 
     # ~~ AssetPlugin mixin
@@ -1670,6 +1687,25 @@ class DisplaylayerprogressPlugin(
         )
 
 
+## START: baustelle
+    def sanitize_temperatures(self, comm, parsed_temps):
+        # self.currentToolTemp = parsed_temps["T0"][0]
+        # self.currentToolTemp = parsed_temps["B"][0]
+        return dict((k, v) for k, v in parsed_temps.items()
+                    if isinstance(v, tuple) and len(v) == 2 and self.is_sane(v[0]))
+
+    def is_sane(self, actual):
+        return 1.0 <= actual <= 300.0
+
+    def gcode_script_variables(self, comm, script_type, script_name, *args, **kwargs):
+        if not script_type == "gcode" or not script_name == "beforePrintStarted":
+            return None
+
+        prefix = None
+        postfix = None
+        variables = dict(myvariable="Hi! I'm a variable!")
+        return prefix, postfix, variables
+## END: baustelle
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
@@ -1688,8 +1724,10 @@ def __plugin_load__():
         #"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
         "octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.queuingGCodeHook,
         # "octoprint.comm.protocol.gcode.sending": __plugin_implementation__.sendingGCodeHook,
-        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook
+        "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.sentGCodeHook,
         # "octoprint.filemanager.preprocessor": __plugin_implementation__.createFilePreProcessor
+# baustelle        "octoprint.comm.protocol.temperatures.received": __plugin_implementation__.sanitize_temperatures,
+# baustelle        "octoprint.comm.protocol.scripts": __plugin_implementation__.gcode_script_variables
     }
 
 

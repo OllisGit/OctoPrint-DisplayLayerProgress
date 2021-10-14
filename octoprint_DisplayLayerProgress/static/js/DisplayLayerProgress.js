@@ -11,6 +11,7 @@ $(function () {
         new ResetSettingsUtil().assignResetSettingsFeature(PLUGIN_ID, function(data){
                                 // assign new settings-values // TODO find a more generic way
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.addLayerIndicators(data.addLayerIndicators);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.showMissingLayerIndicatorWarning(data.showMissingLayerIndicatorWarning);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnState(data.showOnState);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnNavBar(data.showOnNavBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay(data.showOnPrinterDisplay);
@@ -45,7 +46,9 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.showTimeInNavBar(data.showTimeInNavBar);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayScreenLocationClass(data.printerDisplayScreenLocationClass);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.timeInNavBarPosition(data.timeInNavBarPosition);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.currentTimeFormat(data.currentTimeFormat);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printTimeLeftWithoutSeconds(data.printTimeLeftWithoutSeconds);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerIndicatorLookAheadLimit(data.layerIndicatorLookAheadLimit);
         });
 
         var self = this;
@@ -168,7 +171,8 @@ $(function () {
                     // start clock
                     clockElement.show();
                     var dt = new Date();
-                    clockElement.html( dt.toLocaleTimeString() );
+                    var dateTimeAsString = moment(dt).format(self.settingsViewModel.settings.plugins.DisplayLayerProgress.currentTimeFormat());
+                    clockElement.html( dateTimeAsString );
                     window.setTimeout(self.updateClock, 1000);
                 } else {
                     // hide clock and stop clock

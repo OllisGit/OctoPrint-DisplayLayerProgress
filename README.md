@@ -29,6 +29,9 @@ Some output examples:
 
 *Output pattern is adjustable!*
 
+### How it works
+Detailed description how the plugin works, could be find in the wiki: https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/wiki/How-does-the-plugin-works
+
 **ATTENTION:**
 - The layer information works only when the slicer adds "layer-indicator" as comments to the G-Code (CURA-Example as comments like ```;LAYER:10```). Then these indicators are parsed via a regular-expression.
 - The G-Code is modified during upload (could be disabled since V1.19.0)! The "layer-indicators" from the slicer were replaced with a "neutral" M117 G-Code (```M117 INDICATOR-Layer```). This is necessary, because during printing OctoPrint removes all comments from g-code.
@@ -133,18 +136,24 @@ Plugin sends the following custom events to the eventbus like this:
 
     eventManager().fire(eventKey, eventPayload)
 
-| EventKey                             |
+| EventKeys                             |
 | ------------------------------------ |
+| DisplayLayerProgress_frontEndCall |
 | DisplayLayerProgress_progressChanged |
 | DisplayLayerProgress_layerChanged    |
 | DisplayLayerProgress_heightChanged   |
 | DisplayLayerProgress_feedrateChanged |
 | DisplayLayerProgress_fanspeedChanged |
+| DisplayLayerProgress_printerStateChanged |
+| DisplayLayerProgress_m73ProgressChanged |
+| DisplayLayerProgress_m600Occurred |
+
 
 **Payload**
 ```javascript
  {
-   'updateReason', // values: frontEndCall, heightChanged, progressChanged, m73ProgressChanged, layerChanged, feedrateChanged, fanspeedChanged, printerStateChanged
+   'updateReason', // values: frontEndCall, heightChanged, progressChanged,
+                              // m73ProgressChanged, layerChanged, ... see EventKeys
    'totalLayer':'66',
    'currentLayer':'22',
    'currentHeight':'6.80',
