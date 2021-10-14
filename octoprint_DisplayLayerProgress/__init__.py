@@ -1609,7 +1609,8 @@ class DisplaylayerprogressPlugin(
                              "1\t\t[; layer ([0-9]+),.*]\t\tSimplify3D\r\n" +
                              "1\t\t[;LAYER:([0-9]+).*]\t\tideaMaker\r\n" +
                              "count\t[; BEGIN_LAYER_OBJECT.*]\t\tKISSlicer\r\n" +
-                             "count\t[;BEFORE_LAYER_CHANGE]\t\tSlic3r",
+                             "count\t[;BEFORE_LAYER_CHANGE]\t\tSlic3r\r\n" +
+                             "count\t[;LAYER_CHANGE]\t\tPrusa",
             # showLayerInStatusBar=True,
             # showHeightInStatusBar=True,
             updatePrinterDisplayWhilePrinting=False,
