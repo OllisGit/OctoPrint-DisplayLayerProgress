@@ -1646,7 +1646,7 @@ class DisplaylayerprogressPlugin(
             printerDisplayOutputInterval = 0,
             timeInNavBarPosition = "right",
             showTimeInNavBar = False,
-            currentTimeFormat = "HH:MM",
+            currentTimeFormat = "HH:mm",
             printTimeLeftWithoutSeconds = True,
             layerIndicatorLookAheadLimit = 750
         )
