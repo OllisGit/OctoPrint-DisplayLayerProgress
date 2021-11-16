@@ -159,11 +159,11 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         self._logger = logger
         self._currentLayerCount = 0
         self.totalLayerNumbers = 0
+        self.selectedLayerExpression = None
 
     def process_line(self, origLine):
         if not len(origLine):
             return None
-
         # line = origLine.decode('utf-8') # convert byte -> str
         # line = stringUtils.to_native_str(origLine)
         # print (origLine)
@@ -177,13 +177,17 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
         line = line.lstrip()
 
         if (len(line) != 0 and line[0] == ";"):
-            for layerExpression in self._allLayerExpressions:
-                inputLine = line
-                line = self._modifyLineIfLayerComment(inputLine, layerExpression)
-                if line is not inputLine:
-                    # pattern matched, skip other expressions
-                    break
-            # line = line.encode('utf-8')   # convert str -> byte
+            if (self.selectedLayerExpression == None):
+                for layerExpression in self._allLayerExpressions:
+                    inputLine = line
+                    line = self._modifyLineIfLayerComment(inputLine, layerExpression)
+                    if line is not inputLine:
+                        # pattern matched, skip other expressions
+                        self.selectedLayerExpression = layerExpression
+                        break
+                # line = line.encode('utf-8')   # convert str -> byte
+            else:
+                line = self._modifyLineIfLayerComment(line, self.selectedLayerExpression)
         else:
             line = origLine
 
@@ -450,7 +454,7 @@ class DisplaylayerprogressPlugin(
 
             ## calculate time of layer printing
             layerDuration = 0
-            currentTime =  datetime.now()
+            currentTime = datetime.now()
             if self._startLayerTime is not None:
                 layerDuration = currentTime - self._startLayerTime
 
@@ -1094,7 +1098,7 @@ class DisplaylayerprogressPlugin(
                         lineCounter = lineCounter + 1
                         # reached the limit
                         if (lineCounter > layerIndicatorLookAheadLimit):
-                            self._logger.info("Limit of "+layerIndicatorLookAheadLimit+" reached and no " + LAYER_MESSAGE_PREFIX + " found")
+                            self._logger.info("Limit of " + str(layerIndicatorLookAheadLimit) + " reached and no " + LAYER_MESSAGE_PREFIX + " found")
                             break
                         # found an indicator
                         if (line.startswith(LAYER_MESSAGE_PREFIX)):
@@ -1498,6 +1502,10 @@ class DisplaylayerprogressPlugin(
             metaDataDict = self._file_manager.get_metadata(fileLocation, selectedFilename)
         else:
             self._logger.info("Did NOT reading total height from MetaFile, because analyse was done for not selected file. Current: '"+self._currentFilename+"' Analyse for: '"+selectedFilename+"'")
+            return
+
+        if (metaDataDict == None):
+            self._logger.info("MetaData not present for: '"+selectedFilename+"'. Could not read height")
             return
 
         # - read height from meta

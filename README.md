@@ -205,3 +205,6 @@ self.onDataUpdaterPluginMessage = function (plugin, data) {
         return;
     }
 ```
+## Special Thanks
+Goes to:
+- JetBrains for supporting OpenSource-Projects, see https://jb.gg/OpenSource
