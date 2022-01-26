@@ -49,6 +49,9 @@ $(function () {
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.currentTimeFormat(data.currentTimeFormat);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.printTimeLeftWithoutSeconds(data.printTimeLeftWithoutSeconds);
                                 self.settingsViewModel.settings.plugins.DisplayLayerProgress.layerIndicatorLookAheadLimit(data.layerIndicatorLookAheadLimit);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.togglePrinterDisplayEnabled(data.togglePrinterDisplayEnabled);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.toggleDisplayDelay(data.toggleDisplayDelay);
+                                self.settingsViewModel.settings.plugins.DisplayLayerProgress.secondPrinterDisplayMessagePattern(data.secondPrinterDisplayMessagePattern);
         });
 
         var self = this;
@@ -267,7 +270,11 @@ $(function () {
 			// Printer Display
             if ( (printerDisplay == null && data.initPrinterDisplay) ||
                   data.initPrinterDisplay){
+
+                var lastTextMessage = null;
                 if (printerDisplay != null){
+                    // before creating a new PrinterDisplay store the last message
+                    lastTextMessage = printerDisplay.text_container[0].innerHTML;
                     $("h4.ui-pnotify-title:contains('Printer Display')").parent().parent().remove();
                 }
                 //var stack_bar_bottom = {"dir1": "up", "dir2": "left", "spacing1": 0, "spacing2": 0};
@@ -281,6 +288,12 @@ $(function () {
                     stack: stack_bar_bottom,
                     hide: false
                     });
+
+                if (lastTextMessage != null){
+                    printerDisplay.update({
+                        text: lastTextMessage
+                    });
+                }
             }
 			if (data.showDesktopPrinterDisplay && data.printerDisplay && printerDisplay != null){
                 printerDisplay.update({

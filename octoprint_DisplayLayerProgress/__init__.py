@@ -16,6 +16,7 @@ import threading
 
 from babel.dates import format_time
 from octoprint.events import Events, eventManager
+from octoprint.util import RepeatedTimer
 
 from collections import deque
 from datetime import datetime
@@ -50,6 +51,8 @@ SETTINGS_KEY_NAVBAR_MESSAGEPATTERN = "navBarMessagePattern"
 SETTINGS_KEY_BROWSER_TITLE_MODE = "browserTitleMode"
 SETTINGS_KEY_BROWSER_TITLE_MESSAGEPATTERN = "browserTitleMessagePattern"
 SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN = "printerDisplayMessagePattern"
+SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN_SECOND = "secondPrinterDisplayMessagePattern"
+SETTINGS_KEY_PRINTERDISPLAY_TOGGLE_ENABLED = "togglePrinterDisplayEnabled"
 SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION = "printerDisplayScreenLocation"
 SETTINGS_KEY_PRINTERDISPLAY_SCREENLOCATION_CLASS = "printerDisplayScreenLocationClass"
 SETTINGS_KEY_PRINTERDISPLAY_WIDTH = "printerDisplayWidth"
@@ -84,6 +87,7 @@ SETTINGS_KEY_PRINTTIMELEFT_WITHOUT_SECONDS = "printTimeLeftWithoutSeconds"
 
 SETTINGS_KEY_LAYERINDICATOR_LOOKAHEAD_LIMIT = "layerIndicatorLookAheadLimit"
 
+SETTINGS_KEY_TOGGLE_DISPLAY_DELAY = "toggleDisplayDelay"
 
 # HEIGHT_METHODE_Z_MAX = "zMax"
 # HEIGHT_METHODE_Z_EXTRUSION = "zExtrusion"
@@ -134,6 +138,15 @@ CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION = "[changefilament_count]"
 PRINTER_STATE_KEYWORD_EXPRESSION = "[printer_state]"
 M73PROGRESS_KEYWORD_EXPRESSION = "[M73progress]"    # see https://github.com/tpmullan/OctoPrint-DetailedProgress
 CURRENT_FILENAME_KEYWORD_EXPRESSION = "[current_print_filename]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/214
+CURRENT_BED_TEMP_KEYWORD_EXPRESSION = "[current_bed_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
+CURRENT_TOOL0_TEMP_KEYWORD_EXPRESSION = "[current_tool0_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
+CURRENT_TOOL1_TEMP_KEYWORD_EXPRESSION = "[current_tool1_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
+CURRENT_TOOL2_TEMP_KEYWORD_EXPRESSION = "[current_tool2_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
+CURRENT_TOOL3_TEMP_KEYWORD_EXPRESSION = "[current_tool3_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
+CURRENT_TOOL4_TEMP_KEYWORD_EXPRESSION = "[current_tool4_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
+CURRENT_TOOL5_TEMP_KEYWORD_EXPRESSION = "[current_tool5_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
+CURRENT_TOOL6_TEMP_KEYWORD_EXPRESSION = "[current_tool6_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
+CURRENT_TOOL7_TEMP_KEYWORD_EXPRESSION = "[current_tool7_temp]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/210
 
 UPDATE_DISPLAY_REASON_FRONTEND_CALL = "frontEndCall"
 UPDATE_DISPLAY_REASON_HEIGHT_CHANGED = "heightChanged"
@@ -144,6 +157,7 @@ UPDATE_DISPLAY_REASON_FANSPEED_CHANGED = "fanspeedChanged"
 UPDATE_DISPLAY_REASON_PRINTERSTATE_CHANGED = "printerStateChanged"
 UPDATE_DISPLAY_REASON_M73PROGRESS_CHANGED = "m73ProgressChanged"
 UPDATE_DISPLAY_REASON_M600_OCCURRED = "m600Occurred"
+UPDATE_DISPLAY_REASON_TIMER_TRIGGER = "timerTrigger"
 
 # Same as setup.py 'plugin_identifier'
 PLUGIN_KEY_PREFIX = "DisplayLayerProgress_"
@@ -224,6 +238,7 @@ class LayerDetectorFileProcessor(octoprint.filemanager.util.LineProcessorStream)
 
 class DisplaylayerprogressPlugin(
     octoprint.plugin.StartupPlugin,
+    octoprint.plugin.ShutdownPlugin,
     octoprint.plugin.SettingsPlugin,
     octoprint.plugin.AssetPlugin,
     octoprint.plugin.TemplatePlugin,
@@ -286,6 +301,7 @@ class DisplaylayerprogressPlugin(
         self._currentHeightFormatted = NOT_PRESENT
         self._totalHeightFormatted = NOT_PRESENT
         # self._totalHeightWithExtrusionFormatted = NOT_PRESENT
+        self._currentTemperatures = dict()
 
         self._filamentChangeTimeLeftInSeconds = 0
         self._filamentChangeTimeLeftFormatted = NOT_PRESENT
@@ -305,6 +321,8 @@ class DisplaylayerprogressPlugin(
         self.stopWatchOn = False
         self.stopWatchValue = 0
 
+        self._updateDisplayTimer = None
+        self._currentPrinterDisplayMessagePattern = ""
         # self._settings_debugging_enabled = False
         # self._settings_show_all_printer_messages = True
         # self._settings_eta_format = '%H:%M'
@@ -629,6 +647,8 @@ class DisplaylayerprogressPlugin(
 
         self._currentFilename = NOT_PRESENT
 
+        self._currentPrinterDisplayMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
+
 
     def _resetTotalValues(self):
         self._layerTotalCountWithoutOffset = NOT_PRESENT
@@ -673,8 +693,8 @@ class DisplaylayerprogressPlugin(
         showDesktopPrinterDisplay = self._cachedSettings.getStringValue(SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES)
         initDesktopDisplay =  showDesktopPrinterDisplay
         # start-workaround https://github.com/foosel/OctoPrint/issues/3400
-        import time
-        time.sleep(2)
+        # import time
+        # time.sleep(2)
         # end-workaround
 
         self._sendDataToClient(dict(initPrinterDisplay=initDesktopDisplay,
@@ -683,6 +703,41 @@ class DisplaylayerprogressPlugin(
                                     classDefinition=classStyle
                                     )
                               )
+        pass
+
+    def _executeUpdateDisplayTimer(self):
+
+        self._readTemperatures()
+        # Toggle PrinterDisplay
+        if (self._cachedSettings.getBooleanValue(SETTINGS_KEY_PRINTERDISPLAY_TOGGLE_ENABLED)):
+            if (self._currentPrinterDisplayMessagePattern == self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)):
+                self._currentPrinterDisplayMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN_SECOND)
+            else:
+                self._currentPrinterDisplayMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
+
+        self._updateDisplay(UPDATE_DISPLAY_REASON_TIMER_TRIGGER)
+
+
+    def _readTemperatures(self):
+
+        self._currentTemperatures = dict()
+
+        temperaturesRead = self._printer.get_current_temperatures()
+        # identify how many tools do we have
+        printer_profile = self._printer_profile_manager.get_current_or_default()
+        printerProfileToolCount = printer_profile['extruder']['count']
+
+        # for toolIndex, filamentLength in enumerate(self.metaDataFilamentLengths):
+        for toolIndex in range(printerProfileToolCount):
+           toolName = 'tool'+str(toolIndex)
+           if toolName in temperaturesRead:
+               toolValues = temperaturesRead[toolName]
+               self._currentTemperatures[toolName] = toolValues
+           pass
+        if "bed" in temperaturesRead:
+            bedValues = temperaturesRead["bed"]
+            self._currentTemperatures["bed"] = bedValues
+
         pass
 
     def _updateDisplayWorkerMethod(self, updateReason):
@@ -786,6 +841,37 @@ class DisplaylayerprogressPlugin(
                 timeFormat = self._cachedSettings.getStringValue(SETTINGS_KEY_ETA_FORMAT)
                 self._filamentChangeETAFormatted = time.strftime(timeFormat, time.localtime(time.time() + self._filamentChangeTimeLeftInSeconds))
 
+        currentBedTemperature = ""
+        if ("bed" in self._currentTemperatures):
+            currentBedTemperature = str(self._currentTemperatures["bed"]["actual"])
+
+        currentTool0Temperature = ""
+        currentTool1Temperature = ""
+        currentTool2Temperature = ""
+        currentTool3Temperature = ""
+        currentTool4Temperature = ""
+        currentTool5Temperature = ""
+        currentTool6Temperature = ""
+        currentTool7Temperature = ""
+
+        if ("tool0" in self._currentTemperatures):
+            currentTool0Temperature = str(self._currentTemperatures["tool0"]["actual"])
+        if ("tool1" in self._currentTemperatures):
+            currentTool1Temperature = str(self._currentTemperatures["tool1"]["actual"])
+        if ("tool2" in self._currentTemperatures):
+            currentTool2Temperature = str(self._currentTemperatures["tool2"]["actual"])
+        if ("tool3" in self._currentTemperatures):
+            currentTool3Temperature = str(self._currentTemperatures["tool3"]["actual"])
+        if ("tool4" in self._currentTemperatures):
+            currentTool4Temperature = str(self._currentTemperatures["tool4"]["actual"])
+        if ("tool5" in self._currentTemperatures):
+            currentTool5Temperature = str(self._currentTemperatures["tool5"]["actual"])
+        if ("tool6" in self._currentTemperatures):
+            currentTool6Temperature = str(self._currentTemperatures["tool6"]["actual"])
+        if ("tool7" in self._currentTemperatures):
+            currentTool7Temperature = str(self._currentTemperatures["tool7"]["actual"])
+
+
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
             CURRENT_LAYER_KEYWORD_EXPRESSION: self._currentLayer,
@@ -807,9 +893,19 @@ class DisplaylayerprogressPlugin(
             CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION: str(len(self._m600LayerProcessingList)),
             PRINTER_STATE_KEYWORD_EXPRESSION: self._printerState,
             M73PROGRESS_KEYWORD_EXPRESSION: self._m73Progress,
-            CURRENT_FILENAME_KEYWORD_EXPRESSION: self._currentFilename
+            CURRENT_FILENAME_KEYWORD_EXPRESSION: self._currentFilename,
+            CURRENT_BED_TEMP_KEYWORD_EXPRESSION: currentBedTemperature,
+            CURRENT_TOOL0_TEMP_KEYWORD_EXPRESSION: currentTool0Temperature,
+            CURRENT_TOOL1_TEMP_KEYWORD_EXPRESSION: currentTool1Temperature,
+            CURRENT_TOOL2_TEMP_KEYWORD_EXPRESSION: currentTool2Temperature,
+            CURRENT_TOOL3_TEMP_KEYWORD_EXPRESSION: currentTool3Temperature,
+            CURRENT_TOOL4_TEMP_KEYWORD_EXPRESSION: currentTool4Temperature,
+            CURRENT_TOOL5_TEMP_KEYWORD_EXPRESSION: currentTool5Temperature,
+            CURRENT_TOOL6_TEMP_KEYWORD_EXPRESSION: currentTool6Temperature,
+            CURRENT_TOOL7_TEMP_KEYWORD_EXPRESSION: currentTool7Temperature
         }
-        printerMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
+        # printerMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
+        printerMessagePattern = self._currentPrinterDisplayMessagePattern
         printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
 
 
@@ -874,6 +970,8 @@ class DisplaylayerprogressPlugin(
             elif updateReason == UPDATE_DISPLAY_REASON_FANSPEED_CHANGED and self._showFanSpeedOnPrinterDisplay == True:
                 shouldSendToPrinter = True
             elif updateReason == UPDATE_DISPLAY_REASON_FRONTEND_CALL:
+                shouldSendToPrinter = True
+            elif updateReason == UPDATE_DISPLAY_REASON_TIMER_TRIGGER:
                 shouldSendToPrinter = True
 
             if self._cachedSettings.getBooleanValue(SETTINGS_KEY_UPDATE_ONLY_WHILE_PRINTING):
@@ -1037,6 +1135,27 @@ class DisplaylayerprogressPlugin(
                 self._showFeedrateOnPrinterDisplay = True
             if FANSPEED_KEYWORD_EXPRESSION in printerMessagePattern:
                 self._showFanSpeedOnPrinterDisplay = True
+
+        if (self._cachedSettings.getBooleanValue(SETTINGS_KEY_PRINTERDISPLAY_TOGGLE_ENABLED)):
+            printerMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN_SECOND)
+            # copy and paste
+            if (printerMessagePattern != None and len(printerMessagePattern) > 0):
+                if PROGRESS_KEYWORD_EXPRESSION in printerMessagePattern:
+                    self._showProgressOnPrinterDisplay = True
+
+                if CURRENT_LAYER_KEYWORD_EXPRESSION in printerMessagePattern \
+                        or TOTAL_LAYER_KEYWORD_EXPRESSION in printerMessagePattern:
+                    self._showLayerOnPrinterDisplay = True
+                if CURRENT_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern \
+                        or TOTAL_HEIGHT_KEYWORD_EXPRESSION in printerMessagePattern:
+                    self._showHeightOnPrinterDisplay = True
+                if FEEDRATE_KEYWORD_EXPRESSION in printerMessagePattern \
+                        or FEEDRATE_G0_KEYWORD_EXPRESSION in printerMessagePattern \
+                        or FEEDRATE_G1_KEYWORD_EXPRESSION in printerMessagePattern:
+                    self._showFeedrateOnPrinterDisplay = True
+                if FANSPEED_KEYWORD_EXPRESSION in printerMessagePattern:
+                    self._showFanSpeedOnPrinterDisplay = True
+
 
     def _parseLayerExpressions(self, layerExpressionPatterns):
         result = None
@@ -1215,6 +1334,25 @@ class DisplaylayerprogressPlugin(
         pluginInfo = self._getPluginInformation("PrintTimeGenius")
         self._printTimeGeniusPluginImplementationState = pluginInfo[0]
         self._printTimeGeniusPluginImplementation = pluginInfo[1]
+
+
+        self._resetCurrentValues()
+        self._startUpdateDisplayToggleTimer()
+
+    def on_shutdown(self):
+        self._stopUpdateDisplayTimer()
+
+    def _startUpdateDisplayToggleTimer(self):
+        if (self._updateDisplayTimer != None):
+            self._updateDisplayTimer.cancel()
+
+        self._updateDisplayTimer = RepeatedTimer(self._cachedSettings.getIntValue(SETTINGS_KEY_TOGGLE_DISPLAY_DELAY),
+                                                 self._executeUpdateDisplayTimer, run_first=True)
+        self._updateDisplayTimer.start()
+
+    def _stopUpdateDisplayTimer(self):
+        if (self._updateDisplayTimer != None):
+            self._updateDisplayTimer.cancel()
 
     # progress-hook (called in new Thread)
     def on_print_progress(self, storage, path, progress):
@@ -1481,6 +1619,7 @@ class DisplaylayerprogressPlugin(
 
         self._eventLogging("EVENT processed::" + event)
 
+
     # these values could be loaded via JavaScript
     def _storeLayerCountInMeta(self, fileLocation, selectedFilename, layerTotalCountWithoutOffset):
         self._logger.info("Store layer count in MetaFile")
@@ -1492,7 +1631,6 @@ class DisplaylayerprogressPlugin(
                                                    overwrite=True)
 
         # self._sendDataToClient(dict(action="reloadFileView"))
-
 
     def _readHeightFromFileMeta(self, fileLocation, selectedFilename):
 
@@ -1564,6 +1702,9 @@ class DisplaylayerprogressPlugin(
         self._evaluatePrinterMessagePattern()
         self._layerDurationDeque = deque(maxlen=self._cachedSettings.getIntValue(SETTINGS_KEY_LAYER_AVARAGE_DURATION_COUNT))
 
+        self._resetCurrentValues()
+        self._startUpdateDisplayToggleTimer()
+
         if initDesktopPrinterDisplay:
             self._initDesktopPinterDisplay()
         #update new settings
@@ -1573,7 +1714,6 @@ class DisplaylayerprogressPlugin(
     def on_api_get(self, request):
         if len(request.values) != 0:
             action = request.values["action"]
-
             if "isResetSettingsEnabled" == action:
                 return flask.jsonify(enabled="true")
 
@@ -1598,6 +1738,7 @@ class DisplaylayerprogressPlugin(
     def get_settings_defaults(self):
         return dict(
             # put your plugin's default settings here
+            installed_version=self._plugin_version,
             showOnState=True,
             showOnNavBar=True,
             showOnPrinterDisplay=True,
@@ -1656,7 +1797,10 @@ class DisplaylayerprogressPlugin(
             showTimeInNavBar = False,
             currentTimeFormat = "HH:mm",
             printTimeLeftWithoutSeconds = True,
-            layerIndicatorLookAheadLimit = 750
+            layerIndicatorLookAheadLimit = 750,
+            togglePrinterDisplayEnabled = False,
+            toggleDisplayDelay = 3,
+            secondPrinterDisplayMessagePattern = "H=[current_height]/[total_height]"
         )
 
     # ~~ AssetPlugin mixin
@@ -1688,9 +1832,28 @@ class DisplaylayerprogressPlugin(
                 repo="OctoPrint-DisplayLayerProgress",
                 current=self._plugin_version,
 
+                stable_branch=dict(
+                    name="Only Release",
+                    branch="master",
+                    comittish=["master"]
+                ),
+                prerelease_branches=[
+                    dict(
+                        name="Release & Candidate",
+                        branch="pre-release",
+                        comittish=["pre-release", "master"],
+                    ),
+                    dict(
+                        name="Release & Candidate & in development",
+                        branch="development",
+                        comittish=["development", "pre-release", "master"],
+                    )
+                ],
+
                 # update method: pip
                 #pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/archive/{target_version}.zip"
-                pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/latest/download/master.zip"
+                # pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/latest/download/master.zip"
+                pip="https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/download/{target_version}/master.zip"
             )
         )
 

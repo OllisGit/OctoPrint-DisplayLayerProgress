@@ -1,5 +1,6 @@
 
 <form id="displayLayerProgress_plugin_settings" class="form-horizontal" >
+    <h3>DisplayLayerProgress <small>{{ _('Version') }}: <span data-bind="text: settingsViewModel.settings.plugins.DisplayLayerProgress.installed_version"></span></small></h3>
     <div class="tabbable"> <!-- Only required for left/right tabs -->
         <ul class="nav nav-tabs">
             <li class="active"><a href="#tabDisplay" data-toggle="tab">Display</a></li>
@@ -73,8 +74,8 @@
                             [current_height], [total_height], <br/>
                             [feedrate], [feedrate_g0], [feedrate_g1], [fanspeed], <br/>
                             [changefilamenttime_left], [estimated_changefilament_time], [changefilament_count], <br/>
-                            [printer_state], <br/>
-                            [current_print_filename]
+                            [printer_state], [current_print_filename]<br/>
+                            [current_bed_temp], [current_tool0_temp] ... [current_tool7_temp]
                         </code>
                     </div>
 <br>
@@ -99,6 +100,20 @@
 <div class="control-group" >
     <label class="checkbox">{{ _('Printer Display') }}<input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"/></label>
     <input type="text" class="input-block-level text-left" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay, value: settingsViewModel.settings.plugins.DisplayLayerProgress.printerDisplayMessagePattern"/>
+
+    <div class="control-group" >
+        <label class="checkbox" style="padding-top: 4px;margin-bottom: 0px;">Toggle Printer Display Message in <input style="margin-top: 8px;" type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.togglePrinterDisplayEnabled,
+                                                                                                enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay"/>
+            <div class="input-append">
+                <input type="number" step="1" min="1" style="width:33px" class="text-right" data-bind="value: settingsViewModel.settings.plugins.DisplayLayerProgress.toggleDisplayDelay"/>
+                <span class="add-on" >s</span>
+            </div>
+        </label>
+        <div>Second message pattern <input type="text" class="input-block-level text-left" data-bind="enable: settingsViewModel.settings.plugins.DisplayLayerProgress.showOnPrinterDisplay() && settingsViewModel.settings.plugins.DisplayLayerProgress.togglePrinterDisplayEnabled(),
+                                                                          value: settingsViewModel.settings.plugins.DisplayLayerProgress.secondPrinterDisplayMessagePattern"/>
+        </div>
+    </div>
+
 </div>
 
 <div class="control-group" >

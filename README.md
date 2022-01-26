@@ -21,6 +21,7 @@ It shows:
 * ```ChangeFilamentTimeLeft, EstimatedChangeFilamentTime and ChangefilamentCount (based on M600 command location in file)```
 * ```Printer State```
 * ```Currently printed filename```
+* ```Bed and Tool Tempertures```
 
 Some output examples:
 - Printer Display: ```50% L=60/120 H=23mm/47mm```
@@ -77,6 +78,23 @@ Install via the bundled [Plugin Manager](http://docs.octoprint.org/en/master/bun
 or manually using this URL:
 
     https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/releases/latest/download/master.zip
+
+After installation, you can listen on three release channels (since 1.28.0).
+What does this mean: Each channel has its own release-version and each release has a different kind of functionality and stability.
+
+- **"Only Release"**: Only stable and tested versions will be shown in the software-update section of OctoPrint
+- **"Release & Candidate"**: Beside the stable release, you can also see the "release-candidates", like '''1.29.0rc3'''.
+  The rc's includde new functionalty/bugfixes and are already tested by the community.. so by YOU ;-)
+- **"Release & Candidate & in Development"**: Beside stable and rc, you will be informed about development versions.
+  A development version like '''1.30.0.dev5``` could include a new (experimental) feature/bugfix, but it is not fully tested by the community
+
+Changing between each release is done via the "Software Update section" in the settings.
+![release-channels](screenshots/release-channels.png "Release channels")
+
+**!!! If you use the development-channel, you can use the latest feature and can improve the quality of the plugin !!!**
+
+Hint: "Easy-switching" is possible with OctoPrint-Version 1.8.0 (see https://github.com/OctoPrint/OctoPrint/issues/4238).
+At the meantime you need to uninstall and install the version you like from the selected channel...or stay in one channel ;-)
 
 
 ## Configuration
