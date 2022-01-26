@@ -21,7 +21,7 @@ It shows:
 * ```ChangeFilamentTimeLeft, EstimatedChangeFilamentTime and ChangefilamentCount (based on M600 command location in file)```
 * ```Printer State```
 * ```Currently printed filename```
-* ```Bed and Tool Tempertures```
+* ```Bed and Tool Temperatures```
 
 Some output examples:
 - Printer Display: ```50% L=60/120 H=23mm/47mm```
