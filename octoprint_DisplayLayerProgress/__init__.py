@@ -94,7 +94,7 @@ SETTINGS_KEY_TOGGLE_DISPLAY_DELAY = "toggleDisplayDelay"
 # HEIGHT_METHODE_Z_EXPRESSION = "zExpression"
 
 NOT_PRESENT = "-"
-LAYER_MESSAGE_PREFIX = "M117 INDICATOR-Layer"
+LAYER_MESSAGE_PREFIX = "M118 INDICATOR-Layer"
 LAYER_COUNT_EXPRESSION = ".*\n?" +LAYER_MESSAGE_PREFIX + "([0-9]+)"
 
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
@@ -439,9 +439,9 @@ class DisplaylayerprogressPlugin(
         # print("********************** " + commandAsString)
         self._eventLogging("QUEUING-HOOK: " + commandAsString)
         # prevent double messages
-        if commandAsString.startswith("M117"):
+        if commandAsString.startswith("M118"):
             if self._lastM117Command == commandAsString:
-                # filter double M117 commands
+                # filter double M118 commands
                 self._eventLogging("QUEUING-HOOK DROP COMMAND: " + commandAsString)
                 return []
             else:
@@ -452,7 +452,7 @@ class DisplaylayerprogressPlugin(
 
         # layer
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
-            # filter M117 indicator-command, not needed any more
+            # filter M118 indicator-command, not needed any more
             return []
 
         # movement type
@@ -480,7 +480,7 @@ class DisplaylayerprogressPlugin(
             self._startLayerTime = currentTime
 
             self._updateDisplay(UPDATE_DISPLAY_REASON_LAYER_CHANGED)
-            # filter M117 indicator-command, not needed any more
+            # filter M118 indicator-command, not needed any more
             return
 
         # M600
@@ -543,7 +543,7 @@ class DisplaylayerprogressPlugin(
             commandAsString = stringUtils.to_native_str(cmd)
 
             self._eventLogging("SENT-HOOK: " + commandAsString)
-            if commandAsString.startswith("M117 "):
+            if commandAsString.startswith("M118 "):
                 # add to queue for async-processing
                 self._sentGCodeHookCommandQueue.addToQueue(commandAsString)
         return
@@ -552,7 +552,7 @@ class DisplaylayerprogressPlugin(
     def sentGCodeHookWorkerMethod(self, commandAsString):
         showDesktopPrinterDisplay = self._cachedSettings.getBooleanValue(SETTINGS_KEY_SHOW_ALL_PRINTERMESSAGES)
         if (showDesktopPrinterDisplay == True):
-            printerMessage = commandAsString[len("M117 "):]
+            printerMessage = commandAsString[len("M118 "):]
             if self._cachedSettings.getBooleanValue(SETTINGS_KEY_ADD_TRAILINGCHAR):
                 printerMessage = printerMessage[:-1]
 
@@ -906,7 +906,7 @@ class DisplaylayerprogressPlugin(
         }
         # printerMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
         printerMessagePattern = self._currentPrinterDisplayMessagePattern
-        printerMessageCommand = "M117 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
+        printerMessageCommand = "M118 " + stringUtils.multiple_replace(printerMessagePattern, currentValueDict)
 
 
         ############ prepare clientMessage
@@ -1077,7 +1077,7 @@ class DisplaylayerprogressPlugin(
     _lastSendPrinterCommand = None
     _lastSendTime = None
     # printer specific command-manipulation.
-    # e.g. ANET E10 cuts the last char from M117-commands, so this helper adds an additional underscore to the message
+    # e.g. ANET E10 cuts the last char from M118-commands, so this helper adds an additional underscore to the message
     def _sendCommandToPrinter(self, command):
         if (self._lastSendPrinterCommand != command):
 
@@ -1091,7 +1091,7 @@ class DisplaylayerprogressPlugin(
                         return
 
             if self._cachedSettings.getStringValue(SETTINGS_KEY_ADD_TRAILINGCHAR):
-                if command.startswith("M117"):
+                if command.startswith("M118"):
                     command += "_"
             # logging for debugging print("Send GCode:" + command)
             self._eventLogging("SEND-COMMAND: "+command)
@@ -1193,7 +1193,7 @@ class DisplaylayerprogressPlugin(
     layerIndicatorProcessedFileMarker = "; DisplayLayerProgress_layerIndicatorProcessed = true"
 
     # Looks for a property at the end of the file that this file was already processed with LayerIndicators
-    # If not present loop thru the first lines looking for M117 LayerIndicator messages
+    # If not present loop thru the first lines looking for M118 LayerIndicator messages
     # returning
     # - no marker
     # - property found
@@ -1208,7 +1208,7 @@ class DisplaylayerprogressPlugin(
                     break
 
             if resultType == "no marker":
-                # lets look in the first 500 (adjustable) lines, maybe there is already an M117 Indicator
+                # lets look in the first 500 (adjustable) lines, maybe there is already an M118 Indicator
                 lineCounter = 0
                 # layerIndicatorLookAheadLimit = 500
                 layerIndicatorLookAheadLimit = self._cachedSettings.getStringValue(SETTINGS_KEY_LAYERINDICATOR_LOOKAHEAD_LIMIT)
@@ -1588,7 +1588,7 @@ class DisplaylayerprogressPlugin(
             self._updateDisplay(UPDATE_DISPLAY_REASON_FRONTEND_CALL)
 
             self._eventLogging("event print done!")
-            # not needed could be done via standard code-settings self._sendCommandToPrinter("M117 Print Done")
+            # not needed could be done via standard code-settings self._sendCommandToPrinter("M118 Print Done")
             self._isPrinterRunning = False
 
         elif event == Events.CLIENT_OPENED or event == Events.SETTINGS_UPDATED:

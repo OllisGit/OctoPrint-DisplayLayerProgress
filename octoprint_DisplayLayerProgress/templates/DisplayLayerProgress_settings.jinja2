@@ -17,7 +17,7 @@
                     <label class="checkbox">Show printer display on Desktop
                         <input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.DisplayLayerProgress.showAllPrinterMessages" />
                     </label>
-                    <label style="padding-left:21px">Every <code>M117 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp</label>
+                    <label style="padding-left:21px">Every <code>M118 - Message</code> which is send to the printer, will also shown in a Desktop-PopUp</label>
 
                     <div>
                         <label class="checkbox">Screen location: (<a target="newTab" href="https://github.com/sciactive/pnotify/tree/2.1.0#example-stacks">description</a>)</label>
@@ -178,7 +178,7 @@
                             output. <br/>
                             To test it, send the following message example G-Code (via terminal) to your printer:<br/>
                             <br/>
-                            <code>M117 xxx% L=xxx/xxx H=xxx.xx/xxx.xx</code>
+                            <code>M118 xxx% L=xxx/xxx H=xxx.xx/xxx.xx</code>
                             <br/><br/>
                             !!! Some printers ignore the overlapping characters or special chars (e.g. :) and some
                             <b><i>stop</i></b> working !!!
@@ -189,7 +189,7 @@
                 <div class="control-group">
                     <legend>Output interval</legend>
                     <div>
-                        You can define an interval how often the printer-display will be updated. If you choose a value greater zero, you can probably reduce the amount of DLP-M117 messages that will be send to the printer.
+                        You can define an interval how often the printer-display will be updated. If you choose a value greater zero, you can probably reduce the amount of DLP-M118 messages that will be send to the printer.
                     </div>
                     <br/>
                     <div class="controls">
@@ -229,9 +229,9 @@
                     </label>
                     <label style="padding-left:21px">
                         Every Slicer use a different format to put the layer-information into the G-Code.<br/><br/>
-                        If you activate this checkbox, the plugin looks for below layer-expressions and adds a "neutral" M117-command (e.g. <code>M117 INDICATOR-Layer45</code>) into the uploaded G-Code.<br/>
-                        During print this M117-command will be replaced with the print message you defined.<br/><br/>
-                        If you deactivate this checkbox, your slicer needs to provide the above M117 indicator commands.<br/>
+                        If you activate this checkbox, the plugin looks for below layer-expressions and adds a "neutral" M118-command (e.g. <code>M118 INDICATOR-Layer45</code>) into the uploaded G-Code.<br/>
+                        During print this M118-command will be replaced with the print message you defined.<br/><br/>
+                        If you deactivate this checkbox, your slicer needs to provide the above M118 indicator commands.<br/>
                         This is helpfull if you use large files (>50MB) or if you use a mounted filesystem (e.g. NAS) instead of uploading files via UI.
                     </label>
 
