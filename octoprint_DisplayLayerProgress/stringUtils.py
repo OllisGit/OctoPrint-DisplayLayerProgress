@@ -59,7 +59,7 @@ def multiple_replace(text, adict):
     return rx.sub(one_xlat, text)
 
 # see https://stackoverflow.com/questions/4048651/python-function-to-convert-seconds-into-minutes-hours-and-days/4048773
-def secondsToText(secs, hideSeconds=False):
+def secondsToText(secs, hideSeconds=False, withLeadingZeros=False):
     result = ""
     days = secs // 86400
     hours = (secs - days * 86400) // 3600
@@ -75,13 +75,19 @@ def secondsToText(secs, hideSeconds=False):
             result = "{}h".format(hours) + "{}m".format(minutes)
         else:
             result = "{}h".format(hours) + "{}m".format(minutes) + "{}s".format(seconds)
+        if (withLeadingZeros == True):
+            result = "0d" + result
     elif (minutes > 0):
         if (hideSeconds == True):
             result = "{}m".format(minutes)
         else:
             result = "{}m".format(minutes) + "{}s".format(seconds)
+        if (withLeadingZeros == True):
+            result = "0d0h" + result
     elif (seconds >= 0):
         result = "{}s".format(seconds)
+        if (withLeadingZeros == True):
+            result = "0d0h0m" + result
 
     # result = ("{}d".format(days) if days else "") + \
     #          ("{}h".format(hours) if hours else "") + \
@@ -144,8 +150,6 @@ def strfdelta(tdelta, fmt='{D:02}d {H:02}h {M:02}m {S:02}s', inputtype='timedelt
     return f.format(fmt, **values)
 
 
-
-
 import os
 def getLastLinesFromFile(file_name, N):
     # Create an empty list to keep the track of last N lines
@@ -192,13 +196,13 @@ def getLastLinesFromFile(file_name, N):
 
 
 ### TEST-ZONE
-#day = 0
-#hour = 0
-#minute = 1
-#second = 31
-
-#seconds = day * 24 * 60 * 60 +  hour * 60 * 60 +  minute * 60  + second
-#print(secondsToText(None, seconds) )
+# day = 0
+# hour = 0
+# minute = 0
+# second = 31
+#
+# seconds = day * 24 * 60 * 60 +  hour * 60 * 60 +  minute * 60  + second
+# print(secondsToText(seconds, hideSeconds=False, withLeadingZeros=True) )
 
 # import octoprint.util
 # # gcode_line_as_str = "M117 Priming Filamentâ{¦"

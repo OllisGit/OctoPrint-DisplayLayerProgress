@@ -145,6 +145,7 @@ You can receive the layer/height and other values via a GET-Call.
         "changeFilamentTimeLeft": "32s",
         "changeFilamentTimeLeftInSeconds": 32,
         "estimatedChangedFilamentTime": "22:36",
+        "nextChangeFilamentLayer": 5
       }
     }
 
@@ -198,6 +199,7 @@ Plugin sends the following custom events to the eventbus like this:
    'changeFilamentTimeLeft': '1m12s,
    'changeFilamentTimeLeftInSeconds': 72,
    'changeFilamentCount': 2,
+   'nextChangeFilamentLayer': 5,
    'currentFilename': 'AE10_xyzCalibration_cube.gcode'
  }
 ```

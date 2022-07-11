@@ -100,7 +100,7 @@ LAYER_COUNT_EXPRESSION = ".*\n?" +LAYER_MESSAGE_PREFIX + "([0-9]+)"
 # Match G1 Z149.370 F1000 or G0 F9000 X161.554 Y118.520 Z14.950     ##no comments
 # mine: ^[^;](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)
 # pr:   ^G[0|1](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)
-Z_HEIGHT_EXPRESSION = "^[^;]*G[0|1](.*)( Z)([+]*[0-9]+[.]*[0-9]*)(.*)"
+Z_HEIGHT_EXPRESSION = "^[^;]*G[0|1](.*)( Z)([+]?[-]?[0-9]+[.]*[0-9]*)(.*)"
 zHeightPattern = re.compile(Z_HEIGHT_EXPRESSION)
 
 # Match G0 or G1 positive extrusion e.g. G1 X58.030 Y72.281 E0.1839 F2250
@@ -135,6 +135,7 @@ ETA_KEYWORD_EXPRESSION = "[estimated_end_time]"
 ETA_CHANGEFILAMENT_KEYWORD_EXPRESSION = "[estimated_changefilament_time]"
 CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION = "[changefilamenttime_left]"
 CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION = "[changefilament_count]"
+NEXT_CHANGEFILAMENT_LAYER_KEYWORD_EXPRESSION = "[nextchangefilament_layer]" # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/265
 PRINTER_STATE_KEYWORD_EXPRESSION = "[printer_state]"
 M73PROGRESS_KEYWORD_EXPRESSION = "[M73progress]"    # see https://github.com/tpmullan/OctoPrint-DetailedProgress
 CURRENT_FILENAME_KEYWORD_EXPRESSION = "[current_print_filename]"    # see https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/214
@@ -302,10 +303,12 @@ class DisplaylayerprogressPlugin(
         self._totalHeightFormatted = NOT_PRESENT
         # self._totalHeightWithExtrusionFormatted = NOT_PRESENT
         self._currentTemperatures = dict()
+        self._lastBedTemperatures = None
 
         self._filamentChangeTimeLeftInSeconds = 0
         self._filamentChangeTimeLeftFormatted = NOT_PRESENT
         self._filamentChangeETAFormatted = NOT_PRESENT
+        self._nextM600Layer = 0
 
         self._printerState = ""
         self._lastPrinterState = ""
@@ -454,12 +457,6 @@ class DisplaylayerprogressPlugin(
         if commandAsString.startswith(LAYER_MESSAGE_PREFIX):
             # filter M117 indicator-command, not needed any more
             return []
-
-        # movement type
-        if "G90" == gcode:
-            self._movementMode = MOVEMENT_ABSOLUTE
-        if "G91" == gcode:
-            self._movementMode = MOVEMENT_RELATIVE
         return
 
     # do the stuff in async-way
@@ -483,6 +480,12 @@ class DisplaylayerprogressPlugin(
             # filter M117 indicator-command, not needed any more
             return
 
+        # movement type/mode
+        if commandAsString.startswith("G90"):
+            self._movementMode = MOVEMENT_ABSOLUTE
+        if commandAsString.startswith("G91"):
+            self._movementMode = MOVEMENT_RELATIVE
+
         # M600
         if (commandAsString.startswith("M600")):
             self._updateDisplay(UPDATE_DISPLAY_REASON_M600_OCCURRED)
@@ -499,6 +502,12 @@ class DisplaylayerprogressPlugin(
 
             self._currentHeight = "%.2f" % self._currentHeightFloat
             self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
+        # G28 - home
+        if commandAsString.startswith("G28"):
+            self._currentHeightFloat = 0
+            self._currentHeight = "%.2f" % self._currentHeightFloat
+            self._updateDisplay(UPDATE_DISPLAY_REASON_HEIGHT_CHANGED)
+
         # feedrate
         matched = feedratePattern.match(commandAsString)
         if matched:
@@ -649,6 +658,7 @@ class DisplaylayerprogressPlugin(
 
         self._currentPrinterDisplayMessagePattern = self._cachedSettings.getStringValue(SETTINGS_KEY_PRINTERDISPLAY_MESSAGEPATTERN)
 
+        self._lastBedTemperatures = None
 
     def _resetTotalValues(self):
         self._layerTotalCountWithoutOffset = NOT_PRESENT
@@ -737,6 +747,7 @@ class DisplaylayerprogressPlugin(
         if "bed" in temperaturesRead:
             bedValues = temperaturesRead["bed"]
             self._currentTemperatures["bed"] = bedValues
+            self._lastBedTemperatures = bedValues
 
         pass
 
@@ -818,13 +829,11 @@ class DisplaylayerprogressPlugin(
         # layerChanged event, then calculate the predicted filamentChange time
         if (updateReason == UPDATE_DISPLAY_REASON_LAYER_CHANGED):   #TODO only if it is included into message output pattern in settings-ui
             currenLayerNumber = int(self._currentLayer)
-
             if (len(self._m600LayerProcessingList) > 0):
                 self._nextM600Layer = self._m600LayerProcessingList[0]
 
                 if (self._nextM600Layer == currenLayerNumber):
                     self._m600LayerProcessingList.pop(0)
-                    self._nextM600Layer == 0
             else:
                 self._nextM600Layer = 0
 
@@ -843,7 +852,10 @@ class DisplaylayerprogressPlugin(
 
         currentBedTemperature = ""
         if ("bed" in self._currentTemperatures):
-            currentBedTemperature = str(self._currentTemperatures["bed"]["actual"])
+            currentBedTemperature = str(round(self._currentTemperatures["bed"]["actual"], 1))
+
+        if (currentBedTemperature == "" and self._lastBedTemperatures != None):
+            currentBedTemperature = str(round(self._lastBedTemperatures["actual"], 1))
 
         currentTool0Temperature = ""
         currentTool1Temperature = ""
@@ -855,22 +867,21 @@ class DisplaylayerprogressPlugin(
         currentTool7Temperature = ""
 
         if ("tool0" in self._currentTemperatures):
-            currentTool0Temperature = str(self._currentTemperatures["tool0"]["actual"])
+            currentTool0Temperature = str(round(self._currentTemperatures["tool0"]["actual"], 1))
         if ("tool1" in self._currentTemperatures):
-            currentTool1Temperature = str(self._currentTemperatures["tool1"]["actual"])
+            currentTool1Temperature = str(round(self._currentTemperatures["tool1"]["actual"], 1))
         if ("tool2" in self._currentTemperatures):
-            currentTool2Temperature = str(self._currentTemperatures["tool2"]["actual"])
+            currentTool2Temperature = str(round(self._currentTemperatures["tool2"]["actual"], 1))
         if ("tool3" in self._currentTemperatures):
-            currentTool3Temperature = str(self._currentTemperatures["tool3"]["actual"])
+            currentTool3Temperature = str(round(self._currentTemperatures["tool3"]["actual"], 1))
         if ("tool4" in self._currentTemperatures):
-            currentTool4Temperature = str(self._currentTemperatures["tool4"]["actual"])
+            currentTool4Temperature = str(round(self._currentTemperatures["tool4"]["actual"], 1))
         if ("tool5" in self._currentTemperatures):
-            currentTool5Temperature = str(self._currentTemperatures["tool5"]["actual"])
+            currentTool5Temperature = str(round(self._currentTemperatures["tool5"]["actual"], 1))
         if ("tool6" in self._currentTemperatures):
-            currentTool6Temperature = str(self._currentTemperatures["tool6"]["actual"])
+            currentTool6Temperature = str(round(self._currentTemperatures["tool6"]["actual"], 1))
         if ("tool7" in self._currentTemperatures):
-            currentTool7Temperature = str(self._currentTemperatures["tool7"]["actual"])
-
+            currentTool7Temperature = str(round(self._currentTemperatures["tool7"]["actual"], 1))
 
         currentValueDict = {
             PROGRESS_KEYWORD_EXPRESSION: self._progress,
@@ -891,6 +902,7 @@ class DisplaylayerprogressPlugin(
             ETA_CHANGEFILAMENT_KEYWORD_EXPRESSION: self._filamentChangeETAFormatted,
             CHANGEFILAMENTTIME_LEFT_KEYWORD_EXPRESSION: self._filamentChangeTimeLeftFormatted,
             CHANGEFILAMENT_COUNT_KEYWORD_EXPRESSION: str(len(self._m600LayerProcessingList)),
+            NEXT_CHANGEFILAMENT_LAYER_KEYWORD_EXPRESSION: str(self._calculateNextM600Layer()),
             PRINTER_STATE_KEYWORD_EXPRESSION: self._printerState,
             M73PROGRESS_KEYWORD_EXPRESSION: self._m73Progress,
             CURRENT_FILENAME_KEYWORD_EXPRESSION: self._currentFilename,
@@ -1019,6 +1031,7 @@ class DisplaylayerprogressPlugin(
             changeFilamentTimeLeft=self._filamentChangeTimeLeftFormatted,
             changeFilamentTimeLeftInSeconds=self._filamentChangeTimeLeftInSeconds,
             changeFilamentCount=len(self._m600LayerProcessingList),
+            nextChangeFilamentLayer=self._calculateNextM600Layer(),
             currentFilename=self._currentFilename
         )
 
@@ -1045,6 +1058,15 @@ class DisplaylayerprogressPlugin(
 
     _lastSendEventBusData = dict()
 
+    def _calculateNextM600Layer(self):
+        nextM600LayerPlusOne = self._nextM600Layer
+        if nextM600LayerPlusOne == 0:
+            return 0
+        # plus one, because the M600 detection is in prev. layer.
+        # you want to change in layer 5 (cura-extension=5) then M600 command is in layer 4
+        nextM600LayerPlusOne = self._nextM600Layer + 1
+
+        return nextM600LayerPlusOne
 
     def _calculateFeedrate(self, feedrate):
         if feedrate == "-":
@@ -1317,7 +1339,8 @@ class DisplaylayerprogressPlugin(
                 "estimatedChangedFilamentTime": self._filamentChangeETAFormatted,
                 "changeFilamentTimeLeft": self._filamentChangeTimeLeftFormatted,
                 "changeFilamentTimeLeftInSeconds": self._filamentChangeTimeLeftInSeconds,
-                "changeFilamentCount": len(self._m600LayerProcessingList)
+                "changeFilamentCount": len(self._m600LayerProcessingList),
+                "nextChangeFilamentLayer": self._calculateNextM600Layer()
             },
             "currentFilename": self._currentFilename
         })
