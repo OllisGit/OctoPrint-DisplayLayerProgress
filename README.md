@@ -41,8 +41,6 @@ Detailed description how the plugin works, could be find in the wiki: https://gi
   - You can add your own layer-expressions in Plugin-Settings
 - If you are not able find a layer-expression, try to add a "post processiong script in your slicer" E.g. for "slic3r", see [Enhancement #8](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/8)
 - Sometimes there is a "post processing script" that deletes all comments (e.g. see [Issue #33](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/33))
-- The total height "calculation" can be done in three ways:
-    1)the max Z-Value in the G-Code, 2) max Z-Value with extrusion in this height, 3) define a expression like this ```;MAXZ:([0-9]+[.]*[0-9]*).*``` to evaluate the max height [Issue #82](https://github.com/OllisGit/OctoPrint-DisplayLayerProgress/issues/82)
 - The height/layer information is sometimes not matching with G-Code Viewer, because the viewer did a lot of "magic" (e.g. add extrusion diameter to height)
 
 **Comment Format Examples:**
